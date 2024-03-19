@@ -1,0 +1,84 @@
+{
+  "name": "@adobe/helix-rum-bundler",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Helix RUM bundler",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "nodemon",
+    "test": "c8 mocha  -i -g 'Post-Deploy'",
+    "test-postdeploy": "mocha -g 'Post-Deploy'",
+    "lint": "eslint .",
+    "semantic-release": "semantic-release",
+    "commit": "git-cz",
+    "build": "hedy -v",
+    "deploy": "hedy -v --deploy --test",
+    "deploy-routes": "hedy --no-build --no-hints -l major",
+    "deploy-ci": "hedy -v --deploy --test --pkgVersion=ci$CIRCLE_BUILD_NUM -l ci --cleanup-ci 24h",
+    "prepare": "husky install"
+  },
+  "wsk": {
+    "nodeVersion": 20,
+    "target": "aws",
+    "name": "helix3/rum-bundler@${version}",
+    "testUrl": "/_status_check/healthcheck.json",
+    "memory": 256,
+    "fastlyServiceId!important": ""
+  },
+  "mocha": {
+    "spec": "test/**/*.test.js",
+    "require": "test/setup-env.js",
+    "recursive": "true",
+    "reporter": "mocha-multi-reporters",
+    "reporter-options": "configFile=.mocha-multi.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adobe/helix-rum-bundler"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/adobe/helix-rum-bundler/issues"
+  },
+  "homepage": "https://github.com/adobe/helix-rum-bundler#readme",
+  "dependencies": {
+    "@adobe/fetch": "4.1.1",
+    "@adobe/helix-shared-body-data": "2.0.2",
+    "@adobe/helix-shared-wrap": "2.0.1",
+    "@adobe/helix-status": "10.0.11",
+    "@adobe/helix-universal-logger": "3.0.13"
+  },
+  "devDependencies": {
+    "@adobe/eslint-config-helix": "2.0.6",
+    "@adobe/helix-deploy": "11.0.11",
+    "@adobe/helix-universal": "4.5.0",
+    "@adobe/helix-universal-devserver": "1.1.11",
+    "@adobe/semantic-release-coralogix": "1.1.27",
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/exec": "6.0.3",
+    "@semantic-release/git": "10.0.1",
+    "c8": "9.1.0",
+    "dotenv": "16.4.5",
+    "eslint": "8.57.0",
+    "husky": "9.0.11",
+    "junit-report-builder": "3.2.1",
+    "lint-staged": "15.2.2",
+    "mocha": "10.3.0",
+    "mocha-multi-reporters": "1.5.1",
+    "nodemon": "3.1.0",
+    "semantic-release": "22.0.12"
+  },
+  "lint-staged": {
+    "*.js": "eslint"
+  },
+  "nodemonConfig": {
+    "exec": "node --inspect ./test/dev/server.js",
+    "watch": [
+      ".env",
+      "."
+    ],
+    "ext": ".js, .cjs, .ejs, .css"
+  }
+}
