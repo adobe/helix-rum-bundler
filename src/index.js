@@ -119,7 +119,7 @@ async function bundleRUM(ctx) {
 // eslint-disable-next-line no-unused-vars
 async function handleRequest(req, ctx) {
   // TODO
-  return new Response('request handled');
+  return new Response('Hello, world.');
 }
 
 /**
@@ -128,7 +128,7 @@ async function handleRequest(req, ctx) {
  * @returns {boolean}
  */
 function shouldBundleRUM(ctx) {
-  return ctx.invocation.event.source === 'aws.events' || (ctx.runtime.name === 'simulate' && ctx.data.bundle);
+  return ctx.invocation?.event?.source === 'aws.events' || (ctx.runtime?.name === 'simulate' && ctx.data.bundle);
 }
 
 /**
