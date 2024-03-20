@@ -94,6 +94,13 @@ async function bundleRUM(ctx) {
       }),
   );
 
+  // move all events into processed folder
+  await Promise.allSettled(
+    objects.map(async ({ key }) => {
+      await logBucket.move(key, key.replace('raw/', 'processed/'));
+    }),
+  );
+
   return new Response('rum bundled');
 }
 

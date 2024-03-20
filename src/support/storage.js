@@ -333,6 +333,18 @@ class Bucket {
   }
 
   /**
+   * Move an object in the same bucket.
+   *
+   * @param {string} src source key
+   * @param {string} dst destination key
+   * @returns {Promise<void>}
+   */
+  async move(src, dest) {
+    await this.copy(src, dest);
+    await this.remove(src);
+  }
+
+  /**
    * Remove object(s)
    *
    * @param {string|string[]} path source key(s)
