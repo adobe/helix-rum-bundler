@@ -23,26 +23,32 @@ import { HelixStorage } from './support/storage.js';
  * @returns {Promise<RResponse>}
  */
 async function bundleRUM(ctx) {
-  const logBucketName = ctx.env.RUM_LOG_BUCKET || 'helix-rum-logs';
-  const bundleBucketName = ctx.env.RUM_BUNDLE_BUCKET || 'helix-rum-bundles';
-
-  const storage = HelixStorage.fromContext(ctx);
-  const logBucket = storage.bucket(logBucketName);
-  const bundleBucket = storage.bucket(bundleBucketName);
+  const { logBucket, bundleBucket } = HelixStorage.fromContext(ctx);
 
   // list files in log bucket
   const objects = await logBucket.list('raw/');
-  const rawEvents = (await Promise.all(
+  const files = await Promise.all(
     objects
       .filter((o) => !!o.contentType)
       .map(async ({ key }) => {
         const buf = await logBucket.get(key);
         const txt = new TextDecoder('utf8').decode(buf);
-        return JSON.parse(txt);
+        return txt;
       }),
-  )).filter((e) => !!e);
+  );
+  const rawEvents = files
+    .filter((e) => !!e)
+    .reduce((events, txt) => {
+      const lines = txt.split('\n');
+      lines.forEach((line) => {
+        try {
+          events.push(JSON.parse(line));
+        } catch { /* invalid, ignored */ }
+      });
+      return events;
+    }, []);
 
-  // sort raw event into map (storageKEy => event[])
+  // sort raw event into map (storageKey => event[])
   const rawEventMap = {};
   rawEvents.forEach((event) => {
     const date = new Date(event.time);

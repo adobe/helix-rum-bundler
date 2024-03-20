@@ -28,7 +28,6 @@ import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 
 import { Response } from '@adobe/fetch';
 import mime from 'mime';
-// import processQueue from '@adobe/helix-shared-process-queue';
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -280,30 +279,6 @@ class Bucket {
   }
 
   /**
-   * Updates the metadata
-   * @param {string} path
-   * @param {object} meta
-   * @param {object} opts
-   * @returns {Promise<*>}
-   */
-  async putMeta(path, meta, opts = {}) {
-    const key = sanitizeKey(path);
-    const input = {
-      Bucket: this._bucket,
-      Key: key,
-      CopySource: `${this.bucket}/${key}`,
-      Metadata: meta,
-      MetadataDirective: 'REPLACE',
-      ...opts,
-    };
-
-    // write to s3 and r2 (mirror) in parallel
-    const result = await this.sendToS3andR2(CopyObjectCommand, input);
-    this.log.info(`Metadata updated for: ${input.CopySource}`);
-    return result;
-  }
-
-  /**
    * Copy an object in the same bucket.
    *
    * @param {string} src source key
@@ -438,86 +413,6 @@ class Bucket {
     } while (ContinuationToken);
     return folders;
   }
-
-  /**
-   * Copies the tree below src to dst.
-   * @param {string} src Source prefix
-   * @param {string} dst Destination prefix
-   * @param {ObjectFilter} filter Filter function
-   * @returns {Promise<*[]>}
-   */
-  // async copyDeep(src, dst, filter = () => true) {
-  //   const { log } = this;
-  //   const tasks = [];
-  //   const Prefix = sanitizeKey(src);
-  //   const dstPrefix = sanitizeKey(dst);
-  //   this.log.info(`fetching list of files to copy ${this.bucket}/${Prefix} => ${dstPrefix}`);
-  //   (await this.list(Prefix)).forEach((obj) => {
-  //     const {
-  //       path, key, contentLength, contentType,
-  //     } = obj;
-  //     if (filter(obj)) {
-  //       tasks.push({
-  //         src: key,
-  //         path,
-  //         contentLength,
-  //         contentType,
-  //         dst: `${dstPrefix}${path}`,
-  //       });
-  //     }
-  //   });
-
-  //   let errors = 0;
-  //   const changes = [];
-  //   await processQueue(tasks, async (task) => {
-  //     log.info(`copy to ${task.dst}`);
-  //     const input = {
-  //       Bucket: this.bucket,
-  //       CopySource: `${this.bucket}/${task.src}`,
-  //       Key: task.dst,
-  //     };
-  //     try {
-  //       // write to s3 and r2 (mirror) in parallel
-  //       await this.sendToS3andR2(CopyObjectCommand, input);
-  //       changes.push(task);
-  //     } catch (e) {
-  //       // at least 1 cmd failed
-  //       log.warn(`error while copying ${task.dst}: ${e}`);
-  //       errors += 1;
-  //     }
-  //   }, 64);
-  //   log.info(`copied ${changes.length} files to ${dst} (${errors} errors)`);
-  //   return changes;
-  // }
-
-  // async rmdir(src) {
-  //   const { log } = this;
-  //   src = sanitizeKey(src);
-  //   log.info(`fetching list of files to delete from ${this.bucket}/${src}`);
-  //   const items = await this.list(src);
-
-  //   let oks = 0;
-  //   let errors = 0;
-  //   await processQueue(items, async (item) => {
-  //     const { key } = item;
-  //     log.info(`deleting ${this.bucket}/${key}`);
-  //     const input = {
-  //       Bucket: this.bucket,
-  //       Key: key,
-  //     };
-
-  //     try {
-  //       // delete on s3 and r2 (mirror) in parallel
-  //       await this.sendToS3andR2(DeleteObjectCommand, input);
-  //       oks += 1;
-  //     } catch (e) {
-  //       // at least 1 cmd failed
-  //       log.warn(`error while deleting ${key}: ${e.$metadata.httpStatusCode}`);
-  //       errors += 1;
-  //     }
-  //   }, 64);
-  //   log.info(`deleted ${oks} files (${errors} errors)`);
-  // }
 }
 
 /**
@@ -533,17 +428,15 @@ export class HelixStorage {
       const {
         HELIX_HTTP_CONNECTION_TIMEOUT: connectionTimeout = 5000,
         HELIX_HTTP_SOCKET_TIMEOUT: socketTimeout = 15000,
-        CLOUDFLARE_ACCOUNT_ID: r2AccountId,
-        CLOUDFLARE_R2_ACCESS_KEY_ID: r2AccessKeyId,
-        CLOUDFLARE_R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
+        RUM_BUNDLE_BUCKET: bundleBucket,
+        RUM_LOG_BUCKET: logBucket,
       } = context.env;
 
       context.attributes.storage = new HelixStorage({
         connectionTimeout,
         socketTimeout,
-        r2AccountId,
-        r2AccessKeyId,
-        r2SecretAccessKey,
+        logBucket,
+        bundleBucket,
         log: context.log,
       });
     }
@@ -557,25 +450,44 @@ export class HelixStorage {
     'content-language': 'ContentLanguage',
   };
 
+  /** @type {string} */
+  logBucketName = 'helix-rum-logs';
+
+  /** @type {string} */
+  bundleBucketName = 'helix-rum-bundles';
+
   /**
    * Create an instance
    *
-   * @param {object} [opts] options
-   * @param {string} [opts.region] AWS region
-   * @param {string} [opts.accessKeyId] AWS access key
-   * @param {string} [opts.secretAccessKey] AWS secret access key
-   * @param {strong} [opts.r2AccountId]
-   * @param {strong} [opts.r2AccessKeyId]
-   * @param {strong} [opts.r2SecretAccessKey]
-   * @param {object} [opts.log] logger
+   * @param {{
+   *  region?: string;
+   *  accessKeyId?: string;
+   *  secretAccessKey?: string;
+   *  log?: Console;
+   *  logBucket?: string;
+   *  bundleBucket?: string;
+   *  connectionTimeout?: number;
+   *  socketTimeout?: number;
+   * }} [opts] options
    */
   constructor(opts = {}) {
     const {
-      region, accessKeyId, secretAccessKey,
-      connectionTimeout, socketTimeout,
-      // r2AccountId, r2AccessKeyId, r2SecretAccessKey,
+      region,
+      accessKeyId,
+      secretAccessKey,
+      connectionTimeout,
+      socketTimeout,
+      logBucket,
+      bundleBucket,
       log = console,
     } = opts;
+
+    if (logBucket) {
+      this.logBucketName = logBucket;
+    }
+    if (bundleBucket) {
+      this.bundleBucketName = bundleBucket;
+    }
 
     if (region && accessKeyId && secretAccessKey) {
       log.debug('Creating S3Client with credentials');
@@ -605,29 +517,19 @@ export class HelixStorage {
         }),
       });
     }
-
-    // initializing the R2 client which is used for mirroring all S3 writes to R2
-    log.debug('Creating R2 S3Client');
-    // this._r2 = new S3Client({
-    //   endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
-    //   region: 'us-east-1', // https://github.com/aws/aws-sdk-js-v3/issues/1845#issuecomment-754832210
-    //   credentials: {
-    //     accessKeyId: r2AccessKeyId,
-    //     secretAccessKey: r2SecretAccessKey,
-    //   },
-    //   requestHandler: new NodeHttpHandler({
-    //     httpsAgent: new Agent({
-    //       keepAlive: true,
-    //     }),
-    //     connectionTimeout,
-    //     socketTimeout,
-    //   }),
-    // });
     this._log = log;
   }
 
   s3() {
     return this._s3;
+  }
+
+  get logBucket() {
+    return this.bucket('helix-rum-logs');
+  }
+
+  get bundleBucket() {
+    return this.bucket('helix-rum-bundles');
   }
 
   /**
