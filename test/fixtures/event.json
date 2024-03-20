@@ -1,0 +1,13 @@
+{
+  "version": "0",
+  "id": "6165fa05-37a4-4c96-a0e9-60a6845f6587",
+  "detail-type": "Scheduled Event",
+  "source": "aws.scheduler",
+  "account": "123",
+  "time": "2024-03-19T21:35:51Z",
+  "region": "us-east-1",
+  "resources": [
+    "arn:aws:scheduler:us-east-1:123:schedule/scheduler-group/schedule"
+  ],
+  "detail": "{}"
+}

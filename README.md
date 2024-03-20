@@ -2,21 +2,20 @@
 
 > Process RUM events into bundles by domain/time. Provides API to read bundles.
 
-0. RUM events logged to S3 in individual files, message added to queue
+0. RUM events logged to S3 in individual files
 1. triggered by cron (every 10min)
-2. read events from queue in batches of N
-3. read RUM event file for each queue event
-4. sort RUM event into bundle
-5. append or write to RUM bundle
-6. move raw file to `processed` location
+2. read files from logs bucket in batches of N
+3. sort RUM event into bundle
+4. append or write to RUM bundle
+5. move `raw` file to `processed` location
 
 ### Related Resources
-- SQS queue
+- EventBridge schedule
+- S3 bucket (`/helix-rum-bundles`)
+  - contains bundled RUM events in the format: `/{domain}/{year}/{month}/{date}/{utc_hour}.gz`
 - S3 bucket (`/helix-rum-logs`)
-  - `/raw/`: raw event log location, each file in this root is a single unprocessed RUM event
-  - `/raw/processed/`: raw event processed location, contains similar sub-folder structure as `/bundles/`
-  - `/bundles/`: processed and bundled location, contains:
-    - `/{domain}/{year}/{month}/{date}/{utc_hour}.gz`
+  - `/raw/`: raw event log location, each file in this folder is a single unprocessed RUM event
+  - `/processed/`: processed event location, unbundled, eg. `/{domain}/{year}/{month}/{date}/{utc_hour}/{date}-{id}.log`
 
 ### API
 > tbd

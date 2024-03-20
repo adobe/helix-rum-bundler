@@ -9,21 +9,145 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';
 import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
+import { HelixStorage } from './support/storage.js';
 
 /**
- * @param {import('@adobe/fetch').Request} request
- * @param {import('@adobe/helix-universal').Helix.UniversalContext} context
- * @returns {Response} a response
+ * Process RUM event files into bundles
+ * @param {UniversalContext} ctx
+ * @returns {Promise<RResponse>}
+ */
+async function bundleRUM(ctx) {
+  const logBucketName = ctx.env.RUM_LOG_BUCKET || 'helix-rum-logs';
+  const bundleBucketName = ctx.env.RUM_BUNDLE_BUCKET || 'helix-rum-bundles';
+
+  const storage = HelixStorage.fromContext(ctx);
+  const logBucket = storage.bucket(logBucketName);
+  const bundleBucket = storage.bucket(bundleBucketName);
+
+  // list files in log bucket
+  const objects = await logBucket.list('raw/');
+  const rawEvents = (await Promise.all(
+    objects
+      .filter((o) => !!o.contentType)
+      .map(async ({ key }) => {
+        const buf = await logBucket.get(key);
+        const txt = new TextDecoder('utf8').decode(buf);
+        return JSON.parse(txt);
+      }),
+  )).filter((e) => !!e);
+
+  // sort raw event into map (storageKEy => event[])
+  const rawEventMap = {};
+  rawEvents.forEach((event) => {
+    const date = new Date(event.time);
+    const domain = event.host;
+    const key = `/${domain}/${date.getUTCFullYear()}/${date.getUTCMonth()}/${date.getUTCDate()}/${date.getUTCHours()}`;
+    if (!rawEventMap[key]) {
+    // eslint-disable-next-line no-param-reassign
+      rawEventMap[key] = [];
+    }
+    rawEventMap[key].push(event);
+  });
+
+  await Promise.allSettled(
+    Object.entries(rawEventMap)
+      .forEach(async ([key, events]) => {
+        // if bundle exists, append, otherwise create
+        const existing = await bundleBucket.get(key);
+
+        /** @type {RUMBundle} */
+        let bundle;
+        if (existing) {
+          const txt = new TextDecoder('utf8').decode(existing);
+          bundle = JSON.parse(txt);
+        } else {
+          bundle = [];
+        }
+
+        // convert bundle to map (id => event[])
+        /** @type {Record<string, RUMEventGroup>} */
+        const bundleMap = bundle.reduce((acc, group) => {
+          acc[group.id] = group;
+          return acc;
+        }, {});
+
+        // add events to associated group
+        events.forEach((event) => {
+          if (!bundleMap[event.id]) {
+            bundleMap[event.id] = {
+              ...event,
+              events: [],
+            };
+            bundleMap[event.id].events.push(event);
+          }
+        });
+
+        // convert back to bundle and store
+        bundle = Object.values(bundleMap);
+        await bundleBucket.put(key, JSON.stringify(bundle));
+      }),
+  );
+
+  return new Response('rum bundled');
+}
+
+/**
+ * Respond to HTTP request
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @returns {Promise<RResponse>}
+ */
+// eslint-disable-next-line no-unused-vars
+async function handleRequest(req, ctx) {
+  // TODO
+  return new Response('request handled');
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @returns {boolean}
+ */
+function shouldBundleRUM(ctx) {
+  return ctx.invocation.event.source === 'aws.events' || (ctx.runtime.name === 'simulate' && ctx.data.bundle);
+}
+
+/**
+ * @param {RRequest} request
+ * @param {UniversalContext} context
+ * @returns {Promise<RResponse>}
  */
 async function run(request, context) {
-  // if triggered by EventBridge, perform bundling
+  const { log } = context;
 
-  return new Response('hello world');
+  let resp;
+  try {
+    if (shouldBundleRUM(context)) {
+      resp = await bundleRUM(context);
+    } else {
+      resp = await handleRequest(request, context);
+    }
+  } catch (e) {
+    if (e?.response) {
+      resp = e.response;
+    } else {
+      log.error(e);
+      resp = new Response('Internal Server Error', {
+        status: 500,
+        headers: {
+          'x-error': e.message,
+        },
+      });
+    }
+  }
+
+  return resp;
 }
 
 export const main = wrap(run)
