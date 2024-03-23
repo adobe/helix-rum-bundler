@@ -106,14 +106,17 @@ class Bucket {
     }
   }
 
+  /** @type {S3Client} */
   get client() {
     return this._s3;
   }
 
+  /** @type {string} */
   get bucket() {
     return this._bucket;
   }
 
+  /** @type {Console} */
   get log() {
     return this._log;
   }
@@ -368,10 +371,12 @@ class Bucket {
   /**
    * Returns a list of object below the given prefix
    * @param {string} prefix
-   * @returns {Promise<ObjectInfo[]>}
+   * @param {{ limit?: number }} [options]
+   * @returns {Promise<{ isTruncated: boolean; objects: ObjectInfo[] }>}
    */
-  async list(prefix) {
+  async list(prefix, { limit } = { limit: Infinity }) {
     let ContinuationToken;
+    const truncated = false;
     const objects = [];
     do {
       // eslint-disable-next-line no-await-in-loop
@@ -379,9 +384,10 @@ class Bucket {
         Bucket: this.bucket,
         ContinuationToken,
         Prefix: prefix,
+        MaxKeys: limit,
       }));
       ContinuationToken = result.IsTruncated ? result.NextContinuationToken : '';
-      (result.Contents || []).forEach((content) => {
+      for (const content of (result.Contents || [])) {
         const key = content.Key;
         objects.push({
           key,
@@ -390,9 +396,15 @@ class Bucket {
           contentType: mime.getType(key),
           path: `${key.substring(prefix.length)}`,
         });
-      });
-    } while (ContinuationToken);
-    return objects;
+        if (objects.length >= limit) {
+          break;
+        }
+      }
+    } while (ContinuationToken && objects.length < limit);
+    return {
+      objects,
+      isTruncated: truncated || !!ContinuationToken,
+    };
   }
 
   async listFolders(prefix) {
@@ -426,6 +438,10 @@ export class HelixStorage {
   static fromContext(context) {
     if (!context.attributes.storage) {
       const {
+        // REGION: region,
+        // AWS_ACCESS_KEY_ID: accessKeyId,
+        // AWS_SECRET_ACCESS_KEY: secretAccessKey,
+        // AWS_SESSION_TOKEN: sessionToken,
         HELIX_HTTP_CONNECTION_TIMEOUT: connectionTimeout = 5000,
         HELIX_HTTP_SOCKET_TIMEOUT: socketTimeout = 15000,
         RUM_BUNDLE_BUCKET: bundleBucket,
@@ -433,6 +449,10 @@ export class HelixStorage {
       } = context.env;
 
       context.attributes.storage = new HelixStorage({
+        // region,
+        // accessKeyId,
+        // secretAccessKey,
+        // sessionToken,
         connectionTimeout,
         socketTimeout,
         logBucket,
@@ -463,6 +483,7 @@ export class HelixStorage {
    *  region?: string;
    *  accessKeyId?: string;
    *  secretAccessKey?: string;
+   *  sessionToken?: string;
    *  log?: Console;
    *  logBucket?: string;
    *  bundleBucket?: string;
@@ -479,23 +500,27 @@ export class HelixStorage {
       socketTimeout,
       logBucket,
       bundleBucket,
+      sessionToken,
       log = console,
     } = opts;
 
     if (logBucket) {
+      log.debug('Using log bucket', logBucket);
       this.logBucketName = logBucket;
     }
     if (bundleBucket) {
+      log.debug('Using bundle bucket', bundleBucket);
       this.bundleBucketName = bundleBucket;
     }
 
     if (region && accessKeyId && secretAccessKey) {
-      log.debug('Creating S3Client with credentials');
+      log.debug('Creating S3Client with credentials', region, accessKeyId, secretAccessKey);
       this._s3 = new S3Client({
         region,
         credentials: {
           accessKeyId,
           secretAccessKey,
+          sessionToken,
         },
         requestHandler: new NodeHttpHandler({
           httpsAgent: new Agent({
@@ -525,11 +550,11 @@ export class HelixStorage {
   }
 
   get logBucket() {
-    return this.bucket('helix-rum-logs');
+    return this.bucket(this.logBucketName);
   }
 
   get bundleBucket() {
-    return this.bucket('helix-rum-bundles');
+    return this.bucket(this.bundleBucketName);
   }
 
   /**

@@ -38,6 +38,25 @@ declare global {
     events: RUMEvent[];
   }
 
-  // each bundle is all event groups belonging to an hour/date/month/year, for a single domain
-  export type RUMBundle = RUMEventGroup[];
+  export interface BundleData {
+    /**
+     * each bundle is all event groups belonging to an hour/date/month/year, for a single domain
+     * key is the event group id
+     */
+    groups: Record<string, RUMEventGroup>;
+  }
+
+  /**
+   * Data to relate new events to existing sessions from past 24h.
+   */
+  export interface SessionData {
+    hour: number;
+  }
+
+  export interface ManifestData {
+    /**
+     * session id (id from RUM event) => session data
+     */
+    sessions: Record<string, SessionData>;
+  }
 }
