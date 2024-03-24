@@ -160,7 +160,7 @@ export async function bundleRUM(ctx) {
       );
 
       // save touched manifests and bundles
-      await Promise.all([
+      await Promise.allSettled([
         manifest.store(),
         yManifest?.store(),
         ...[...bundles].map((b) => b.store()),

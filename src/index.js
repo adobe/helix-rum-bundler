@@ -16,18 +16,7 @@ import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
 import { bundleRUM } from './bundler.js';
-
-/**
- * Respond to HTTP request
- * @param {RRequest} req
- * @param {UniversalContext} ctx
- * @returns {Promise<RResponse>}
- */
-// eslint-disable-next-line no-unused-vars
-async function handleRequest(req, ctx) {
-  // TODO
-  return new Response('Hello, world.');
-}
+import { handleRequest } from './api.js';
 
 /**
  * @param {RRequest} req
@@ -56,6 +45,9 @@ async function run(request, context) {
   } catch (e) {
     if (e?.response) {
       resp = e.response;
+      if (e.message) {
+        log.info(e.message);
+      }
     } else {
       log.error(e);
       resp = new Response('Internal Server Error', {
@@ -70,8 +62,33 @@ async function run(request, context) {
   return resp;
 }
 
+/**
+ * Wrapper to add common Response headers
+ * @param {(...args: any[])  => Promise<RResponse>} fn
+ * @returns {(req: RRequest, ctx: UniversalContext) => Promise<RResponse>}
+ */
+function addCommonResponseHeadersWrapper(fn) {
+  return async (req, context) => {
+    const res = await fn(req, context);
+    if (!res.headers.has('cache-control')) {
+      res.headers.set('cache-control', 'no-store, private, must-revalidate');
+    }
+
+    // add CORS headers if origin is present
+    const origin = req.headers.get('origin');
+    if (origin) {
+      res.headers.set('access-control-allow-origin', origin);
+      res.headers.set('access-control-allow-credentials', 'true');
+      res.headers.set('access-control-expose-headers', 'x-error');
+    }
+    return res;
+  };
+}
+
+/** @type {(...args: any[]) => Promise<RResponse>} */
 export const main = wrap(run)
   .with(helixStatus)
   .with(logger.trace)
   .with(logger)
+  .with(addCommonResponseHeadersWrapper)
   .with(bodyData);

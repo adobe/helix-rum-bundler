@@ -34,7 +34,6 @@ export default class Bundle {
    * @param {BundleData} data
    */
   constructor(ctx, key, data = {}) {
-    console.log('bundle constructor', key);
     this.ctx = ctx;
     this.key = key;
     this.groups = data.groups || {};
@@ -60,7 +59,7 @@ export default class Bundle {
       const data = JSON.stringify({ groups: this.groups });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       this.ctx.log.debug(`storing bundle to ${this.key}.json`);
-      await bundleBucket.put(`${this.key}.json`, JSON.stringify(data), 'application/json');
+      await bundleBucket.put(`${this.key}.json`, data, 'application/json');
       this.dirty = false;
     }
   }

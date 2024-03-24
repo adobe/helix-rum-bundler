@@ -16,8 +16,8 @@ import { Request } from '@adobe/fetch';
 import { main } from '../src/index.js';
 
 describe('Index Tests', () => {
-  it('index function is present', async () => {
-    const result = await main(new Request('https://localhost/'), {});
-    assert.strictEqual(await result.text(), 'Hello, world.');
+  it('rejects unauthorized requests', async () => {
+    const resp = await main(new Request('https://localhost/'), { env: {} });
+    assert.strictEqual(resp.status, 401);
   });
 });
