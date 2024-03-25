@@ -13,6 +13,7 @@
 import { Response } from '@adobe/fetch';
 import { errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
+import Manifest from './Manifest.js';
 
 /**
  * @typedef {{
@@ -118,6 +119,41 @@ async function fetchHourly(path, ctx) {
 }
 
 /**
+ * @param {ParsedPath} path
+ * @param {UniversalContext} ctx
+ * @returns {Promise<any>}
+ */
+async function fetchDaily(path, ctx) {
+  // get manifest for the day
+  const manifest = await Manifest.fromContext(ctx, path.domain, path.year, path.month, path.day);
+
+  // get all hours with events
+  const hours = new Set(Object.keys(manifest.sessions).map((id) => manifest.sessions[id].hour));
+
+  // fetch all bundles
+  const hourlyBundles = await Promise.allSettled(
+    [...hours].map((hour) => fetchHourly({
+      ...path,
+      hour: parseInt(hour, 10),
+    }, ctx)),
+  );
+
+  // combine the bundles
+  // TODO: adjust bundle size and event weight according to event counts
+  // for now just return all the data we have
+  return hourlyBundles.reduce(
+    (acc, curr) => {
+      if (curr.status === 'rejected') {
+        return acc;
+      }
+      acc.rumBundles.push(...curr.value.rumBundles);
+      return acc;
+    },
+    { rumBundles: [] },
+  );
+}
+
+/**
  * Respond to HTTP request
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -129,11 +165,17 @@ export async function handleRequest(req, ctx) {
 
   const parsed = parsePath(ctx.pathInfo.suffix);
 
-  // TODO: handle other request levels, but for now just support hourly
-  if (typeof parsed.hour !== 'number') {
-    return new Response('Not found', { status: 404 });
+  // TODO: handle other request levels, but for now just support hourly/daily
+  if (typeof parsed.day !== 'number') {
+    return new Response('Not implemented', { status: 501, headers: { 'x-error': 'not implemented' } });
   }
-  const data = await fetchHourly(parsed, ctx);
+
+  let data;
+  if (typeof parsed.hour !== 'number') {
+    data = await fetchDaily(parsed, ctx);
+  } else {
+    data = await fetchHourly(parsed, ctx);
+  }
   if (!data) {
     return new Response('Not found', { status: 404 });
   }

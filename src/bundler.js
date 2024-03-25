@@ -16,7 +16,7 @@ import { HelixStorage } from './support/storage.js';
 import Manifest from './Manifest.js';
 import Bundle from './Bundle.js';
 
-const BATCH_LIMIT = 2;
+const BATCH_LIMIT = 50;
 const CONCURRENCY_LIMIT = 10;
 
 /**
