@@ -15,6 +15,7 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from './support/storage.js';
 import Manifest from './Manifest.js';
 import Bundle from './Bundle.js';
+import { errorWithResponse } from './util.js';
 
 const BATCH_LIMIT = 50;
 const CONCURRENCY_LIMIT = 10;
@@ -37,11 +38,37 @@ export const yesterday = (year, month, date) => {
 };
 
 /**
+ * Lock the log bucket to prevent concurrent bundling.
+ * If `.lock` file already exists, throw 409 response.
+ *
+ * @param {UniversalContext} ctx
+ * @returns {Promise<void>}
+ */
+async function lockOrThrow(ctx) {
+  const { logBucket } = HelixStorage.fromContext(ctx);
+  const head = await logBucket.head('.lock');
+  if (head) {
+    throw errorWithResponse(409, 'bundling in progress', `bundling started at ${head.LastModified}`);
+  }
+  await logBucket.put('.lock', '', 'text/plain', undefined, undefined);
+}
+
+/**
+ * Remove lock file
+ * @param {UniversalContext} ctx
+ * @returns {Promise<void>}
+ */
+async function unlock(ctx) {
+  const { logBucket } = HelixStorage.fromContext(ctx);
+  await logBucket.remove('.lock');
+}
+
+/**
  * Process RUM event files into bundles
  * @param {UniversalContext} ctx
- * @returns {Promise<RResponse>}
+ * @returns {Promise<boolean>} whether all files are processed
  */
-export async function bundleRUM(ctx) {
+async function doBundling(ctx) {
   const { log } = ctx;
   const { logBucket } = HelixStorage.fromContext(ctx);
 
@@ -73,7 +100,7 @@ export async function bundleRUM(ctx) {
     }, []);
   log.info(`processing ${rawEvents.length} RUM events from ${objects.length} files`);
   if (rawEvents.length === 0) {
-    return new Response('no new events');
+    return !isTruncated;
   }
 
   // sort raw event into map (storageKey => event[])
@@ -180,5 +207,26 @@ export async function bundleRUM(ctx) {
     CONCURRENCY_LIMIT,
   );
 
-  return new Response('rum bundled');
+  return !isTruncated;
+}
+
+/**
+ * Process RUM event files into bundles
+ * @param {UniversalContext} ctx
+ * @returns {Promise<RResponse>}
+ */
+export async function bundleRUM(ctx) {
+  await lockOrThrow(ctx);
+  try {
+    // repeat bundling until none more to process
+    // TODO: set a limit on bundling duration
+    let done = false;
+    while (!done) {
+    // eslint-disable-next-line no-await-in-loop
+      done = await doBundling(ctx);
+    }
+  } finally {
+    await unlock(ctx);
+  }
+  return new Response('rum bundled', { status: 200 });
 }
