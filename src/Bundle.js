@@ -12,6 +12,46 @@
 
 import { HelixStorage } from './support/storage.js';
 
+const pruneUndefined = (obj) => {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
+/**
+ *
+ * @param {RawRUMEvent} event
+ */
+const getGroupProperties = (event) => ({
+  id: event.id,
+  host: event.host,
+  time: event.time,
+  // timeSlot: event.time,
+  url: event.url,
+  user_agent: event.user_agent,
+  referer: event.string,
+  weight: event.weight,
+  events: [],
+});
+
+/**
+ * @param {RawRUMEvent} event
+ */
+const getEventProperties = (event) => pruneUndefined({
+  ...event,
+  id: undefined,
+  host: undefined,
+  url: undefined,
+  user_agent: undefined,
+  referer: undefined,
+  weight: undefined,
+  time: undefined,
+});
+
 export default class Bundle {
   /**
    * @type {UniversalContext}
@@ -40,17 +80,15 @@ export default class Bundle {
   }
 
   /**
-   * @param {RUMEvent} event
+   * @param {RawRUMEvent} event
    */
   push(event) {
     if (!this.groups[event.id]) {
-      this.groups[event.id] = {
-        // TODO: be more selective with the data that's stored in the group object
-        ...event,
-        events: [],
-      };
+      // NOTE: only store what's required in the top level object
+      // and skip those properties for the events within it
+      this.groups[event.id] = getGroupProperties(event);
     }
-    this.groups[event.id].events.push(event);
+    this.groups[event.id].events.push(getEventProperties(event));
     this.dirty = true;
   }
 
