@@ -131,22 +131,36 @@ async function fetchDaily(path, ctx) {
   const hours = new Set(Object.keys(manifest.sessions).map((id) => manifest.sessions[id].hour));
 
   // fetch all bundles
+  let totalEvents = 0;
   const hourlyBundles = await Promise.allSettled(
-    [...hours].map((hour) => fetchHourly({
-      ...path,
-      hour: parseInt(hour, 10),
-    }, ctx)),
+    [...hours].map(async (hour) => {
+      const data = await fetchHourly({
+        ...path,
+        hour: parseInt(hour, 10),
+      }, ctx);
+      totalEvents += data.rumBundles.length;
+      return data;
+    }),
   );
+  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
   // combine the bundles
   // TODO: adjust bundle size and event weight according to event counts
   // for now just return all the data we have
+  const weightFactor = 1;
+  // if (totalEvents > ...) {
+  // }
   return hourlyBundles.reduce(
     (acc, curr) => {
       if (curr.status === 'rejected') {
         return acc;
       }
-      acc.rumBundles.push(...curr.value.rumBundles);
+      acc.rumBundles.push(
+        ...curr.value.rumBundles.map((b) => ({
+          ...b,
+          weight: b.weight * weightFactor,
+        })),
+      );
       return acc;
     },
     { rumBundles: [] },

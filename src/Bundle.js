@@ -23,14 +23,13 @@ const pruneUndefined = (obj) => {
 };
 
 /**
- *
  * @param {RawRUMEvent} event
  */
 const getGroupProperties = (event) => ({
   id: event.id,
   host: event.host,
   time: event.time,
-  // timeSlot: event.time,
+  timeSlot: Number(new Date(event.time).setMinutes(0, 0, 0)), // only date/hour
   url: event.url,
   user_agent: event.user_agent,
   referer: event.string,
@@ -41,16 +40,52 @@ const getGroupProperties = (event) => ({
 /**
  * @param {RawRUMEvent} event
  */
-const getEventProperties = (event) => pruneUndefined({
-  ...event,
-  id: undefined,
-  host: undefined,
-  url: undefined,
-  user_agent: undefined,
-  referer: undefined,
-  weight: undefined,
-  time: undefined,
-});
+const getCWVEventType = (event) => {
+  if (event.TTFB != null) {
+    return 'TTFB';
+  }
+  if (event.FID != null) {
+    return 'FID';
+  }
+  if (event.LCP != null) {
+    return 'LCP';
+  }
+  if (event.CLS != null) {
+    return 'CLS';
+  }
+  if (event.INP != null) {
+    return 'INP';
+  }
+  return null;
+};
+
+/**
+ * @param {RawRUMEvent} event
+ * @param {RUMEventGroup} group
+ */
+const getEventProperties = (event, group) => {
+  // custom handling cases for specific event types
+  if (event.checkpoint === 'cwv') {
+    const type = getCWVEventType(event);
+    if (type) {
+      return {
+        checkpoint: `cwv-${type.toLowerCase()}`,
+        value: event[type],
+      };
+    }
+  }
+
+  return pruneUndefined({
+    ...event,
+    time: event.time - group.timeSlot, // diff in ms from group's timeSlot
+    id: undefined,
+    host: undefined,
+    url: undefined,
+    user_agent: undefined,
+    referer: undefined,
+    weight: undefined,
+  });
+};
 
 export default class Bundle {
   /**
@@ -88,7 +123,7 @@ export default class Bundle {
       // and skip those properties for the events within it
       this.groups[event.id] = getGroupProperties(event);
     }
-    this.groups[event.id].events.push(getEventProperties(event));
+    this.groups[event.id].events.push(getEventProperties(event, this.groups[event.id]));
     this.dirty = true;
   }
 

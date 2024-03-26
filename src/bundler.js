@@ -17,8 +17,9 @@ import Manifest from './Manifest.js';
 import Bundle from './Bundle.js';
 import { errorWithResponse } from './util.js';
 
-const BATCH_LIMIT = 50;
-const CONCURRENCY_LIMIT = 10;
+const BATCH_LIMIT = 10;
+const CONCURRENCY_LIMIT = 4;
+const PROCESS_ALL = false; // whether to continue processing event log files until directory empty
 
 /**
  * Get yesterday's date
@@ -224,6 +225,7 @@ export async function bundleRUM(ctx) {
     while (!done) {
     // eslint-disable-next-line no-await-in-loop
       done = await doBundling(ctx);
+      if (!PROCESS_ALL) break;
     }
   } finally {
     await unlock(ctx);
