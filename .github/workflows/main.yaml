@@ -2,8 +2,8 @@ name: Build
 on: [push]
 
 env:
-  CIRCLE_BUILD_NUM: ${{ github.run_id }}
-  CIRCLE_BRANCH: ${{ github.ref_name }}
+  CI_BUILD_NUM: ${{ github.run_id }}
+  CI_BRANCH: ${{ github.ref_name }}
   AWS_DEPLOY_ROLE: arn:aws:iam::282898975672:role/helix-role-github-actions
   AWS_DEPLOY_SECRET_ID: /helix/github-action-secrets
 
@@ -62,6 +62,10 @@ jobs:
         run: npm run deploy-ci
       - name: Post-Deployment Integration Test
         run: npm run test-postdeploy
+      - name: Semantic Release (Dry Run)
+        run: npm run semantic-release-dry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Release
