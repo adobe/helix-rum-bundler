@@ -21,7 +21,7 @@
   "wsk": {
     "nodeVersion": 20,
     "target": "aws",
-    "name": "helix3/rum-bundler@${version}",
+    "name": "helix-services/rum-bundler@${version}",
     "testUrl": "/_status_check/healthcheck.json",
     "awsRole!important": "arn:aws:iam::282898975672:role/helix-rum-bundler-role",
     "awsRegion": "us-east-1",
