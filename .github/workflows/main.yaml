@@ -45,13 +45,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: $AWS_DEPLOY_ROLE
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
       - name: Fetch AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           parse-json-secrets: true
           secret-ids: |
-            $AWS_DEPLOY_SECRET_ID
+            ${{ env.AWS_DEPLOY_SECRET_ID }}
       # see https://github.com/aws-actions/aws-secretsmanager-get-secrets/issues/11
       - name: unprefix variables
         run: |
@@ -80,13 +80,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: $AWS_DEPLOY_ROLE
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
       - name: Fetch AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           parse-json-secrets: true
           secret-ids: |
-            $AWS_DEPLOY_SECRET_ID
+            ${{ env.AWS_DEPLOY_SECRET_ID }}
       # see https://github.com/aws-actions/aws-secretsmanager-get-secrets/issues/11
       - name: unprefix variables
         run: |
