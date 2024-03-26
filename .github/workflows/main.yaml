@@ -82,7 +82,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::319304356856:role/helix-gh-deploy-config-service
+          role-to-assume: arn:aws:iam::282898975672:role/helix-gh-deploy-config-service
       - name: Fetch AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
