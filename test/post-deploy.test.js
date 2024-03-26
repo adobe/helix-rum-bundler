@@ -20,8 +20,8 @@ createTargets().forEach((target) => {
     const fetchContext = h1NoCache();
     const { fetch } = fetchContext;
 
-    afterEach(() => {
-      fetchContext.reset();
+    afterEach(async () => {
+      await fetchContext.reset();
     });
 
     it('returns the status of the function', async () => {
