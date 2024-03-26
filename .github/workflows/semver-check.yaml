@@ -5,6 +5,7 @@ on:
 
 permissions:
   issues: write
+  pull_requests: write
 
 jobs:
   ci_trigger:
