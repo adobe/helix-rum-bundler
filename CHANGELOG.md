@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/adobe/helix-rum-bundler/compare/v1.0.0...v1.0.1) (2024-03-26)
+
+
+### Bug Fixes
+
+* release script ([771013c](https://github.com/adobe/helix-rum-bundler/commit/771013c9d8477bd2cf7f5dafff5ca78f3fd43bac))
+
 # 1.0.0 (2024-03-26)
 
 
