@@ -10,18 +10,20 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { HelixStorage } from './support/storage.js';
 
 export default class Manifest {
   /**
    * @type {UniversalContext}
    */
-  ctx = undefined;
+  ctx;
 
   /**
    * @type {string}
    */
-  key = undefined;
+  key;
 
   /**
    * @type {Record<string, SessionData>}
@@ -36,12 +38,12 @@ export default class Manifest {
   /**
    * @param {UniversalContext} ctx
    * @param {string} key
-   * @param {ManifestData} data
+   * @param {ManifestData} [data]
    */
-  constructor(ctx, key, data = {}) {
+  constructor(ctx, key, data) {
     this.ctx = ctx;
     this.key = key;
-    this.sessions = data.sessions || {};
+    this.sessions = data?.sessions || {};
   }
 
   /**

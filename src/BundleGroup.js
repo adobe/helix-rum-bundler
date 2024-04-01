@@ -10,8 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { HelixStorage } from './support/storage.js';
 
+/**
+ * @type {<T extends Record<string, unknown>>(obj: T) => T}
+ */
 const pruneUndefined = (obj) => {
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -19,23 +24,30 @@ const pruneUndefined = (obj) => {
       result[key] = value;
     }
   }
+  // @ts-ignore
   return result;
 };
 
 /**
  * @param {RawRUMEvent} event
  */
-const getGroupProperties = (event) => ({
-  id: event.id,
-  host: event.host,
-  time: event.time,
-  timeSlot: Number(new Date(event.time).setMinutes(0, 0, 0)), // only date/hour
-  url: event.url,
-  user_agent: event.user_agent,
-  referer: event.string,
-  weight: event.weight,
-  events: [],
-});
+const getBundleProperties = (event) => {
+  const tmpTime = new Date(event.time);
+  const time = tmpTime.toISOString();
+  tmpTime.setMinutes(0, 0, 0);
+  const timeSlot = tmpTime.toISOString(); // only date/hour
+  return {
+    id: event.id,
+    host: event.host,
+    time,
+    timeSlot,
+    url: event.url,
+    userAgent: event.user_agent,
+    referer: event.string,
+    weight: event.weight,
+    events: [],
+  };
+};
 
 /**
  * @param {RawRUMEvent} event
@@ -61,13 +73,15 @@ const getCWVEventType = (event) => {
 
 /**
  * @param {RawRUMEvent} event
- * @param {RUMEventGroup} group
+ * @param {RUMBundle} bundle
+ * @returns {RUMEvent}
  */
-const getEventProperties = (event, group) => {
+const getEventProperties = (event, bundle) => {
   // custom handling cases for specific event types
   if (event.checkpoint === 'cwv') {
     const type = getCWVEventType(event);
     if (type) {
+      // @ts-ignore
       return {
         checkpoint: `cwv-${type.toLowerCase()}`,
         value: event[type],
@@ -75,28 +89,32 @@ const getEventProperties = (event, group) => {
     }
   }
 
+  // @ts-ignore
   return pruneUndefined({
     ...event,
-    time: event.time - group.timeSlot, // diff in ms from group's timeSlot
+    timeDelta: event.time - Number(new Date(bundle.timeSlot)),
     id: undefined,
     host: undefined,
     url: undefined,
     user_agent: undefined,
     referer: undefined,
     weight: undefined,
+    source: event.source ?? undefined,
+    target: event.target ?? undefined,
+    value: event.value ?? undefined,
   });
 };
 
-export default class Bundle {
+export default class BundleGroup {
   /**
    * @type {UniversalContext}
    */
-  ctx = undefined;
+  ctx;
 
   /**
-   * @type {Record<string, RUMEventGroup>}
+   * @type {Record<string, RUMBundle>}
    */
-  groups = {};
+  bundles = {};
 
   /**
    * @type {boolean}
@@ -106,30 +124,31 @@ export default class Bundle {
   /**
    * @param {UniversalContext} ctx
    * @param {string} key
-   * @param {BundleData} data
+   * @param {BundleGroupData} [data]
    */
-  constructor(ctx, key, data = {}) {
+  constructor(ctx, key, data) {
     this.ctx = ctx;
     this.key = key;
-    this.groups = data.groups || {};
+    this.bundles = data?.bundles || {};
   }
 
   /**
+   * @param {string} sessionId {event.id}--{event.url.pathname}
    * @param {RawRUMEvent} event
    */
-  push(event) {
-    if (!this.groups[event.id]) {
+  push(sessionId, event) {
+    if (!this.bundles[sessionId]) {
       // NOTE: only store what's required in the top level object
       // and skip those properties for the events within it
-      this.groups[event.id] = getGroupProperties(event);
+      this.bundles[sessionId] = getBundleProperties(event);
     }
-    this.groups[event.id].events.push(getEventProperties(event, this.groups[event.id]));
+    this.bundles[sessionId].events.push(getEventProperties(event, this.bundles[sessionId]));
     this.dirty = true;
   }
 
   async store() {
     if (this.dirty) {
-      const data = JSON.stringify({ groups: this.groups });
+      const data = JSON.stringify({ bundles: this.bundles });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       this.ctx.log.debug(`storing bundle to ${this.key}.json`);
       await bundleBucket.put(`${this.key}.json`, data, 'application/json');
@@ -142,34 +161,38 @@ export default class Bundle {
    * @param {string} domain
    * @param {number} year
    * @param {number} month
-   * @param {number} date
-   * @param {number} date
-   * @returns {Promise<Bundle>}
+   * @param {number} day
+   * @param {number} hour
+   * @returns {Promise<BundleGroup>}
    */
-  static async fromContext(ctx, domain, year, month, date, hour) {
+  static async fromContext(ctx, domain, year, month, day, hour) {
     const { log } = ctx;
-    const key = `${domain}/${year}/${month}/${date}/${hour}`;
+    const key = `${domain}/${year}/${month}/${day}/${hour}`;
 
-    if (!ctx.attributes.rumBundles) {
-      ctx.attributes.rumBundles = {};
+    if (!ctx.attributes.rumBundleGroups) {
+      ctx.attributes.rumBundleGroups = {};
     }
 
-    if (ctx.attributes.rumBundles[key]) {
-      return ctx.attributes.rumBundles[key];
+    if (ctx.attributes.rumBundleGroups[key]) {
+      return ctx.attributes.rumBundleGroups[key];
     }
 
-    let data = { groups: {} };
-    try {
-      const { bundleBucket } = HelixStorage.fromContext(ctx);
-      const buf = await bundleBucket.get(`${key}.json`);
-      if (buf) {
-        const txt = new TextDecoder('utf8').decode(buf);
-        data = JSON.parse(txt);
+    log.debug(`hydrating bundlegroup for ${key}`);
+    ctx.attributes.rumBundleGroups[key] = (async () => {
+      let data = { bundles: {} };
+      try {
+        const { bundleBucket } = HelixStorage.fromContext(ctx);
+        const buf = await bundleBucket.get(`${key}.json`);
+        if (buf) {
+          const txt = new TextDecoder('utf8').decode(buf);
+          data = JSON.parse(txt);
+        }
+      } catch (e) {
+        log.error('failed to get bundlegroup', e);
       }
-    } catch (e) {
-      log.error('failed to get bundle', e);
-    }
-    ctx.attributes.rumBundles[key] = new Bundle(ctx, key, data);
-    return ctx.attributes.rumBundles[key];
+      ctx.attributes.rumBundleGroups[key] = new BundleGroup(ctx, key, data);
+      return ctx.attributes.rumBundleGroups[key];
+    })();
+    return ctx.attributes.rumBundleGroups[key];
   }
 }

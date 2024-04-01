@@ -17,7 +17,8 @@
     "deploy": "hedy -v --deploy --test",
     "deploy-routes": "hedy --no-build --no-hints -l major",
     "deploy-ci": "hedy -v --deploy --test --pkgVersion=ci$CI_BUILD_NUM -l ci --cleanup-ci 24h",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "import:bq": "node ./test/dev/tools/import-bundles.js"
   },
   "wsk": {
     "nodeVersion": 20,
@@ -49,7 +50,7 @@
   "dependencies": {
     "@adobe/fetch": "4.1.1",
     "@adobe/helix-shared-body-data": "2.0.2",
-    "@adobe/helix-shared-process-queue": "3.0.1",
+    "@adobe/helix-shared-process-queue": "3.0.2",
     "@adobe/helix-shared-wrap": "2.0.1",
     "@adobe/helix-status": "10.0.11",
     "@adobe/helix-universal-logger": "3.0.13",
@@ -75,7 +76,8 @@
     "mocha": "10.3.0",
     "mocha-multi-reporters": "1.5.1",
     "nodemon": "3.1.0",
-    "semantic-release": "22.0.12"
+    "semantic-release": "22.0.12",
+    "typescript": "5.4.3"
   },
   "lint-staged": {
     "*.js": "eslint"

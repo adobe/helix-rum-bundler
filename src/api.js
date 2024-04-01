@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { Response } from '@adobe/fetch';
 import { errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
@@ -71,17 +73,17 @@ export function parsePath(path) {
   }
 
   const [domain, pyear, pmonth, pday, phour] = segments;
-  /** @type {ParsedPath} */
-  const parsed = {
-    domain,
-    toString() {
-      const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
-      return parts.filter((p) => p !== undefined).join('/');
-    },
-  };
-
   try {
-    parsed.year = parseInt(pyear, 10);
+    /** @type {ParsedPath} */
+    const parsed = {
+      domain,
+      year: parseInt(pyear, 10),
+      toString() {
+        const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
+        return parts.filter((p) => p !== undefined).join('/');
+      },
+    };
+
     if (pmonth) {
       parsed.month = parseInt(pmonth, 10);
     }
@@ -91,10 +93,10 @@ export function parsePath(path) {
     if (phour) {
       parsed.hour = parseInt(phour.slice(0, -'.json'.length), 10);
     }
+    return parsed;
   } catch {
     throw errorWithResponse(404, 'invalid path');
   }
-  return parsed;
 }
 
 /**
