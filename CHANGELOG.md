@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/adobe/helix-rum-bundler/compare/v1.0.2...v1.0.3) (2024-04-02)
+
+
+### Bug Fixes
+
+* tweak helix-deploy config ([#5](https://github.com/adobe/helix-rum-bundler/issues/5)) ([12c2335](https://github.com/adobe/helix-rum-bundler/commit/12c23351e895939b92703aa1c0d31f1cea18f91c))
+
 ## [1.0.2](https://github.com/adobe/helix-rum-bundler/compare/v1.0.1...v1.0.2) (2024-04-02)
 
 
