@@ -10,10 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { Response } from '@adobe/fetch';
 import { errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
-import Manifest from './Manifest.js';
 
 /**
  * @typedef {{
@@ -60,7 +61,7 @@ export function parsePath(path) {
     throw errorWithResponse(404, 'invalid path (wrong extension)');
   }
 
-  const segments = path.split('/').slice(1);
+  const segments = path.slice(0, -'.json'.length).split('/').slice(1);
   // minimum path `/domain/year.json`
   if (segments.length < 2) {
     throw errorWithResponse(404, 'invalid path (short)');
@@ -71,17 +72,17 @@ export function parsePath(path) {
   }
 
   const [domain, pyear, pmonth, pday, phour] = segments;
-  /** @type {ParsedPath} */
-  const parsed = {
-    domain,
-    toString() {
-      const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
-      return parts.filter((p) => p !== undefined).join('/');
-    },
-  };
-
   try {
-    parsed.year = parseInt(pyear, 10);
+    /** @type {ParsedPath} */
+    const parsed = {
+      domain,
+      year: parseInt(pyear, 10),
+      toString() {
+        const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
+        return parts.filter((p) => p !== undefined).join('/');
+      },
+    };
+
     if (pmonth) {
       parsed.month = parseInt(pmonth, 10);
     }
@@ -89,18 +90,19 @@ export function parsePath(path) {
       parsed.day = parseInt(pday, 10);
     }
     if (phour) {
-      parsed.hour = parseInt(phour.slice(0, -'.json'.length), 10);
+      parsed.hour = parseInt(phour, 10);
     }
+    return parsed;
+  /* c8 ignore next 3 */
   } catch {
     throw errorWithResponse(404, 'invalid path');
   }
-  return parsed;
 }
 
 /**
  * @param {ParsedPath} path
  * @param {UniversalContext} ctx
- * @returns {Promise<any>}
+ * @returns {Promise<{ rumBundles: RUMBundle[] } | undefined>}
  */
 async function fetchHourly(path, ctx) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -115,7 +117,7 @@ async function fetchHourly(path, ctx) {
   const json = JSON.parse(txt);
 
   // convert to array of bundles
-  return { rumBundles: Object.values(json.groups) };
+  return { rumBundles: Object.values(json.bundles) };
 }
 
 /**
@@ -124,20 +126,19 @@ async function fetchHourly(path, ctx) {
  * @returns {Promise<any>}
  */
 async function fetchDaily(path, ctx) {
-  // get manifest for the day
-  const manifest = await Manifest.fromContext(ctx, path.domain, path.year, path.month, path.day);
-
-  // get all hours with events
-  const hours = new Set(Object.keys(manifest.sessions).map((id) => manifest.sessions[id].hour));
+  // use all hours, just handle 404s
+  const hours = [...Array(24).keys()];
 
   // fetch all bundles
   let totalEvents = 0;
   const hourlyBundles = await Promise.allSettled(
-    [...hours].map(async (hour) => {
-      const data = await fetchHourly({
-        ...path,
-        hour: parseInt(hour, 10),
-      }, ctx);
+    hours.map(async (hour) => {
+      // eslint-disable-next-line no-param-reassign
+      path.hour = hour;
+      const data = await fetchHourly(path, ctx);
+      if (!data) {
+        return { rumBundles: [] };
+      }
       totalEvents += data.rumBundles.length;
       return data;
     }),
@@ -150,12 +151,15 @@ async function fetchDaily(path, ctx) {
   const weightFactor = 1;
   // if (totalEvents > ...) {
   // }
-  return hourlyBundles.reduce(
+
+  /** @type {RUMBundle[]} */
+  const rumBundles = [];
+  hourlyBundles.reduce(
     (acc, curr) => {
       if (curr.status === 'rejected') {
         return acc;
       }
-      acc.rumBundles.push(
+      acc.push(
         ...curr.value.rumBundles.map((b) => ({
           ...b,
           weight: b.weight * weightFactor,
@@ -163,8 +167,10 @@ async function fetchDaily(path, ctx) {
       );
       return acc;
     },
-    { rumBundles: [] },
+    rumBundles,
   );
+
+  return { rumBundles };
 }
 
 /**
@@ -181,7 +187,7 @@ export async function handleRequest(req, ctx) {
 
   // TODO: handle other request levels, but for now just support hourly/daily
   if (typeof parsed.day !== 'number') {
-    return new Response('Not implemented', { status: 501, headers: { 'x-error': 'not implemented' } });
+    throw errorWithResponse(501, 'not implemented');
   }
 
   let data;

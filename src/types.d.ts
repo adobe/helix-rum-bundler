@@ -1,9 +1,31 @@
 import { Request, Response } from '@adobe/fetch';
 import { Helix } from '@adobe/helix-universal';
+import BundleGroup from './BundleGroup';
+import Manifest from './Manifest';
+
+declare module '@adobe/helix-universal' {
+  export namespace Helix {
+    export interface UniversalContext {
+      env: {
+        CONCURRENCY_LIMIT?: string;
+        BATCH_LIMIT?: string;
+        [key: string]: string;
+      }
+
+      attributes: {
+        rumManifests: Record<string, Manifest | Promise<Manifest>>;
+        rumBundleGroups: Record<string, BundleGroup | Promise<BundleGroup>>;
+        [key: string]: unknown;
+      }
+
+      data: Record<string, string>;
+    }
+  }
+}
 
 declare global {
-  export type RRequest = typeof Request;
-  export type RResponse = typeof Response;
+  export type RRequest = Request;
+  export type RResponse = Response;
   export type UniversalContext = Helix.UniversalContext;
 
   export interface RawRUMEvent {
@@ -14,36 +36,40 @@ declare global {
     referer: string | null;
     weight: number;
     id: string;
-    CLS: number;
-    LCP: number;
-    FID: number;
+    INP?: number;
+    TTFB?: number;
+    CLS?: number;
+    LCP?: number;
+    FID?: number;
+    [key: string]: string | number | null | undefined;
   }
 
   export interface RUMEvent {
     checkpoint: string;
-    time: string;
+    timeDiff: string;
     value?: number;
     source?: string;
     target?: string;
   }
 
-  // each event group has a single id
-  export interface RUMEventGroup {
+  export interface RUMBundle {
     id: string;
     time: string;
     timeSlot: string;
     url: string;
-    user_agent: string;
+    userAgent: string;
     weight: number;
     events: RUMEvent[];
   }
 
-  export interface BundleData {
-    /**
-     * each bundle is all event groups belonging to an hour/date/month/year, for a single domain
-     * key is the event group id
+  /**
+   * collection of bundles belonging to an hour/date/month/year, for a single domain
+   */
+  export interface BundleGroupData {
+    /** 
+     * `{id}--{path}` => bundle
      */
-    groups: Record<string, RUMEventGroup>;
+    bundles: Record<string, RUMBundle>;
   }
 
   /**
@@ -55,8 +81,43 @@ declare global {
 
   export interface ManifestData {
     /**
-     * session id (id from RUM event) => session data
+     * `{id}--{path}` => session data
      */
     sessions: Record<string, SessionData>;
+  }
+
+  export interface BundleInfo {
+    domain: string;
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+  }
+
+  /**
+   * RUM runquery specific types
+   */
+
+  export interface RunQueryEvent {
+    /** ex. '2024-03-21T21:00:01+00:00' */
+    time: string;
+    /** ex. 'viewmedia' */
+    checkpoint: string;
+    source: string | null;
+    /** ex. 'https://www.adobe.com/2024/media_194022c145d5d86e5165cdaa68a9401f3c9531312.png' */
+    target: string | null;
+    value: number | null;
+  }
+
+  export interface RunQueryBundle {
+    id: string;
+    /** ex. 'https://www.adobe.com/' */
+    url: string;
+    /** ex. '2024-03-21T00:00:00+00:00' */
+    time: string;
+    weight: number;
+    /** ex. 'desktop' */
+    user_agent: string;
+    events: RunQueryEvent[];
   }
 }

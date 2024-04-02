@@ -10,18 +10,20 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { HelixStorage } from './support/storage.js';
 
 export default class Manifest {
   /**
    * @type {UniversalContext}
    */
-  ctx = undefined;
+  ctx;
 
   /**
    * @type {string}
    */
-  key = undefined;
+  key;
 
   /**
    * @type {Record<string, SessionData>}
@@ -36,12 +38,12 @@ export default class Manifest {
   /**
    * @param {UniversalContext} ctx
    * @param {string} key
-   * @param {ManifestData} data
+   * @param {ManifestData} [data]
    */
-  constructor(ctx, key, data = {}) {
+  constructor(ctx, key, data) {
     this.ctx = ctx;
     this.key = key;
-    this.sessions = data.sessions || {};
+    this.sessions = data?.sessions || {};
   }
 
   /**
@@ -105,18 +107,22 @@ export default class Manifest {
       return ctx.attributes.rumManifests[key];
     }
 
-    let data = { sessions: {} };
-    try {
-      const { bundleBucket } = HelixStorage.fromContext(ctx);
-      const buf = await bundleBucket.get(`${key}/.manifest.json`);
-      if (buf) {
-        const txt = new TextDecoder('utf8').decode(buf);
-        data = JSON.parse(txt);
+    ctx.attributes.rumManifests[key] = (async () => {
+      let data = { sessions: {} };
+      try {
+        const { bundleBucket } = HelixStorage.fromContext(ctx);
+        const buf = await bundleBucket.get(`${key}/.manifest.json`);
+        if (buf) {
+          const txt = new TextDecoder('utf8').decode(buf);
+          data = JSON.parse(txt);
+        }
+      } catch (e) {
+        log.error('failed to get manifest', e);
       }
-    } catch (e) {
-      log.error('failed to get manifest', e);
-    }
-    ctx.attributes.rumManifests[key] = new Manifest(ctx, key, data);
+      ctx.attributes.rumManifests[key] = new Manifest(ctx, key, data);
+      return ctx.attributes.rumManifests[key];
+    })();
+
     return ctx.attributes.rumManifests[key];
   }
 }

@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+// @ts-check
+
 import { Response } from '@adobe/fetch';
 
 class ErrorWithResponse extends Error {
@@ -40,3 +42,55 @@ export function errorWithResponse(status, xError, message = '') {
     }),
   );
 }
+
+/**
+ * @type {<
+ *  TType extends 'integer'|'string'|undefined,
+ *  TReturn = TType extends 'integer' ? number : string
+ * >(
+ *  ctx: UniversalContext,
+ *  key: string,
+ *  defaultVal: TReturn,
+ *  type: TType
+ * ) => TReturn}
+ */
+export const getEnvVar = (ctx, key, defaultVal, type) => {
+  if (!ctx.env[key]) {
+    return defaultVal;
+  }
+  // @ts-ignore
+  return type === 'integer'
+    ? parseInt(ctx.env[key], 10)
+    : ctx.env[key];
+};
+
+/**
+ * Get yesterday's date
+ * @param {number} year
+ * @param {number} month
+ * @param {number} date
+ * @returns {[year: number, month: number, date: number]}
+ */
+export const yesterday = (year, month, date) => {
+  if (date > 1) {
+    return [year, month, date - 1];
+  }
+  if (month > 1) {
+    return [year, month - 1, new Date(year, month - 1, 0).getDate()];
+  }
+  return [year - 1, 12, 31];
+};
+
+/**
+ * @type {<T extends Record<string, unknown>>(obj: T) => T}
+ */
+export const pruneUndefined = (obj) => {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  // @ts-ignore
+  return result;
+};

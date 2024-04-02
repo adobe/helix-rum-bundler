@@ -23,10 +23,10 @@ Contains information needed to efficiently relate new RUM events to an existing 
 ```json
 {
   "sessions": {
-    "id": {
+    "id--path": {
       "hour": 1
     },
-    "foo": {
+    "J3Ed2--/some/path": {
       "hour": 2
     }
   }
@@ -35,27 +35,29 @@ Contains information needed to efficiently relate new RUM events to an existing 
 
 ### API
 > tbd
-- `GET /{domain}/{year}/${month}/{date}`
+- `GET /{domain}/{year}/${month}/{date}/{hour}.json`
+- `GET /{domain}/{year}/${month}/{date}.json`
 ```jsonc
 // response
 {
   "rumBundles": [
     {
       "id": "foo",
-      "time": "2024-03-18T10:00:00+00:00",
+      "time": 1710957615177,
+      "timeSlot": 1710957600000,
       "url": "https://www.example.com/my/path",
       "user_agent": "desktop",
       "weight": 10,
       "events": [
         {
           "checkpoint": "viewmedia",
-          "time": "2024-03-18T10:00:06+00:00",
+          "time": 123, // ms since timeSlot
           "target": "https://www.example.com/my/image.png",
           "source": ".my-block"
         },
         {
           "checkpoint": "loadresource",
-          "time": "2024-03-18T10:00:03+00:00",
+          "time": 123,
           "source": "https://www.example.com/nav.plain.html",
           "target": "1"
         }
@@ -64,5 +66,3 @@ Contains information needed to efficiently relate new RUM events to an existing 
   ]
 }
 ```
-- `GET /{domain}/{year}/${month}`
-- `GET /{domain}/{year}`
