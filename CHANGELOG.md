@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/adobe/helix-rum-bundler/compare/v1.0.3...v1.0.4) (2024-04-02)
+
+
+### Bug Fixes
+
+* add secrets wrapper ([81b3bd8](https://github.com/adobe/helix-rum-bundler/commit/81b3bd85edd0230c41d7bf9915a55a6453f91d03))
+
 ## [1.0.3](https://github.com/adobe/helix-rum-bundler/compare/v1.0.2...v1.0.3) (2024-04-02)
 
 
