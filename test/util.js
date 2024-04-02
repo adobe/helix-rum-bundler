@@ -29,6 +29,10 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
   attributes: {
     ...(overrides.attributes ?? {}),
   },
+  pathInfo: {
+    suffix: '/',
+    ...(overrides.pathInfo ?? {}),
+  },
 });
 
 /**

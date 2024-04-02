@@ -15,7 +15,6 @@
 import { Response } from '@adobe/fetch';
 import { errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
-import Manifest from './Manifest.js';
 
 /**
  * @typedef {{
@@ -103,7 +102,7 @@ export function parsePath(path) {
 /**
  * @param {ParsedPath} path
  * @param {UniversalContext} ctx
- * @returns {Promise<any>}
+ * @returns {Promise<{ rumBundles: RUMBundle[] } | undefined>}
  */
 async function fetchHourly(path, ctx) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -118,7 +117,7 @@ async function fetchHourly(path, ctx) {
   const json = JSON.parse(txt);
 
   // convert to array of bundles
-  return { rumBundles: Object.values(json.groups) };
+  return { rumBundles: Object.values(json.bundles) };
 }
 
 /**
@@ -127,20 +126,19 @@ async function fetchHourly(path, ctx) {
  * @returns {Promise<any>}
  */
 async function fetchDaily(path, ctx) {
-  // get manifest for the day
-  const manifest = await Manifest.fromContext(ctx, path.domain, path.year, path.month, path.day);
-
-  // get all hours with events
-  const hours = new Set(Object.keys(manifest.sessions).map((id) => manifest.sessions[id].hour));
+  // use all hours, just handle 404s
+  const hours = [...Array(24).keys()];
 
   // fetch all bundles
   let totalEvents = 0;
   const hourlyBundles = await Promise.allSettled(
-    [...hours].map(async (hour) => {
-      const data = await fetchHourly({
-        ...path,
-        hour: parseInt(hour, 10),
-      }, ctx);
+    hours.map(async (hour) => {
+      // eslint-disable-next-line no-param-reassign
+      path.hour = hour;
+      const data = await fetchHourly(path, ctx);
+      if (!data) {
+        return { rumBundles: [] };
+      }
       totalEvents += data.rumBundles.length;
       return data;
     }),
@@ -153,12 +151,15 @@ async function fetchDaily(path, ctx) {
   const weightFactor = 1;
   // if (totalEvents > ...) {
   // }
-  return hourlyBundles.reduce(
+
+  /** @type {RUMBundle[]} */
+  const rumBundles = [];
+  hourlyBundles.reduce(
     (acc, curr) => {
       if (curr.status === 'rejected') {
         return acc;
       }
-      acc.rumBundles.push(
+      acc.push(
         ...curr.value.rumBundles.map((b) => ({
           ...b,
           weight: b.weight * weightFactor,
@@ -166,8 +167,10 @@ async function fetchDaily(path, ctx) {
       );
       return acc;
     },
-    { rumBundles: [] },
+    rumBundles,
   );
+
+  return { rumBundles };
 }
 
 /**
@@ -184,7 +187,7 @@ export async function handleRequest(req, ctx) {
 
   // TODO: handle other request levels, but for now just support hourly/daily
   if (typeof parsed.day !== 'number') {
-    return new Response('Not implemented', { status: 501, headers: { 'x-error': 'not implemented' } });
+    throw errorWithResponse(501, 'not implemented');
   }
 
   let data;
