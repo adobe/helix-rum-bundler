@@ -183,7 +183,6 @@ export async function importEventsByKey(ctx, rawEventMap) {
 export function sortRawEvents(rawEvents, log) {
   /** @type {Record<string, {events: RawRUMEvent[]; info: BundleInfo}>} */
   const rawEventMap = {};
-  console.log('rawEvents: ', rawEvents.length, rawEvents);
 
   rawEvents.forEach((pevent) => {
     const event = {
@@ -219,7 +218,6 @@ export function sortRawEvents(rawEvents, log) {
       }
       rawEventMap[key].events.push(event);
     } catch (e) {
-      console.log('event: ', event);
       log.warn('invalid url: ', event.url, event.id);
     }
   });
