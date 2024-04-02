@@ -13,20 +13,7 @@
 // @ts-check
 
 import { HelixStorage } from './support/storage.js';
-
-/**
- * @type {<T extends Record<string, unknown>>(obj: T) => T}
- */
-const pruneUndefined = (obj) => {
-  const result = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
-  // @ts-ignore
-  return result;
-};
+import { pruneUndefined } from './util.js';
 
 /**
  * @param {RawRUMEvent} event

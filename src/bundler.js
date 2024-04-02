@@ -66,6 +66,7 @@ async function unlock(ctx) {
  * @return {Promise<BundleGroup[]>} touched bundle groups
  */
 async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManifest) {
+  const { log } = ctx;
   const {
     domain, year, month, day, hour,
   } = info;
@@ -76,8 +77,10 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
   await Promise.all(
     Object.entries(eventsBySessionId)
       .map(async ([sId, events]) => {
+        log.debug(`processing ${events.length} events to bundle ${sId}`);
+
         try {
-        // if event exists in a session within last 24h, add it to that session
+          // if event exists in a session within last 24h, add it to that session
           let session;
           if (manifest.has(sId)) {
           // log.debug('storing event in existing manifest (same day)');
@@ -104,7 +107,7 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
             manifest.add(sId, hour);
           }
         } catch (e) {
-          ctx.log.error('error adding event to bundle: ', e);
+          log.error('error adding event to bundlegroup: ', e);
         }
       }),
   );
@@ -124,7 +127,7 @@ export async function importEventsByKey(ctx, rawEventMap) {
   await processQueue(
     Object.entries(rawEventMap),
     async ([key, { events, info }]) => {
-      log.debug(`processing ${events.length} events to bundle ${key}`);
+      log.debug(`processing ${events.length} events to file ${key}`);
       const {
         domain, year, month, day, hour,
       } = info;
@@ -180,6 +183,7 @@ export async function importEventsByKey(ctx, rawEventMap) {
 export function sortRawEvents(rawEvents, log) {
   /** @type {Record<string, {events: RawRUMEvent[]; info: BundleInfo}>} */
   const rawEventMap = {};
+  console.log('rawEvents: ', rawEvents.length, rawEvents);
 
   rawEvents.forEach((pevent) => {
     const event = {
@@ -215,6 +219,7 @@ export function sortRawEvents(rawEvents, log) {
       }
       rawEventMap[key].events.push(event);
     } catch (e) {
+      console.log('event: ', event);
       log.warn('invalid url: ', event.url, event.id);
     }
   });

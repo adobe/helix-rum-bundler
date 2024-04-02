@@ -55,7 +55,7 @@ export function errorWithResponse(status, xError, message = '') {
  * ) => TReturn}
  */
 export const getEnvVar = (ctx, key, defaultVal, type) => {
-  if (ctx.env[key] == null) {
+  if (!ctx.env[key]) {
     return defaultVal;
   }
   // @ts-ignore
@@ -69,7 +69,7 @@ export const getEnvVar = (ctx, key, defaultVal, type) => {
  * @param {number} year
  * @param {number} month
  * @param {number} date
- * @returns {[number: year, number: month, number: date]}
+ * @returns {[year: number, month: number, date: number]}
  */
 export const yesterday = (year, month, date) => {
   if (date > 1) {
@@ -79,4 +79,18 @@ export const yesterday = (year, month, date) => {
     return [year, month - 1, new Date(year, month - 1, 0).getDate()];
   }
   return [year - 1, 12, 31];
+};
+
+/**
+ * @type {<T extends Record<string, unknown>>(obj: T) => T}
+ */
+export const pruneUndefined = (obj) => {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  // @ts-ignore
+  return result;
 };

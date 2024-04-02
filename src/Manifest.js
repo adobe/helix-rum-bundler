@@ -107,18 +107,22 @@ export default class Manifest {
       return ctx.attributes.rumManifests[key];
     }
 
-    let data = { sessions: {} };
-    try {
-      const { bundleBucket } = HelixStorage.fromContext(ctx);
-      const buf = await bundleBucket.get(`${key}/.manifest.json`);
-      if (buf) {
-        const txt = new TextDecoder('utf8').decode(buf);
-        data = JSON.parse(txt);
+    ctx.attributes.rumManifests[key] = (async () => {
+      let data = { sessions: {} };
+      try {
+        const { bundleBucket } = HelixStorage.fromContext(ctx);
+        const buf = await bundleBucket.get(`${key}/.manifest.json`);
+        if (buf) {
+          const txt = new TextDecoder('utf8').decode(buf);
+          data = JSON.parse(txt);
+        }
+      } catch (e) {
+        log.error('failed to get manifest', e);
       }
-    } catch (e) {
-      log.error('failed to get manifest', e);
-    }
-    ctx.attributes.rumManifests[key] = new Manifest(ctx, key, data);
+      ctx.attributes.rumManifests[key] = new Manifest(ctx, key, data);
+      return ctx.attributes.rumManifests[key];
+    })();
+
     return ctx.attributes.rumManifests[key];
   }
 }

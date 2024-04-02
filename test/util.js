@@ -10,11 +10,19 @@
  * governing permissions and limitations under the License.
  */
 
+/* eslint-disable import/no-extraneous-dependencies */
+
 import assert from 'assert';
+import nock from 'nock';
+
+/**
+ * @typedef {ReturnType<Nock>} Nocker
+ */
 
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
+    BATCH_LIMIT: '100',
     ...(overrides.env ?? {}),
   },
   attributes: {
@@ -40,4 +48,66 @@ export function assertRejectsWithResponse(fn, status, xError) {
       }
     },
   );
+}
+
+export function Nock() {
+  /** @type {Record<string, nock.Scope} */
+  const scopes = {};
+
+  /** @type {any[]} */
+  let unmatched;
+
+  /** @type {Record<string, unknown>} */
+  let savedEnv;
+
+  function noMatchHandler(req) {
+    unmatched.push(req);
+  }
+
+  /**
+   * @param {string} url
+   * @returns {nock.Scope}
+   */
+  function nocker(url) {
+    let scope = scopes[url];
+    if (!scope) {
+      scope = nock(url);
+      scopes[url] = scope;
+    }
+    if (!unmatched) {
+      unmatched = [];
+      nock.emitter.on('no match', noMatchHandler);
+    }
+    nock.disableNetConnect();
+    return scope;
+  }
+
+  nocker.env = (overrides = {}) => {
+    savedEnv = { ...process.env };
+    Object.assign(process.env, {
+      AWS_REGION: 'us-east-1',
+      AWS_ACCESS_KEY_ID: 'dummy-id',
+      AWS_SECRET_ACCESS_KEY: 'dummy-key',
+      ...overrides,
+    });
+    return nocker;
+  };
+
+  nocker.done = () => {
+    if (savedEnv) {
+      process.env = savedEnv;
+    }
+
+    if (unmatched) {
+      assert.deepStrictEqual(unmatched.map((req) => req.options || req), []);
+      nock.emitter.off('no match', noMatchHandler);
+    }
+    try {
+      Object.values(scopes).forEach((s) => s.done());
+    } finally {
+      nock.cleanAll();
+    }
+  };
+
+  return nocker;
 }

@@ -11,6 +11,7 @@
  */
 
 /* eslint-env mocha */
+
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
 import { main } from '../src/index.js';
