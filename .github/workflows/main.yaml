@@ -60,6 +60,8 @@ jobs:
           done
       - name: Branch Deployment
         run: npm run deploy-ci
+        env:
+          HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
       - name: Post-Deployment Integration Test
         run: npm run test-postdeploy
         env:
