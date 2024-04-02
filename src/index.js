@@ -12,6 +12,7 @@
 
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';
+import secrets from '@adobe/helix-shared-secrets';
 import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
@@ -87,8 +88,9 @@ function addCommonResponseHeadersWrapper(fn) {
 
 /** @type {(...args: any[]) => Promise<RResponse>} */
 export const main = wrap(run)
-  .with(helixStatus)
   .with(logger.trace)
   .with(logger)
   .with(addCommonResponseHeadersWrapper)
-  .with(bodyData);
+  .with(bodyData)
+  .with(secrets)
+  .with(helixStatus);
