@@ -62,7 +62,7 @@ export function parsePath(path) {
     throw errorWithResponse(404, 'invalid path (wrong extension)');
   }
 
-  const segments = path.split('/').slice(1);
+  const segments = path.slice(0, -'.json'.length).split('/').slice(1);
   // minimum path `/domain/year.json`
   if (segments.length < 2) {
     throw errorWithResponse(404, 'invalid path (short)');
@@ -91,9 +91,10 @@ export function parsePath(path) {
       parsed.day = parseInt(pday, 10);
     }
     if (phour) {
-      parsed.hour = parseInt(phour.slice(0, -'.json'.length), 10);
+      parsed.hour = parseInt(phour, 10);
     }
     return parsed;
+  /* c8 ignore next 3 */
   } catch {
     throw errorWithResponse(404, 'invalid path');
   }

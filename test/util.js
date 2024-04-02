@@ -23,6 +23,7 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
     BATCH_LIMIT: '100',
+    TMP_SUPERUSER_API_KEY: 'domainkey',
     ...(overrides.env ?? {}),
   },
   attributes: {
@@ -42,6 +43,7 @@ export function assertRejectsWithResponse(fn, status, xError) {
       throw new Error('Expected promise to be rejected');
     },
     (err) => {
+      assert.ok(err.response, `Expected error to have response, got error: ${err.message}`);
       assert.strictEqual(err.response.status, status);
       if (xError) {
         assert.strictEqual(err.response.headers.get('x-error'), xError);
