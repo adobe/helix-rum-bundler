@@ -16,7 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
 import fs from 'fs/promises';
-import { bundleRUM, sortRawEvents } from '../src/bundler.js';
+import bundleRUM, { sortRawEvents } from '../src/bundler.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from './util.js';
 
 // eslint-disable-next-line no-underscore-dangle
@@ -248,7 +248,6 @@ describe('bundler Tests', () => {
             url: 'https://sub.example.com/',
             events: [
               {
-                time: 0,
                 checkpoint: 0,
                 timeDelta: 0,
               },
@@ -335,7 +334,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/even',
             events: [
               {
-                time: 0,
                 checkpoint: 1,
                 timeDelta: 0,
               },
@@ -348,7 +346,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/odd',
             events: [
               {
-                time: 1200000,
                 checkpoint: 2,
                 timeDelta: 1200000,
               },
@@ -361,7 +358,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/even',
             events: [
               {
-                time: 2400000,
                 checkpoint: 3,
                 timeDelta: 2400000,
               },
@@ -380,7 +376,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/odd',
             events: [
               {
-                time: 3600000,
                 checkpoint: 4,
                 timeDelta: 0,
               },
@@ -393,7 +388,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/even',
             events: [
               {
-                time: 4800000,
                 checkpoint: 5,
                 timeDelta: 1200000,
               },
@@ -406,7 +400,6 @@ describe('bundler Tests', () => {
             url: 'https://example.com/odd',
             events: [
               {
-                time: 6000000,
                 checkpoint: 6,
                 timeDelta: 2400000,
               },
@@ -425,17 +418,14 @@ describe('bundler Tests', () => {
             url: 'https://example.com/',
             events: [
               {
-                time: 7200000,
                 checkpoint: 7,
                 timeDelta: 0,
               },
               {
-                time: 8400000,
                 checkpoint: 8,
                 timeDelta: 1200000,
               },
               {
-                time: 9600000,
                 checkpoint: 9,
                 timeDelta: 2400000,
               },

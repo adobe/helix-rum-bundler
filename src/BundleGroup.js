@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
+/// <reference path="./types.d.ts" />
 // @ts-check
 
 import { HelixStorage } from './support/storage.js';
@@ -18,7 +18,7 @@ import { pruneUndefined } from './util.js';
 /**
  * @param {RawRUMEvent} event
  */
-const getBundleProperties = (event) => {
+export const getBundleProperties = (event) => {
   const tmpTime = new Date(event.time);
   const time = tmpTime.toISOString();
   tmpTime.setMinutes(0, 0, 0);
@@ -63,7 +63,8 @@ const getCWVEventType = (event) => {
  * @param {RUMBundle} bundle
  * @returns {RUMEvent}
  */
-const getEventProperties = (event, bundle) => {
+export const getEventProperties = (event, bundle) => {
+  const timeDelta = typeof event.time === 'undefined' ? undefined : event.time - Number(new Date(bundle.timeSlot));
   // custom handling cases for specific event types
   if (event.checkpoint === 'cwv') {
     const type = getCWVEventType(event);
@@ -72,14 +73,17 @@ const getEventProperties = (event, bundle) => {
       return {
         checkpoint: `cwv-${type.toLowerCase()}`,
         value: event[type],
+        timeDelta,
       };
     }
+    return { checkpoint: 'cwv', timeDelta };
   }
 
   // @ts-ignore
   return pruneUndefined({
     ...event,
-    timeDelta: event.time - Number(new Date(bundle.timeSlot)),
+    timeDelta,
+    time: undefined,
     id: undefined,
     host: undefined,
     url: undefined,

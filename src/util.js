@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
+/// <reference path="./types.d.ts" />
 // @ts-check
 
 import { Response } from '@adobe/fetch';
@@ -93,4 +93,53 @@ export const pruneUndefined = (obj) => {
   }
   // @ts-ignore
   return result;
+};
+
+/**
+ * @typedef {{ limit: number; }} TimeoutOpts
+ * @type {<
+ *  TFunc extends (...args: any[]) => Promise<boolean>
+ * >(
+ *  fn: TFunc,
+ *  opts: TimeoutOpts
+ * ) => (...args: Parameters<TFunc>) => Promise<void>}
+ */
+export const timeout = (fn, opts) => {
+  const { limit } = opts;
+
+  return async (...args) => {
+    let done = false;
+    let before = performance.now();
+
+    const state = {
+      timer: 0,
+      /** @type {number[]} */
+      times: [],
+      average() {
+        return this.timer / this.times.length;
+      },
+      /** @param {number} t */
+      push(t) {
+        this.times.push(t);
+        this.timer += t;
+      },
+    };
+
+    while (!done) {
+      // eslint-disable-next-line no-await-in-loop
+      done = await fn(...args);
+
+      const after = performance.now();
+      const dur = after - before;
+      before = after;
+      state.push(dur);
+
+      if (state.timer + state.average() >= limit) {
+        throw errorWithResponse(
+          504,
+          `timeout after ${state.times.length} runs (${Math.round(state.timer)} + ${Math.round(state.average())} >= ${limit})`,
+        );
+      }
+    }
+  };
 };

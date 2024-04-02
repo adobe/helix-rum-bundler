@@ -23,7 +23,10 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
     BATCH_LIMIT: '100',
+    CONCURRENCY_LIMIT: '4',
     TMP_SUPERUSER_API_KEY: 'domainkey',
+    BUNDLER_PROCESS_ALL: 'true',
+    BUNDLER_DURATION_LIMIT: String(9 * 60 * 1000),
     ...(overrides.env ?? {}),
   },
   attributes: {
@@ -37,9 +40,9 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
 
 /**
  *
- * @param {(...args: any[]) => Promise<any>|Promise} fn
+ * @param {((...args: any[]) => Promise<any>)|Promise<any>} fn
  * @param {number} status
- * @param {string} [xError]
+ * @param {string|RegExp} [xError]
  */
 export function assertRejectsWithResponse(fn, status, xError) {
   return (typeof fn === 'function' ? fn() : fn).then(
@@ -50,11 +53,23 @@ export function assertRejectsWithResponse(fn, status, xError) {
       assert.ok(err.response, `Expected error to have response, got error: ${err.message}`);
       assert.strictEqual(err.response.status, status);
       if (xError) {
-        assert.strictEqual(err.response.headers.get('x-error'), xError);
+        const actualXError = err.response.headers.get('x-error');
+        if (typeof xError === 'string') {
+          assert.strictEqual(actualXError, xError);
+        } else {
+          assert.ok(xError.test(actualXError));
+        }
       }
     },
   );
 }
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+// eslint-disable-next-line no-promise-executor-return
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function Nock() {
   /** @type {Record<string, nock.Scope} */

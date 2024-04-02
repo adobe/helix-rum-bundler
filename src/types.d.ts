@@ -7,8 +7,27 @@ declare module '@adobe/helix-universal' {
   export namespace Helix {
     export interface UniversalContext {
       env: {
+        /** 
+         * concurrency for bundling steps that call s3 client operations
+         * should be lower for local dev
+         */
         CONCURRENCY_LIMIT?: string;
+        /** 
+         * log file count maximum to process per batch of bundling 
+         */
         BATCH_LIMIT?: string;
+        /** 
+         * temporary domainkey analogue 
+         */
+        TMP_SUPERUSER_API_KEY?: string;
+        /** 
+         * key that allows invoking the bundler process on the deployed function 
+         */
+        INVOKE_BUNDLER_KEY?: string;
+        /**
+         * maximum duration for bundler process in milliseconds
+         */
+        BUNDLER_DURATION_LIMIT?: string;
         [key: string]: string;
       }
 
@@ -46,7 +65,7 @@ declare global {
 
   export interface RUMEvent {
     checkpoint: string;
-    timeDiff: string;
+    timeDelta?: number;
     value?: number;
     source?: string;
     target?: string;

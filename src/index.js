@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+/// <reference path="./types.d.ts" />
 
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';
@@ -16,16 +17,30 @@ import secrets from '@adobe/helix-shared-secrets';
 import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
-import { bundleRUM } from './bundler.js';
-import { handleRequest } from './api.js';
+import bundleRUM from './bundler.js';
+import handleRequest from './api.js';
 
 /**
+ * Perform bundling process if any:
+ * 1. invoked by scheduler event
+ * 2. bundle param set & running locally
+ * 3. bundle param set & x-bundler-authorization is allowed
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {boolean}
  */
-function shouldBundleRUM(ctx) {
-  return ctx.invocation?.event?.source === 'aws.events' || (ctx.runtime?.name === 'simulate' && ctx.data.bundle);
+function shouldBundleRUM(req, ctx) {
+  const invokedByEvent = ctx.invocation?.event?.source === 'aws.events';
+  if (invokedByEvent) {
+    return true;
+  }
+  if (!ctx.data.bundle) {
+    return false;
+  }
+
+  const isDevMode = ctx.runtime?.name === 'simulate';
+  const invokeAllowed = ctx.env.INVOKE_BUNDLER_KEY && req.headers.get('x-bundler-authorization') === ctx.env.INVOKE_BUNDLER_KEY;
+  return isDevMode || invokeAllowed;
 }
 
 /**
@@ -38,7 +53,7 @@ async function run(request, context) {
 
   let resp;
   try {
-    if (shouldBundleRUM(context)) {
+    if (shouldBundleRUM(request, context)) {
       resp = await bundleRUM(context);
     } else {
       resp = await handleRequest(request, context);

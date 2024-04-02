@@ -14,7 +14,7 @@
 
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
-import { handleRequest, parsePath, assertAuthorization } from '../src/api.js';
+import handleRequest, { parsePath, assertAuthorization } from '../src/api.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from './util.js';
 
 describe('api Tests', () => {

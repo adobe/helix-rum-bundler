@@ -26,8 +26,10 @@ describe('Index Tests', () => {
   it('performs bundling when invoked by scheduler', async () => {
     const { main: mmain } = await esmock('../src/index.js', {
       '../src/bundler.js': {
-        bundleRUM: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
-        handleRequest: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
+      },
+      '../src/api.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
       },
     });
 

@@ -30,7 +30,11 @@
     "memory": 2048,
     "fastlyServiceId!important": "",
     "awsAttachAuthorizer": "helix-token-authorizer_v2",
-    "params-file": "./params.json"
+    "params-file": "./params.json",
+    "timeout": 600000,
+    "dev": {
+      "params-file": "./params.json"
+    }
   },
   "mocha": {
     "spec": "test/**/*.test.js",

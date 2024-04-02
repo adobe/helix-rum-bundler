@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
+/// <reference path="./types.d.ts" />
 // @ts-check
 
 import { Response } from '@adobe/fetch';
@@ -17,7 +17,9 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from './support/storage.js';
 import Manifest from './Manifest.js';
 import BundleGroup from './BundleGroup.js';
-import { errorWithResponse, getEnvVar, yesterday } from './util.js';
+import {
+  errorWithResponse, getEnvVar, timeout, yesterday,
+} from './util.js';
 
 /**
  * @typedef {Record<string, {
@@ -28,7 +30,6 @@ import { errorWithResponse, getEnvVar, yesterday } from './util.js';
 
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
-const PROCESS_ALL = true; // whether to continue until logs directory empty
 
 /**
  * Lock the log bucket to prevent concurrent bundling.
@@ -294,17 +295,15 @@ async function doBundling(ctx) {
  * @param {UniversalContext} ctx
  * @returns {Promise<RResponse>}
  */
-export async function bundleRUM(ctx) {
+export default async function bundleRUM(ctx) {
+  const { env: { BUNDLER_DURATION_LIMIT } } = ctx;
+  const limit = parseInt(BUNDLER_DURATION_LIMIT || String(9 * 60 * 1000), 10);
+
+  const processor = timeout(doBundling, { limit });
+
   await lockOrThrow(ctx);
   try {
-    // repeat bundling until none more to process
-    // TODO: set a limit on bundling duration
-    let done = false;
-    while (!done) {
-    // eslint-disable-next-line no-await-in-loop
-      done = await doBundling(ctx);
-      if (!PROCESS_ALL) break;
-    }
+    await processor(ctx);
   } finally {
     await unlock(ctx);
   }
