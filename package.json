@@ -25,7 +25,7 @@
     "target": "aws",
     "name": "helix3/rum-bundler@${version}",
     "testUrl": "/_status_check/healthcheck.json",
-    "awsRole!important": "arn:aws:iam::282898975672:role/helix-rum-bundler-role",
+    "awsRole!important": "arn:aws:iam::118435662149:role/helix-service-role-rum-bundler",
     "awsRegion": "us-east-1",
     "memory": 2048,
     "fastlyServiceId!important": "",
