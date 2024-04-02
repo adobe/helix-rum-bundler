@@ -2,7 +2,14 @@
 
 > Process RUM events into bundles by domain/time. Provides API to read bundles.
 
-0. RUM events logged to S3 in individual files
+[![codecov](https://codecov.io/gh/adobe/helix-rum-bundler/branch/main/graph/badge.svg?token=GiNpN6FmPj)](https://codecov.io/gh/adobe/helix-rum-bundler)
+[![GitHub license](https://img.shields.io/github/license/adobe/helix-rum-bundler.svg)](https://github.com/adobe/helix-rum-bundler/blob/main/LICENSE.txt)
+[![GitHub issues](https://img.shields.io/github/issues/adobe/helix-rum-bundler.svg)](https://github.com/adobe/helix-rum-bundler/issues)
+[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
+
+## Process
+
+0. RUM events logged to S3 in files
 1. triggered by cron (every 10min)
 2. read files from logs bucket in batches of N
 3. sort RUM event into bundle
@@ -12,7 +19,7 @@
 ### Related Resources
 - EventBridge schedule
 - S3 bucket (`/helix-rum-bundles`)
-  - contains bundled RUM events in the format: `/{domain}/{year}/{month}/{date}/{utc_hour}.gz`
+  - contains bundled RUM events in the format: `/{domain}/{year}/{month}/{date}/{utc_hour}.json`
   - each `date/` directory contains a "bundle manifest" to track sessions
 - S3 bucket (`/helix-rum-logs`)
   - `/raw/`: raw event log location, each file in this folder is a single unprocessed RUM event
@@ -34,7 +41,6 @@ Contains information needed to efficiently relate new RUM events to an existing 
 ```
 
 ### API
-> tbd
 - `GET /{domain}/{year}/${month}/{date}/{hour}.json`
 - `GET /{domain}/{year}/${month}/{date}.json`
 ```jsonc
@@ -43,15 +49,15 @@ Contains information needed to efficiently relate new RUM events to an existing 
   "rumBundles": [
     {
       "id": "foo",
-      "time": 1710957615177,
-      "timeSlot": 1710957600000,
+      "time": "2024-01-01T01:02:03+00:00",
+      "timeSlot": "2024-01-01T01:00:00+00:00",
       "url": "https://www.example.com/my/path",
-      "user_agent": "desktop",
+      "userAgent": "desktop",
       "weight": 10,
       "events": [
         {
           "checkpoint": "viewmedia",
-          "time": 123, // ms since timeSlot
+          "timeDelta": 123, // ms since timeSlot
           "target": "https://www.example.com/my/image.png",
           "source": ".my-block"
         },
