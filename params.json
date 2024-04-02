@@ -1,0 +1,4 @@
+{
+  "CONCURRENCY_LIMIT": 10,
+  "BATCH_LIMIT": 1000
+}
