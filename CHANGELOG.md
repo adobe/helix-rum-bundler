@@ -1,3 +1,12 @@
+## [1.0.6](https://github.com/adobe/helix-rum-bundler/compare/v1.0.5...v1.0.6) (2024-04-03)
+
+
+### Bug Fixes
+
+* bump memory, log less ([b62c18f](https://github.com/adobe/helix-rum-bundler/commit/b62c18f568bcd2ffad4a0d20d97fb3fef28bfe6a))
+* lru cache ([326850c](https://github.com/adobe/helix-rum-bundler/commit/326850c43cafad6bf21b91a7ce464f1fd2f8c126))
+* tests ([1abec71](https://github.com/adobe/helix-rum-bundler/commit/1abec71cf25594439c37e82aed936d833cf69675))
+
 ## [1.0.5](https://github.com/adobe/helix-rum-bundler/compare/v1.0.4...v1.0.5) (2024-04-02)
 
 
