@@ -78,7 +78,7 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
   await Promise.all(
     Object.entries(eventsBySessionId)
       .map(async ([sId, events]) => {
-        log.debug(`processing ${events.length} events to bundle ${sId}`);
+        // log.debug(`processing ${events.length} events to bundle ${sId}`);
 
         try {
           // if event exists in a session within last 24h, add it to that session
@@ -186,16 +186,15 @@ export function sortRawEvents(rawEvents, log) {
   const rawEventMap = {};
 
   rawEvents.forEach((pevent) => {
+    if (pevent.url.startsWith('/')) {
+      log.info('ignoring event with invalid url (absolute path): ', pevent);
+      return;
+    }
+
     const event = {
       ...pevent,
     };
-
     try {
-      if (event.url.startsWith('/')) {
-        log.info('ignoring event with invalid url (absolute path): ', event);
-        return;
-      }
-
       const date = new Date(event.time);
       const url = new URL(event.url);
       const domain = url.host;
@@ -281,7 +280,7 @@ async function doBundling(ctx) {
   await processQueue(
     objects,
     async ({ key }) => {
-      log.debug(`moving ${key} to ${key.replace('raw/', 'processed/')}`);
+      // log.debug(`moving ${key} to ${key.replace('raw/', 'processed/')}`);
       await logBucket.move(key, key.replace('raw/', 'processed/'));
     },
     concurrency,

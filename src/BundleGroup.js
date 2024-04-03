@@ -141,7 +141,7 @@ export default class BundleGroup {
     if (this.dirty) {
       const data = JSON.stringify({ bundles: this.bundles });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
-      this.ctx.log.debug(`storing bundle to ${this.key}.json`);
+      this.ctx.log.debug(`storing bundles to ${this.key}.json`);
       await bundleBucket.put(`${this.key}.json`, data, 'application/json');
       this.dirty = false;
     }
