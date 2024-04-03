@@ -28,7 +28,7 @@ export default class LRUCache {
   constructor({
     name = 'default',
     log = console,
-    limit = 500,
+    limit = 1000,
     threshold = 0.5,
   } = {}) {
     this.#map = new Map();
@@ -40,8 +40,8 @@ export default class LRUCache {
 
   #purge() {
     let rm = 0;
-    Object.entries(this.#map)
-      .sort((a, b) => a[1].t - b[1].t)
+    [...this.#map.entries()]
+      .sort((a, b) => b[1].t - a[1].t)
       .slice(0, this.limit * this.threshold)
       .forEach(([key, { v }]) => {
         if (v instanceof Promise) {
@@ -52,7 +52,7 @@ export default class LRUCache {
           this.#map.delete(key);
         }
       });
-    this.log.info(`LRUCache: purged ${rm} items from ${this.name}, new size ${this.#map.size}`);
+    this.log.info(`LRUCache(${this.name}): purged ${rm} item to new size ${this.#map.size}`);
   }
 
   /**
