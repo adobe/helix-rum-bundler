@@ -1,3 +1,10 @@
+## [1.0.10](https://github.com/adobe/helix-rum-bundler/compare/v1.0.9...v1.0.10) (2024-04-03)
+
+
+### Bug Fixes
+
+* add compression ([d852b77](https://github.com/adobe/helix-rum-bundler/commit/d852b7725bd88618a083bb1922b0ba04425399ec))
+
 ## [1.0.9](https://github.com/adobe/helix-rum-bundler/compare/v1.0.8...v1.0.9) (2024-04-03)
 
 
