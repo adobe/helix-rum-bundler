@@ -164,7 +164,7 @@ async function fetchDaily(path, ctx) {
   // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
   const maxBundles = 1000;
   const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
-  const bundleWeightFactor = totalBundles > maxBundles ? maxBundles / totalBundles : 1;
+  const bundleWeightFactor = totalBundles > maxBundles ? 1 / (maxBundles / totalBundles) : 1;
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -185,6 +185,7 @@ async function fetchDaily(path, ctx) {
     },
     rumBundles,
   );
+  ctx.log.debug(`reduced ${totalBundles} bundles to ${rumBundles.length} reductionFactor=${bundleReductionFactor} weightFactor=${bundleWeightFactor}`);
 
   return { rumBundles };
 }
