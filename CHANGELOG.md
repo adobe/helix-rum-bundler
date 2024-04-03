@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/adobe/helix-rum-bundler/compare/v1.0.7...v1.0.8) (2024-04-03)
+
+
+### Bug Fixes
+
+* downsample daily api ([ef5ac50](https://github.com/adobe/helix-rum-bundler/commit/ef5ac509e7c6cdedd8f4d7abc0861944a93c3fe4))
+
 ## [1.0.7](https://github.com/adobe/helix-rum-bundler/compare/v1.0.6...v1.0.7) (2024-04-03)
 
 
