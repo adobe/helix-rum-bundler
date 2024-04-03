@@ -99,7 +99,9 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit) {
     ...bundle.events.map((evt) => ({
       ...bundle,
       ...evt,
+      rownum: undefined,
       time: Number(new Date(evt.time)),
+      events: undefined,
     })),
   ], []);
 
