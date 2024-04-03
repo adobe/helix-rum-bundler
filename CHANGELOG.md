@@ -1,3 +1,10 @@
+## [1.0.12](https://github.com/adobe/helix-rum-bundler/compare/v1.0.11...v1.0.12) (2024-04-03)
+
+
+### Bug Fixes
+
+* test caching ([8f4b2f8](https://github.com/adobe/helix-rum-bundler/commit/8f4b2f843c0147306203acea1ace445e48eb08bb))
+
 ## [1.0.11](https://github.com/adobe/helix-rum-bundler/compare/v1.0.10...v1.0.11) (2024-04-03)
 
 
