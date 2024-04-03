@@ -191,6 +191,63 @@ async function fetchDaily(path, ctx) {
 }
 
 /**
+ * @param {ParsedPath} path
+ * @returns {string}
+ */
+export function getCacheControl(path) {
+  const now = new Date();
+  // requested date is the latest possible second in the requested day/hour bundles
+  const requested = new Date(
+    path.year,
+    path.month ? (path.month - 1) : 11,
+    path.day || 31,
+    path.hour || 24,
+  );
+  let ttl = 10 * 60 * 1000; // 10min
+  if (typeof path.hour === 'number') {
+    // hourly bundles expire every 10min until the hour elapses
+    // then within 10mins they should be stable forever
+    if (
+      requested.getFullYear() > now.getFullYear()
+      || requested.getMonth() > now.getMonth()
+      || requested.getDate() > now.getDate()
+      || (
+        requested > now && (
+          requested.getHours() - now.getHours() > 1
+          || (
+            requested.getHours() > now.getHours()
+          && requested.getMinutes() - now.getMinutes() > 10
+          )
+        )
+      )
+    ) {
+      ttl = 31536000;
+    }
+  } else if (typeof path.day === 'number') {
+    // daily bundles expire every hour until the day elapses in UTC
+    // then within 1 hour they should be stable forever
+    ttl = 60 * 60 * 1000; // 1 hour
+    if (
+      requested.getFullYear() > now.getFullYear()
+      || requested.getMonth() > now.getMonth()
+      || (
+        requested > now && (
+          requested.getDate() - now.getDate() > 1
+          || (
+            requested.getDate() > now.getDate()
+          && requested.getHours() - now.getHours() > 1
+          )
+        )
+      )
+    ) {
+      ttl = 31536000;
+    }
+  }
+  // public cache is fine, the domainkey can be cached and is included as cache key
+  return `public, max-age=${ttl}`;
+}
+
+/**
  * Respond to HTTP request
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -217,5 +274,5 @@ export default async function handleRequest(req, ctx) {
     return new Response('Not found', { status: 404 });
   }
 
-  return compressBody(req, JSON.stringify(data));
+  return compressBody(req, JSON.stringify(data), { 'cache-control': getCacheControl(parsed) });
 }
