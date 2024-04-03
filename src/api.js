@@ -145,12 +145,15 @@ async function fetchDaily(path, ctx) {
   );
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
-  // combine the bundles
-  // TODO: adjust bundle size and event weight according to event counts
-  // for now just return all the data we have
-  const weightFactor = 1;
-  // if (totalEvents > ...) {
-  // }
+  // roughly 3.5k events fit in 10MB, depending on bundle density
+  // if there are more than 1k events, cut the number proportionally
+  // TODO: make this deterministic
+  // TODO: adjust bundle weight according to event counts
+  // TODO: parameterize the maximum events
+
+  const maxEvents = 1000;
+  const reductionFactor = (totalEvents - maxEvents) / totalEvents;
+  const weightFactor = totalEvents > maxEvents ? maxEvents / totalEvents : 1;
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -160,10 +163,12 @@ async function fetchDaily(path, ctx) {
         return acc;
       }
       acc.push(
-        ...curr.value.rumBundles.map((b) => ({
-          ...b,
-          weight: b.weight * weightFactor,
-        })),
+        ...curr.value.rumBundles
+          .filter(() => (reductionFactor < 1 ? Math.random() > reductionFactor : true))
+          .map((b) => ({
+            ...b,
+            weight: b.weight * weightFactor,
+          })),
       );
       return acc;
     },

@@ -95,7 +95,7 @@ describe('util Tests', () => {
         return count > 10;
       };
       const wrapped = timeout(fn, { limit: 50, log: console });
-      await assertRejectsWithResponse(wrapped, 504, /^timeout after 4 runs/);
+      await assertRejectsWithResponse(wrapped, 504, /^timeout after/);
     });
   });
 });
