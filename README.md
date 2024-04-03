@@ -63,9 +63,16 @@ Contains information needed to efficiently relate new RUM events to an existing 
         },
         {
           "checkpoint": "loadresource",
-          "time": 123,
+          "timeDelta": 123,
           "source": "https://www.example.com/nav.plain.html",
           "target": "1"
+        },
+        {
+          "checkpoint": "cwv"
+        },
+        {
+          "checkpoint": "cwv-lcp",
+          "value": 1.1
         }
       ]
     }
