@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/adobe/helix-rum-bundler/compare/v1.0.6...v1.0.7) (2024-04-03)
+
+
+### Bug Fixes
+
+* cache purge fix ([740fbea](https://github.com/adobe/helix-rum-bundler/commit/740fbeacb2907db49256f3fbf34f5cc33bb0c3a9))
+
 ## [1.0.6](https://github.com/adobe/helix-rum-bundler/compare/v1.0.5...v1.0.6) (2024-04-03)
 
 
