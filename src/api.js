@@ -131,6 +131,8 @@ async function fetchDaily(path, ctx) {
 
   // fetch all bundles
   let totalEvents = 0;
+  let totalBundles = 0;
+
   const hourlyBundles = await Promise.allSettled(
     hours.map(async (hour) => {
       // eslint-disable-next-line no-param-reassign
@@ -139,7 +141,9 @@ async function fetchDaily(path, ctx) {
       if (!data) {
         return { rumBundles: [] };
       }
-      totalEvents += data.rumBundles.length;
+      totalBundles += data.rumBundles.length;
+      totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
+
       return data;
     }),
   );
@@ -151,9 +155,12 @@ async function fetchDaily(path, ctx) {
   // TODO: adjust bundle weight according to event counts
   // TODO: parameterize the maximum events
 
-  const maxEvents = 1000;
-  const reductionFactor = (totalEvents - maxEvents) / totalEvents;
-  const weightFactor = totalEvents > maxEvents ? maxEvents / totalEvents : 1;
+  // const maxEvents = 1000;
+  // const avgEventsPerBundle = totalEvents / totalBundles;
+  // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
+  const maxBundles = 100;
+  const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
+  const bundleWeightFactor = totalBundles > maxBundles ? maxBundles / totalBundles : 1;
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -164,10 +171,10 @@ async function fetchDaily(path, ctx) {
       }
       acc.push(
         ...curr.value.rumBundles
-          .filter(() => (reductionFactor < 1 ? Math.random() > reductionFactor : true))
+          .filter(() => (bundleReductionFactor < 1 ? Math.random() > bundleReductionFactor : true))
           .map((b) => ({
             ...b,
-            weight: b.weight * weightFactor,
+            weight: b.weight * bundleWeightFactor,
           })),
       );
       return acc;
