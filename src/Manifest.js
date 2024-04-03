@@ -129,8 +129,8 @@ export default class Manifest {
       ctx.attributes.rumManifests.set(key, manifest);
       return manifest;
     })();
-    ctx.attributes.rumManifests[key] = promise;
 
+    ctx.attributes.rumManifests.set(key, promise);
     return promise;
   }
 }
