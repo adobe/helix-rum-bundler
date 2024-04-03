@@ -1,3 +1,10 @@
+## [1.0.9](https://github.com/adobe/helix-rum-bundler/compare/v1.0.8...v1.0.9) (2024-04-03)
+
+
+### Bug Fixes
+
+* temp constant bundle limit on daily api ([0100d0d](https://github.com/adobe/helix-rum-bundler/commit/0100d0d36cbac32fd4034ec79a7487cd6818f88a))
+
 ## [1.0.8](https://github.com/adobe/helix-rum-bundler/compare/v1.0.7...v1.0.8) (2024-04-03)
 
 
