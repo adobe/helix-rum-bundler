@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/adobe/helix-rum-bundler/compare/v1.0.10...v1.0.11) (2024-04-03)
+
+
+### Bug Fixes
+
+* tweak bundle weight factor ([c01ad3b](https://github.com/adobe/helix-rum-bundler/commit/c01ad3beb5aa0f66461d9ebbaa6d218068e99640))
+
 ## [1.0.10](https://github.com/adobe/helix-rum-bundler/compare/v1.0.9...v1.0.10) (2024-04-03)
 
 
