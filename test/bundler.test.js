@@ -47,10 +47,7 @@ const mockEventLogFile = (domain) => {
 
 describe('bundler Tests', () => {
   describe('sortRawEvents()', () => {
-    let log;
-    beforeEach(() => {
-      log = { warn: () => {} };
-    });
+    const log = console;
 
     it('ignores urls without host', () => {
       const sorted = sortRawEvents([{ url: '/some/absolute/path' }], log);
