@@ -13,7 +13,7 @@
 // @ts-check
 
 import { Response } from '@adobe/fetch';
-import { errorWithResponse } from './util.js';
+import { compressBody, errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
 
 /**
@@ -57,8 +57,12 @@ export function assertAuthorization(req, ctx) {
  * @throws {ErrorWithResponse} if path is invalid
  */
 export function parsePath(path) {
-  if (!path || !path.endsWith('.json')) {
-    throw errorWithResponse(404, 'invalid path (wrong extension)');
+  if (!path) {
+    throw errorWithResponse(404, 'invalid path');
+  }
+  if (!path.endsWith('.json')) {
+    // eslint-disable-next-line no-param-reassign
+    path += '.json';
   }
 
   const segments = path.slice(0, -'.json'.length).split('/').slice(1);
@@ -158,7 +162,7 @@ async function fetchDaily(path, ctx) {
   // const maxEvents = 1000;
   // const avgEventsPerBundle = totalEvents / totalBundles;
   // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
-  const maxBundles = 100;
+  const maxBundles = 1000;
   const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
   const bundleWeightFactor = totalBundles > maxBundles ? maxBundles / totalBundles : 1;
 
@@ -212,9 +216,5 @@ export default async function handleRequest(req, ctx) {
     return new Response('Not found', { status: 404 });
   }
 
-  return new Response(JSON.stringify(data), {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  return compressBody(req, JSON.stringify(data));
 }

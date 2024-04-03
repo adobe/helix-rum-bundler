@@ -13,6 +13,8 @@
 // @ts-check
 
 import { Response } from '@adobe/fetch';
+import { promisify } from 'util';
+import { gzip, brotliCompress } from 'zlib';
 
 class ErrorWithResponse extends Error {
   /**
@@ -142,4 +144,43 @@ export const timeout = (fn, opts) => {
       }
     }
   };
+};
+
+/**
+ * Conditionally compress response body
+ * @param {RRequest} req
+ * @param {string} data
+ * @param {Record<string, string>} [headers]
+ */
+export const compressBody = async (req, data, headers = {}) => {
+  if (!headers['Content-Type'] || headers['content-type']) {
+    // eslint-disable-next-line no-param-reassign
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const acceptEncoding = req.headers.get('accept-encoding');
+  if (!acceptEncoding) {
+    return new Response(data, { headers });
+  }
+
+  if (acceptEncoding.includes('br')) {
+    const compressed = await promisify(brotliCompress)(data);
+    return new Response(compressed, {
+      headers: {
+        'Content-Encoding': 'br',
+        ...headers,
+      },
+    });
+  }
+
+  if (acceptEncoding.includes('gzip')) {
+    const compressed = await promisify(gzip)(data);
+    return new Response(compressed, {
+      headers: {
+        'Content-Encoding': 'gzip',
+        ...headers,
+      },
+    });
+  }
+  return new Response(data, { headers });
 };

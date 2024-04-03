@@ -209,7 +209,7 @@ describe('api Tests', () => {
     it('should throw 404 response on invalid paths', async () => {
       await assertRejectsWithResponse(async () => parsePath('/short.json'), 404, 'invalid path (short)');
       await assertRejectsWithResponse(async () => parsePath('/long/a/b/c/d/e/f/g/h.json'), 404, 'invalid path (long)');
-      await assertRejectsWithResponse(async () => parsePath('/no/json/extension'), 404, 'invalid path (wrong extension)');
+      await assertRejectsWithResponse(async () => parsePath(''), 404, 'invalid path');
     });
 
     it('parses paths', () => {
@@ -224,6 +224,12 @@ describe('api Tests', () => {
         hour: 0,
         toString: undefined,
       });
+
+      const parsedNoJson = parsePath('/domain/2024/01/01/0');
+      assert.deepStrictEqual(
+        { ...parsed, toString: undefined },
+        { ...parsedNoJson, toString: undefined },
+      );
 
       // with day
       parsed = parsePath('/domain/2024/3/4.json');
