@@ -105,7 +105,7 @@ export default class Manifest {
     const key = `${domain}/${year}/${month}/${date}`;
 
     if (!ctx.attributes.rumManifests) {
-      ctx.attributes.rumManifests = new LRUCache({ name: 'ManifestCache' });
+      ctx.attributes.rumManifests = new LRUCache({ name: 'Manifest' });
     }
 
     if (ctx.attributes.rumManifests.has(key)) {

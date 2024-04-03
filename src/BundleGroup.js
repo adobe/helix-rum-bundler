@@ -166,7 +166,7 @@ export default class BundleGroup {
     const key = `${domain}/${year}/${month}/${day}/${hour}`;
 
     if (!ctx.attributes.rumBundleGroups) {
-      ctx.attributes.rumBundleGroups = new LRUCache({ name: 'BundleGroupsCache' });
+      ctx.attributes.rumBundleGroups = new LRUCache({ name: 'BundleGroup' });
     }
 
     if (ctx.attributes.rumBundleGroups.has(key)) {
