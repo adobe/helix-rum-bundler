@@ -12,6 +12,7 @@
 /// <reference path="./types.d.ts" />
 // @ts-check
 
+import LRUCache from './LRUCache.js';
 import { HelixStorage } from './support/storage.js';
 
 export default class Manifest {
@@ -44,6 +45,10 @@ export default class Manifest {
     this.ctx = ctx;
     this.key = key;
     this.sessions = data?.sessions || {};
+  }
+
+  active() {
+    return this.dirty;
   }
 
   /**
@@ -100,14 +105,15 @@ export default class Manifest {
     const key = `${domain}/${year}/${month}/${date}`;
 
     if (!ctx.attributes.rumManifests) {
-      ctx.attributes.rumManifests = {};
+      ctx.attributes.rumManifests = new LRUCache({ name: 'ManifestCache' });
     }
 
-    if (ctx.attributes.rumManifests[key]) {
-      return ctx.attributes.rumManifests[key];
+    if (ctx.attributes.rumManifests.has(key)) {
+      // @ts-ignore
+      return ctx.attributes.rumManifests.get(key);
     }
 
-    ctx.attributes.rumManifests[key] = (async () => {
+    const promise = (async () => {
       let data = { sessions: {} };
       try {
         const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -119,10 +125,12 @@ export default class Manifest {
       } catch (e) {
         log.error('failed to get manifest', e);
       }
-      ctx.attributes.rumManifests[key] = new Manifest(ctx, key, data);
-      return ctx.attributes.rumManifests[key];
+      const manifest = new Manifest(ctx, key, data);
+      ctx.attributes.rumManifests.set(key, manifest);
+      return manifest;
     })();
+    ctx.attributes.rumManifests[key] = promise;
 
-    return ctx.attributes.rumManifests[key];
+    return promise;
   }
 }

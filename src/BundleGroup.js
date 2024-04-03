@@ -12,6 +12,7 @@
 /// <reference path="./types.d.ts" />
 // @ts-check
 
+import LRUCache from './LRUCache.js';
 import { HelixStorage } from './support/storage.js';
 import { pruneUndefined } from './util.js';
 
@@ -123,6 +124,10 @@ export default class BundleGroup {
     this.bundles = data?.bundles || {};
   }
 
+  active() {
+    return this.dirty;
+  }
+
   /**
    * @param {string} sessionId {event.id}--{event.url.pathname}
    * @param {RawRUMEvent} event
@@ -141,7 +146,7 @@ export default class BundleGroup {
     if (this.dirty) {
       const data = JSON.stringify({ bundles: this.bundles });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
-      this.ctx.log.debug(`storing bundles to ${this.key}.json`);
+      // this.ctx.log.debug(`storing bundles to ${this.key}.json`);
       await bundleBucket.put(`${this.key}.json`, data, 'application/json');
       this.dirty = false;
     }
@@ -161,15 +166,16 @@ export default class BundleGroup {
     const key = `${domain}/${year}/${month}/${day}/${hour}`;
 
     if (!ctx.attributes.rumBundleGroups) {
-      ctx.attributes.rumBundleGroups = {};
+      ctx.attributes.rumBundleGroups = new LRUCache({ name: 'BundleGroupsCache' });
     }
 
-    if (ctx.attributes.rumBundleGroups[key]) {
-      return ctx.attributes.rumBundleGroups[key];
+    if (ctx.attributes.rumBundleGroups.has(key)) {
+      // @ts-ignore
+      return ctx.attributes.rumBundleGroups.get(key);
     }
 
     log.debug(`hydrating bundlegroup for ${key}`);
-    ctx.attributes.rumBundleGroups[key] = (async () => {
+    const promise = (async () => {
       let data = { bundles: {} };
       try {
         const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -181,9 +187,12 @@ export default class BundleGroup {
       } catch (e) {
         log.error('failed to get bundlegroup', e);
       }
-      ctx.attributes.rumBundleGroups[key] = new BundleGroup(ctx, key, data);
-      return ctx.attributes.rumBundleGroups[key];
+      const group = new BundleGroup(ctx, key, data);
+      ctx.attributes.rumBundleGroups.set(key, group);
+      return group;
     })();
-    return ctx.attributes.rumBundleGroups[key];
+
+    ctx.attributes.rumBundleGroups.set(key, promise);
+    return promise;
   }
 }

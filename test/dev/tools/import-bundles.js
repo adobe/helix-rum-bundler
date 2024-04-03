@@ -119,7 +119,7 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit) {
 
   const ctx = contextLike();
   const key = process.env.DOMAIN_KEY;
-  const ymd = parseDate(process.env.DATE || '2024-01-01');
+  const ymd = parseDate(process.env.DATE || '2024-01-02');
   const domain = 'www.adobe.com';
   const limit = undefined;
 

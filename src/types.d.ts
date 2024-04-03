@@ -2,6 +2,7 @@ import { Request, Response } from '@adobe/fetch';
 import { Helix } from '@adobe/helix-universal';
 import BundleGroup from './BundleGroup';
 import Manifest from './Manifest';
+import LRUCache from './LRUCache';
 
 declare module '@adobe/helix-universal' {
   export namespace Helix {
@@ -32,8 +33,8 @@ declare module '@adobe/helix-universal' {
       }
 
       attributes: {
-        rumManifests: Record<string, Manifest | Promise<Manifest>>;
-        rumBundleGroups: Record<string, BundleGroup | Promise<BundleGroup>>;
+        rumManifests: LRUCache<Manifest | Promise<Manifest>>;
+        rumBundleGroups: LRUCache<BundleGroup | Promise<BundleGroup>>;
         [key: string]: unknown;
       }
 
