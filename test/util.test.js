@@ -14,7 +14,7 @@
 
 import assert from 'assert';
 import {
-  pruneUndefined, getEnvVar, yesterday, timeout,
+  pruneUndefined, getEnvVar, yesterday, timeout, calculateDownsample, magnitude,
 } from '../src/util.js';
 import { assertRejectsWithResponse, sleep } from './util.js';
 
@@ -96,6 +96,54 @@ describe('util Tests', () => {
       };
       const wrapped = timeout(fn, { limit: 50, log: console });
       await assertRejectsWithResponse(wrapped, 504, /^timeout after/);
+    });
+  });
+
+  describe('magnitude()', () => {
+    it('returns the floor order of magnitude', () => {
+      assert.deepEqual(magnitude(0), 0);
+      assert.deepEqual(magnitude(0.1), 0.1);
+      assert.deepEqual(magnitude(1), 1);
+      assert.deepEqual(magnitude(10), 10);
+      assert.deepEqual(magnitude(100), 100);
+      assert.deepEqual(magnitude(1000), 1000);
+      assert.deepEqual(magnitude(10000), 10000);
+
+      assert.deepEqual(magnitude(9), 1);
+      assert.deepEqual(magnitude(90), 10);
+      assert.deepEqual(magnitude(900), 100);
+      assert.deepEqual(magnitude(9000), 1000);
+      assert.deepEqual(magnitude(90000), 10000);
+    });
+  });
+
+  describe('calculateDownsample()', () => {
+    it('fewer than maximum, dont reduce', () => {
+      const { weightFactor, reductionFactor } = calculateDownsample(10, 100);
+      assert.strictEqual(weightFactor, 1);
+      assert.strictEqual(reductionFactor, 0);
+    });
+
+    it('10x maximum, reduce 90%', () => {
+      const { weightFactor, reductionFactor } = calculateDownsample(100, 10);
+      assert.strictEqual(weightFactor, 10);
+      assert.strictEqual(reductionFactor, 0.9);
+    });
+
+    it('100x maximum, reduce 99%', () => {
+      const { weightFactor, reductionFactor } = calculateDownsample(1000, 10);
+      assert.strictEqual(weightFactor, 100);
+      assert.strictEqual(reductionFactor, 0.99);
+    });
+
+    it('uses floors of magnitude for reduction', () => {
+      let v = calculateDownsample(200, 10);
+      assert.strictEqual(v.weightFactor, 10);
+      assert.strictEqual(v.reductionFactor, 0.9);
+
+      v = calculateDownsample(2398.44, 10);
+      assert.strictEqual(v.weightFactor, 100);
+      assert.strictEqual(v.reductionFactor, 0.99);
     });
   });
 });
