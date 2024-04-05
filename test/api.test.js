@@ -14,7 +14,7 @@
 
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
-import handleRequest, { parsePath, assertAuthorization } from '../src/api.js';
+import handleRequest, { parsePath, assertAuthorization, getCacheControl } from '../src/api.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from './util.js';
 
 describe('api Tests', () => {
@@ -262,6 +262,100 @@ describe('api Tests', () => {
         year: 2024,
         toString: undefined,
       });
+    });
+  });
+
+  describe('getCacheControl()', () => {
+    const ogDate = Date;
+    beforeEach(() => {
+      global.Date = class extends Date {
+        static _stubbed = [];
+
+        constructor(...args) {
+          // eslint-disable-next-line no-underscore-dangle
+          super(...(Date._stubbed.shift() || args));
+        }
+
+        static stub(...args) {
+          // eslint-disable-next-line no-underscore-dangle
+          Date._stubbed.push(args);
+          return Date;
+        }
+      };
+    });
+    afterEach(() => {
+      global.Date = ogDate;
+    });
+
+    /**
+     * NOTE: Date stub uses 0-index month (like the DateConstructor)
+     * and the resource uses 1-index month (like the S3 folder structure, api)
+     */
+    it('daily/hourly bundles >1 year old should be cached forever', () => {
+      Date.stub(2024, 0, 1);
+      const resource = {
+        year: 2023,
+        month: 1,
+        day: 1,
+      };
+      let val = getCacheControl(resource); // daily bundle
+      assert.strictEqual(val, 'public, max-age=31536000');
+
+      Date.stub(2024, 0, 1);
+      resource.hour = 0;
+      val = getCacheControl(resource); // hourly bundle
+      assert.strictEqual(val, 'public, max-age=31536000');
+    });
+
+    it('daily/hourly bundles >1 month old should be cached forever', () => {
+      Date.stub(2024, 1, 1);
+      const resource = {
+        year: 2024,
+        month: 1,
+        day: 1,
+      };
+      let val = getCacheControl(resource); // daily bundle
+      assert.strictEqual(val, 'public, max-age=31536000');
+
+      Date.stub(2024, 1, 1);
+      resource.hour = 0;
+      val = getCacheControl(resource); // hourly bundle
+      assert.strictEqual(val, 'public, max-age=31536000');
+    });
+
+    it('daily bundles <25h old should be cached for 60min', () => {
+      Date.stub(2024, 0, 2);
+      const resource = {
+        year: 2024,
+        month: 1,
+        day: 1,
+      };
+      const val = getCacheControl(resource);
+      assert.strictEqual(val, 'public, max-age=3600000');
+    });
+
+    it('hourly bundles >=70m old should be cached forever', () => {
+      Date.stub(2024, 0, 1, 2, 10, 1);
+      const resource = {
+        year: 2024,
+        month: 1,
+        day: 1,
+        hour: 1,
+      };
+      const val = getCacheControl(resource);
+      assert.strictEqual(val, 'public, max-age=31536000');
+    });
+
+    it('hourly bundles <70min old should be cached for 10min', () => {
+      Date.stub(2024, 0, 1, 2, 0);
+      const resource = {
+        year: 2024,
+        month: 1,
+        day: 1,
+        hour: 1,
+      };
+      const val = getCacheControl(resource);
+      assert.strictEqual(val, 'public, max-age=600000');
     });
   });
 });

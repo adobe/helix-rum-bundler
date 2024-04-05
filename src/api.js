@@ -151,7 +151,6 @@ async function fetchDaily(path, ctx) {
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
   // roughly 3.5k events fit in 10MB, depending on bundle density
-  // if there are more than 1k events, cut the number proportionally
   // TODO: make this deterministic
   // TODO: adjust bundle weight according to event counts
   // TODO: parameterize the maximum events
@@ -159,7 +158,7 @@ async function fetchDaily(path, ctx) {
   // const maxEvents = 1000;
   // const avgEventsPerBundle = totalEvents / totalBundles;
   // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
-  const maxBundles = 1000;
+  const maxBundles = [true, 'true'].includes(ctx.data?.forceAll) ? Infinity : 1000;
   const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
   const bundleWeightFactor = totalBundles > maxBundles ? 1 / (maxBundles / totalBundles) : 1;
 
@@ -201,42 +200,18 @@ export function getCacheControl(path) {
     path.hour || 24,
   );
   let ttl = 10 * 60 * 1000; // 10min
+  const diff = Number(now) - Number(requested);
   if (typeof path.hour === 'number') {
     // hourly bundles expire every 10min until the hour elapses
     // then within 10mins they should be stable forever
-    if (
-      requested.getFullYear() > now.getFullYear()
-      || requested.getMonth() > now.getMonth()
-      || requested.getDate() > now.getDate()
-      || (
-        requested > now && (
-          requested.getHours() - now.getHours() > 1
-          || (
-            requested.getHours() > now.getHours()
-          && requested.getMinutes() - now.getMinutes() > 10
-          )
-        )
-      )
-    ) {
+    if (diff > (60 * 60 * 1000) + (10 * 60 * 1000)) {
       ttl = 31536000;
     }
   } else if (typeof path.day === 'number') {
     // daily bundles expire every hour until the day elapses in UTC
     // then within 1 hour they should be stable forever
     ttl = 60 * 60 * 1000; // 1 hour
-    if (
-      requested.getFullYear() > now.getFullYear()
-      || requested.getMonth() > now.getMonth()
-      || (
-        requested > now && (
-          requested.getDate() - now.getDate() > 1
-          || (
-            requested.getDate() > now.getDate()
-          && requested.getHours() - now.getHours() > 1
-          )
-        )
-      )
-    ) {
+    if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
       ttl = 31536000;
     }
   }

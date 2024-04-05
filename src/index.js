@@ -32,6 +32,7 @@ import handleRequest from './api.js';
 function shouldBundleRUM(req, ctx) {
   const { log } = ctx;
   const invokedByEvent = ctx.invocation?.event?.source === 'aws.scheduler';
+
   if (invokedByEvent) {
     log.debug('invoked by scheduler, performing bundling');
     return true;
