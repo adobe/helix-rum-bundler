@@ -151,14 +151,17 @@ async function fetchDaily(path, ctx) {
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
   // roughly 3.5k events fit in 10MB, depending on bundle density
+  // TODO: downsample into orders of magnitude
   // TODO: make this deterministic
-  // TODO: adjust bundle weight according to event counts
-  // TODO: parameterize the maximum events
+  // TODO: adjust bundle weight according to event counts instead of bundle counts
+  // TODO: parameterize the maximum events?
 
-  // const maxEvents = 1000;
-  // const avgEventsPerBundle = totalEvents / totalBundles;
-  // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
-  const maxBundles = [true, 'true'].includes(ctx.data?.forceAll) ? Infinity : 1000;
+  const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
+  // const magnitude = (x) => {
+  //   const order = Math.floor(Math.log(x) / Math.LN10 + 0.000000001);
+  //   return 10 ** order;
+  // };
+  const maxBundles = forceAll ? Infinity : 1000;
   const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
   const bundleWeightFactor = totalBundles > maxBundles ? 1 / (maxBundles / totalBundles) : 1;
 
@@ -175,6 +178,7 @@ async function fetchDaily(path, ctx) {
           .map((b) => ({
             ...b,
             weight: b.weight * bundleWeightFactor,
+            events: forceAll ? b.events.map((ev) => ({ ...ev, timeDelta: undefined })) : b.events,
           })),
       );
       return acc;
