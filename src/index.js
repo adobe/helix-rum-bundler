@@ -31,7 +31,7 @@ import handleRequest from './api.js';
  */
 function shouldBundleRUM(req, ctx) {
   const { log } = ctx;
-  log.debug('event: ', ctx.invocation.event);
+  log.debug('event: ', ctx.invocation?.event);
 
   const invokedByEvent = ctx.invocation?.event?.source === 'aws.events';
   if (invokedByEvent) {
