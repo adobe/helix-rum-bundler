@@ -189,3 +189,52 @@ export const compressBody = async (ctx, req, data, headers = {}) => {
   }
   return new Response(data, { headers });
 };
+
+/**
+ * calculate nearest order of magnitude
+ * @param {number} x
+ * @returns {number}
+ */
+export const magnitude = (x) => {
+  const order = Math.floor(Math.log(x) / Math.LN10 + 0.000000001);
+  return 10 ** order;
+};
+
+/**
+ * calculate downsampling factors
+ * @param {number} total
+ * @param {number} maximum
+ */
+export const calculateDownsample = (total, maximum) => {
+  // if max == 100
+  // t = 100 => 0, 1
+  // t = 600 => 0, 1
+  // t = 1000 => 0.9, 10
+  // t = 4000 => 0.9, 10
+  // etc..
+
+  if (total <= maximum) {
+    return {
+      reductionFactor: 0,
+      weightFactor: 1,
+    };
+  }
+
+  const mTotal = magnitude(total);
+  const mMax = magnitude(maximum);
+  if (mTotal <= mMax) {
+    return {
+      reductionFactor: 0,
+      weightFactor: 1,
+    };
+  }
+
+  const reductionFactor = (mTotal - mMax) / mTotal;
+  const weightFactor = (mTotal > mMax || reductionFactor > 1)
+    ? Math.round(1 / (1 - reductionFactor))
+    : 1;
+  return {
+    reductionFactor,
+    weightFactor,
+  };
+};

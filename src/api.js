@@ -13,7 +13,7 @@
 // @ts-check
 
 import { Response } from '@adobe/fetch';
-import { compressBody, errorWithResponse } from './util.js';
+import { calculateDownsample, compressBody, errorWithResponse } from './util.js';
 import { HelixStorage } from './support/storage.js';
 
 /**
@@ -150,20 +150,15 @@ async function fetchDaily(path, ctx) {
   );
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
-  // roughly 3.5k events fit in 10MB, depending on bundle density
-  // TODO: downsample into orders of magnitude
+  // roughly 130B/event uncompressed, final payload size depends on bundle density
+  // gzip gives ~90% reduction; shoot for 5MB before compression as maximum
+  // 5M/130B ~= 38K events .. round down to 25K for safety
   // TODO: make this deterministic
-  // TODO: adjust bundle weight according to event counts instead of bundle counts
-  // TODO: parameterize the maximum events?
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  // const magnitude = (x) => {
-  //   const order = Math.floor(Math.log(x) / Math.LN10 + 0.000000001);
-  //   return 10 ** order;
-  // };
-  const maxBundles = forceAll ? Infinity : 1000;
-  const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
-  const bundleWeightFactor = totalBundles > maxBundles ? 1 / (maxBundles / totalBundles) : 1;
+  // const maxBundles = forceAll ? Infinity : 1000;
+  const maxEvents = forceAll ? Infinity : 25000;
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -174,10 +169,10 @@ async function fetchDaily(path, ctx) {
       }
       acc.push(
         ...curr.value.rumBundles
-          .filter(() => (bundleReductionFactor < 1 ? Math.random() > bundleReductionFactor : true))
+          .filter(() => (reductionFactor > 0 ? Math.random() > reductionFactor : true))
           .map((b) => ({
             ...b,
-            weight: b.weight * bundleWeightFactor,
+            weight: b.weight * weightFactor,
             events: forceAll ? b.events.map((ev) => ({ ...ev, timeDelta: undefined })) : b.events,
           })),
       );
@@ -185,7 +180,7 @@ async function fetchDaily(path, ctx) {
     },
     rumBundles,
   );
-  ctx.log.debug(`reduced ${totalBundles} bundles to ${rumBundles.length} reductionFactor=${bundleReductionFactor} weightFactor=${bundleWeightFactor}`);
+  ctx.log.debug(`reduced ${totalBundles} bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
   return { rumBundles };
 }
