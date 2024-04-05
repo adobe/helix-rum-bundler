@@ -1,3 +1,10 @@
+## [1.0.13](https://github.com/adobe/helix-rum-bundler/compare/v1.0.12...v1.0.13) (2024-04-05)
+
+
+### Bug Fixes
+
+* empty rumbundles instead of 404 ([0b4131c](https://github.com/adobe/helix-rum-bundler/commit/0b4131cb0084f7807d0b31501cbc882fe37ad959))
+
 ## [1.0.12](https://github.com/adobe/helix-rum-bundler/compare/v1.0.11...v1.0.12) (2024-04-03)
 
 
