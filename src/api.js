@@ -246,5 +246,10 @@ export default async function handleRequest(req, ctx) {
     return new Response('Not found', { status: 404 });
   }
 
-  return compressBody(req, JSON.stringify(data), { 'cache-control': getCacheControl(parsed) });
+  return compressBody(
+    ctx,
+    req,
+    JSON.stringify(data),
+    { 'cache-control': getCacheControl(parsed) },
+  );
 }
