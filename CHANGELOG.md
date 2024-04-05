@@ -1,3 +1,11 @@
+## [1.0.18](https://github.com/adobe/helix-rum-bundler/compare/v1.0.17...v1.0.18) (2024-04-05)
+
+
+### Bug Fixes
+
+* bug ([e773235](https://github.com/adobe/helix-rum-bundler/commit/e773235e67594e00ceec9cbcdd2386b159f93d62))
+* log compression ([41368f3](https://github.com/adobe/helix-rum-bundler/commit/41368f3a7013b132ab3eff0d606ca8d4299e2e31))
+
 ## [1.0.17](https://github.com/adobe/helix-rum-bundler/compare/v1.0.16...v1.0.17) (2024-04-05)
 
 
