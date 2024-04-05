@@ -31,9 +31,7 @@ import handleRequest from './api.js';
  */
 function shouldBundleRUM(req, ctx) {
   const { log } = ctx;
-  log.debug('event: ', ctx.invocation?.event);
-
-  const invokedByEvent = ctx.invocation?.event?.source === 'aws.events';
+  const invokedByEvent = ctx.invocation?.event?.source === 'aws.scheduler';
   if (invokedByEvent) {
     log.debug('invoked by scheduler, performing bundling');
     return true;
@@ -48,6 +46,7 @@ function shouldBundleRUM(req, ctx) {
   }
 
   const invokeAllowed = ctx.env.INVOKE_BUNDLER_KEY && req.headers.get('x-bundler-authorization') === ctx.env.INVOKE_BUNDLER_KEY;
+  /* c8 ignore next */
   log.debug(`invoked manually, ${invokeAllowed ? '' : 'not'} performing bundling`);
   return invokeAllowed;
 }
