@@ -148,11 +148,14 @@ export const timeout = (fn, opts) => {
 
 /**
  * Conditionally compress response body
+ * @param {UniversalContext} ctx
  * @param {RRequest} req
  * @param {string} data
  * @param {Record<string, string>} [headers]
  */
-export const compressBody = async (req, data, headers = {}) => {
+export const compressBody = async (ctx, req, data, headers = {}) => {
+  const { log } = ctx;
+
   if (!headers['Content-Type'] || headers['content-type']) {
     // eslint-disable-next-line no-param-reassign
     headers['Content-Type'] = 'application/json';
@@ -165,6 +168,7 @@ export const compressBody = async (req, data, headers = {}) => {
 
   if (acceptEncoding.includes('br')) {
     const compressed = await promisify(brotliCompress)(data);
+    log.debug(`compressed ~${data.length}B to ${compressed.byteLength}B with brotli`);
     return new Response(compressed, {
       headers: {
         'Content-Encoding': 'br',
@@ -175,6 +179,7 @@ export const compressBody = async (req, data, headers = {}) => {
 
   if (acceptEncoding.includes('gzip')) {
     const compressed = await promisify(gzip)(data);
+    log.debug(`compressed ~${data.length}B to ${compressed.byteLength}B with gzip`);
     return new Response(compressed, {
       headers: {
         'Content-Encoding': 'gzip',
