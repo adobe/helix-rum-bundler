@@ -1,3 +1,10 @@
+## [1.0.19](https://github.com/adobe/helix-rum-bundler/compare/v1.0.18...v1.0.19) (2024-04-05)
+
+
+### Bug Fixes
+
+* drop some data in forceAll daily mode ([f116ddf](https://github.com/adobe/helix-rum-bundler/commit/f116ddf843d4e6458ca44fd3fc59ae47b9ef345a))
+
 ## [1.0.18](https://github.com/adobe/helix-rum-bundler/compare/v1.0.17...v1.0.18) (2024-04-05)
 
 
