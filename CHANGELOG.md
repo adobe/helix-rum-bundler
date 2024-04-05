@@ -1,3 +1,10 @@
+## [1.0.20](https://github.com/adobe/helix-rum-bundler/compare/v1.0.19...v1.0.20) (2024-04-05)
+
+
+### Bug Fixes
+
+* test new downsampling ([96b4aae](https://github.com/adobe/helix-rum-bundler/commit/96b4aae6b4f45f1f0b8d9caa3636fd1a1cc93087))
+
 ## [1.0.19](https://github.com/adobe/helix-rum-bundler/compare/v1.0.18...v1.0.19) (2024-04-05)
 
 
