@@ -158,7 +158,7 @@ async function fetchDaily(path, ctx) {
   // const maxEvents = 1000;
   // const avgEventsPerBundle = totalEvents / totalBundles;
   // const maxBundles = totalBundles * (totalEvents / avgEventsPerBundle);
-  const maxBundles = ctx.data.forceAll ? Infinity : 1000;
+  const maxBundles = [true, 'true'].includes(ctx.data?.forceAll) ? Infinity : 1000;
   const bundleReductionFactor = (totalBundles - maxBundles) / totalBundles;
   const bundleWeightFactor = totalBundles > maxBundles ? 1 / (maxBundles / totalBundles) : 1;
 
