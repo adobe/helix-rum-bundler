@@ -30,8 +30,10 @@ import handleRequest from './api.js';
  * @returns {boolean}
  */
 function shouldBundleRUM(req, ctx) {
+  const { log } = ctx;
   const invokedByEvent = ctx.invocation?.event?.source === 'aws.events';
   if (invokedByEvent) {
+    log.debug('invoked by scheduler, performing bundling');
     return true;
   }
   if (!ctx.data.bundle) {
@@ -39,8 +41,13 @@ function shouldBundleRUM(req, ctx) {
   }
 
   const isDevMode = ctx.runtime?.name === 'simulate';
+  if (isDevMode) {
+    return true;
+  }
+
   const invokeAllowed = ctx.env.INVOKE_BUNDLER_KEY && req.headers.get('x-bundler-authorization') === ctx.env.INVOKE_BUNDLER_KEY;
-  return isDevMode || invokeAllowed;
+  log.debug(`invoked manually, ${invokeAllowed ? '' : 'not'} performing bundling`);
+  return invokeAllowed;
 }
 
 /**
