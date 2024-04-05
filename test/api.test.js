@@ -44,7 +44,9 @@ describe('api Tests', () => {
 
       const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/example.com/2024/03/01/0.json' } });
       const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 404);
+      assert.strictEqual(resp.status, 200);
+      const { rumBundles } = await resp.json();
+      assert.deepStrictEqual(rumBundles, []);
     });
 
     it('get hourly data', async () => {
