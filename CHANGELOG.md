@@ -1,3 +1,12 @@
+## [1.0.17](https://github.com/adobe/helix-rum-bundler/compare/v1.0.16...v1.0.17) (2024-04-05)
+
+
+### Bug Fixes
+
+* bug ([474e222](https://github.com/adobe/helix-rum-bundler/commit/474e222137c172255a50f8df62fbbba55e07e1e8))
+* cache control ([ffb6908](https://github.com/adobe/helix-rum-bundler/commit/ffb6908e963423d21457ab65f7de056c091bee65))
+* forceAll param ([ebaefe9](https://github.com/adobe/helix-rum-bundler/commit/ebaefe9e784ff46533a2a6d154f6aaf21437cf12))
+
 ## [1.0.16](https://github.com/adobe/helix-rum-bundler/compare/v1.0.15...v1.0.16) (2024-04-05)
 
 
