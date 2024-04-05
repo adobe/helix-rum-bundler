@@ -1,3 +1,10 @@
+## [1.0.16](https://github.com/adobe/helix-rum-bundler/compare/v1.0.15...v1.0.16) (2024-04-05)
+
+
+### Bug Fixes
+
+* change bundler event source ([02ba75c](https://github.com/adobe/helix-rum-bundler/commit/02ba75c5f9ceb45c4f210296c82edd2c012ae04c))
+
 ## [1.0.15](https://github.com/adobe/helix-rum-bundler/compare/v1.0.14...v1.0.15) (2024-04-05)
 
 
