@@ -1,3 +1,10 @@
+## [1.0.15](https://github.com/adobe/helix-rum-bundler/compare/v1.0.14...v1.0.15) (2024-04-05)
+
+
+### Bug Fixes
+
+* temp log event ([f6e4666](https://github.com/adobe/helix-rum-bundler/commit/f6e46669b02093f809bed321435443e8d0c8115b))
+
 ## [1.0.14](https://github.com/adobe/helix-rum-bundler/compare/v1.0.13...v1.0.14) (2024-04-05)
 
 
