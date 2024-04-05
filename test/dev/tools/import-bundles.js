@@ -119,9 +119,12 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit) {
 
   const ctx = contextLike();
   const key = process.env.DOMAIN_KEY;
-  const ymd = parseDate(process.env.DATE || '2024-01-02');
+  const ymds = [parseDate('2024-03-20')];
   const domain = 'www.adobe.com';
   const limit = undefined;
 
-  await importBundlesForDate(ctx, key, domain, ymd, limit);
+  for (const ymd of ymds) {
+    // eslint-disable-next-line no-await-in-loop
+    await importBundlesForDate(ctx, key, domain, ymd, limit);
+  }
 })().catch(console.error);
