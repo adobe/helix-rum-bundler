@@ -106,7 +106,7 @@ export function parsePath(path) {
 /**
  * @param {ParsedPath} path
  * @param {UniversalContext} ctx
- * @returns {Promise<{ rumBundles: RUMBundle[] } | undefined>}
+ * @returns {Promise<{ rumBundles: RUMBundle[] }>}
  */
 async function fetchHourly(path, ctx) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -115,7 +115,7 @@ async function fetchHourly(path, ctx) {
   // ctx.log.debug('fetching bundle key: ', `${path}.json`);
   const buf = await bundleBucket.get(key);
   if (!buf) {
-    return undefined;
+    return { rumBundles: [] };
   }
   const txt = new TextDecoder('utf8').decode(buf);
   const json = JSON.parse(txt);
@@ -142,9 +142,6 @@ async function fetchDaily(path, ctx) {
       // eslint-disable-next-line no-param-reassign
       path.hour = hour;
       const data = await fetchHourly(path, ctx);
-      if (!data) {
-        return { rumBundles: [] };
-      }
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
@@ -195,7 +192,7 @@ async function fetchDaily(path, ctx) {
  * @returns {string}
  */
 export function getCacheControl(path) {
-  const now = new Date();
+  const now = new Date(); // must be first for tests
   // requested date is the latest possible second in the requested day/hour bundles
   const requested = new Date(
     path.year,
