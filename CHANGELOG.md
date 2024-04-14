@@ -1,3 +1,10 @@
+## [1.0.21](https://github.com/adobe/helix-rum-bundler/compare/v1.0.20...v1.0.21) (2024-04-14)
+
+
+### Bug Fixes
+
+* **deps:** update adobe fixes ([#19](https://github.com/adobe/helix-rum-bundler/issues/19)) ([a06851d](https://github.com/adobe/helix-rum-bundler/commit/a06851de70d621205bc5e7b0d13df0d8929f1b93))
+
 ## [1.0.20](https://github.com/adobe/helix-rum-bundler/compare/v1.0.19...v1.0.20) (2024-04-05)
 
 
