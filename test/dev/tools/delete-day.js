@@ -14,31 +14,34 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike, parseDate } from './util.js';
 
+/**
+ * deletes a single date (`env.DATE`) from all domains, except for `env.IGNORED_DOMAINS`
+ */
+
 (async () => {
   if (!process.env.DATE) {
     throw Error('missing env variable: DATE');
   }
+  const ignoreArr = process.env.IGNORE_DOMAINS ? process.env.IGNORE_DOMAINS.split(',') : [];
+  const ignored = Object.fromEntries(ignoreArr.map((i) => [i, true]));
   const ctx = contextLike();
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const prefixes = await bundleBucket.listFolders('');
+  const prefixes = (await bundleBucket.listFolders('')).filter((p) => !ignored[p.slice(0, -1)]);
   const { year, month, day } = parseDate(process.env.DATE);
   console.debug(`removing year=${year} month=${month} day=${day} from ${prefixes.length} domains`);
-  const folders = prefixes.map((pre) => `${pre}${year}/${month}/${day}`);
-
-  // slice folders array into chunks of 1000
-  const chunks = folders.reduce((acc, cur, i) => {
-    if (i % 1000 === 0) {
-      acc.push([]);
-    }
-    acc[acc.length - 1].push(cur);
-    return acc;
-  }, []);
+  const folders = prefixes.map((pre) => `${pre}${year}/${month}/${day}/`);
 
   await processQueue(
-    chunks,
-    async (chunk) => {
-      await bundleBucket.remove(chunk);
+    folders,
+    async (folder) => {
+      const { objects } = await bundleBucket.list(folder);
+      if (!objects || !objects.length) {
+        return;
+      }
+
+      console.debug(`removing ${objects.length} objects from ${folder}`);
+      await bundleBucket.remove(objects.map((o) => o.key));
     },
   );
 })().catch((e) => console.error(e));
