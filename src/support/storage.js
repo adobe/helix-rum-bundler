@@ -407,6 +407,11 @@ class Bucket {
     };
   }
 
+  /**
+   * List folders, return array of folder names
+   * @param {string} prefix
+   * @returns {Promise<string[]>}
+   */
   async listFolders(prefix) {
     let ContinuationToken;
     const folders = [];

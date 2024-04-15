@@ -156,7 +156,6 @@ async function fetchDaily(path, ctx) {
   // TODO: make this deterministic
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  // const maxBundles = forceAll ? Infinity : 1000;
   const maxEvents = forceAll ? Infinity : 25000;
   const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
 
