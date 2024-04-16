@@ -1,3 +1,11 @@
+## [1.0.22](https://github.com/adobe/helix-rum-bundler/compare/v1.0.21...v1.0.22) (2024-04-16)
+
+
+### Bug Fixes
+
+* monthly api ([985acda](https://github.com/adobe/helix-rum-bundler/commit/985acda08100fc681206c17aebad0cac90b1e823))
+* refactor, add route path prefix ([40287f9](https://github.com/adobe/helix-rum-bundler/commit/40287f93f6a531e007dd5a4b96800af56fa668dc))
+
 ## [1.0.21](https://github.com/adobe/helix-rum-bundler/compare/v1.0.20...v1.0.21) (2024-04-14)
 
 
