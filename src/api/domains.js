@@ -9,10 +9,19 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+/// <reference path="../types.d.ts" />
+// @ts-check
 
 import { Response } from '@adobe/fetch';
 
-export default function handleRequest() {
+/**
+ * Handle /domains route
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @returns {Promise<RResponse>}
+ */
+// eslint-disable-next-line no-unused-vars
+export default async function handleRequest(req, ctx) {
   return new Response('not implemented', {
     status: 501,
     headers: {

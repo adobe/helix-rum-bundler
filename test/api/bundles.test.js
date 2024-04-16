@@ -54,9 +54,8 @@ describe('api/bundles Tests', () => {
 
   describe('parsePath()', () => {
     it('should throw 404 response on invalid paths', async () => {
-      await assertRejectsWithResponse(async () => parsePath('/short.json'), 404, 'invalid path (short)');
-      await assertRejectsWithResponse(async () => parsePath('/long/a/b/c/d/e/f/g/h.json'), 404, 'invalid path (long)');
       await assertRejectsWithResponse(async () => parsePath(''), 404, 'invalid path');
+      await assertRejectsWithResponse(async () => parsePath('/bundles/domain/notanumber'), 404, 'invalid path');
     });
 
     it('parses paths', () => {
@@ -64,6 +63,7 @@ describe('api/bundles Tests', () => {
       let parsed = parsePath('/bundles/domain/2024/01/01/0.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/1/1/0');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
+        route: 'bundles',
         domain: 'domain',
         year: 2024,
         month: 1,
@@ -82,10 +82,12 @@ describe('api/bundles Tests', () => {
       parsed = parsePath('/bundles/domain/2024/3/4.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/3/4');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
+        route: 'bundles',
         domain: 'domain',
         year: 2024,
         month: 3,
         day: 4,
+        hour: undefined,
         toString: undefined,
       });
 
@@ -93,9 +95,12 @@ describe('api/bundles Tests', () => {
       parsed = parsePath('/bundles/domain/2024/12.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/12');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
+        route: 'bundles',
         domain: 'domain',
         year: 2024,
         month: 12,
+        day: undefined,
+        hour: undefined,
         toString: undefined,
       });
 
@@ -103,8 +108,12 @@ describe('api/bundles Tests', () => {
       parsed = parsePath('/bundles/domain/2024.json');
       assert.strictEqual(parsed.toString(), '/domain/2024');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
+        route: 'bundles',
         domain: 'domain',
         year: 2024,
+        month: undefined,
+        day: undefined,
+        hour: undefined,
         toString: undefined,
       });
     });
@@ -166,6 +175,26 @@ describe('api/bundles Tests', () => {
       resource.hour = 0;
       val = getCacheControl(resource); // hourly bundle
       assert.strictEqual(val, 'public, max-age=31536000');
+    });
+
+    it('monthly bundles >1h past end of month, should be cached forever', () => {
+      Date.stub(2024, 1, 2, 1); // feb 2 at 1:00
+      const resource = {
+        year: 2024,
+        month: 1, // jan
+      };
+      const val = getCacheControl(resource);
+      assert.strictEqual(val, 'public, max-age=31536000');
+    });
+
+    it('monthly bundles <1h past end of month, should be cached for 12h', () => {
+      Date.stub(2024, 0, 2);
+      const resource = {
+        year: 2024,
+        month: 1,
+      };
+      const val = getCacheControl(resource);
+      assert.strictEqual(val, 'public, max-age=43200000');
     });
 
     it('daily bundles <25h old should be cached for 60min', () => {

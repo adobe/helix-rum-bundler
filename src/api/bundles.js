@@ -15,17 +15,7 @@
 import { Response } from '@adobe/fetch';
 import { calculateDownsample, compressBody, errorWithResponse } from '../util.js';
 import { HelixStorage } from '../support/storage.js';
-
-/**
- * @typedef {{
- *  domain: string;
- *  year: number;
- *  month?: number;
- *  day?: number;
- *  hour?: number;
- *  toString(): string;
- * }} ParsedPath
- */
+import { PathInfo } from '../support/PathInfo.js';
 
 /**
  * Check domainkey authorization
@@ -52,53 +42,17 @@ export function assertAuthorized(req, ctx) {
 /**
  * parse request path
  * throw some x-error response for invalid path 404s for easier debugging
- * @param {string} ppath
- * @returns {ParsedPath}
+ * @param {string} path
+ * @returns {PathInfo}
  * @throws {ErrorWithResponse} if path is invalid
  */
-export function parsePath(ppath) {
-  if (!ppath) {
+export function parsePath(path) {
+  if (!path) {
     throw errorWithResponse(404, 'invalid path');
   }
 
-  let path = ppath.substring('/bundles'.length);
-  if (!path.endsWith('.json')) {
-    // eslint-disable-next-line no-param-reassign
-    path += '.json';
-  }
-
-  const segments = path.slice(0, -'.json'.length).split('/').slice(1);
-  // minimum path `/domain/year.json`
-  if (segments.length < 2) {
-    throw errorWithResponse(404, 'invalid path (short)');
-  }
-  // maximum path `/domain/year/month/day/hour.json`
-  if (segments.length > 5) {
-    throw errorWithResponse(404, 'invalid path (long)');
-  }
-
-  const [domain, pyear, pmonth, pday, phour] = segments;
   try {
-    /** @type {ParsedPath} */
-    const parsed = {
-      domain,
-      year: parseInt(pyear, 10),
-      toString() {
-        const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
-        return parts.filter((p) => p !== undefined).join('/');
-      },
-    };
-
-    if (pmonth) {
-      parsed.month = parseInt(pmonth, 10);
-    }
-    if (pday) {
-      parsed.day = parseInt(pday, 10);
-    }
-    if (phour) {
-      parsed.hour = parseInt(phour, 10);
-    }
-    return parsed;
+    return new PathInfo(path);
   /* c8 ignore next 3 */
   } catch {
     throw errorWithResponse(404, 'invalid path');
@@ -106,7 +60,7 @@ export function parsePath(ppath) {
 }
 
 /**
- * @param {ParsedPath} path
+ * @param {PathInfo} path
  * @param {UniversalContext} ctx
  * @returns {Promise<{ rumBundles: RUMBundle[] }>}
  */
@@ -127,7 +81,7 @@ async function fetchHourly(path, ctx) {
 }
 
 /**
- * @param {ParsedPath} path
+ * @param {PathInfo} path
  * @param {UniversalContext} ctx
  * @returns {Promise<any>}
  */
@@ -141,9 +95,8 @@ async function fetchDaily(path, ctx) {
 
   const hourlyBundles = await Promise.allSettled(
     hours.map(async (hour) => {
-      // eslint-disable-next-line no-param-reassign
-      path.hour = hour;
-      const data = await fetchHourly(path, ctx);
+      const hpath = path.clone(undefined, undefined, undefined, hour);
+      const data = await fetchHourly(hpath, ctx);
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
@@ -181,13 +134,68 @@ async function fetchDaily(path, ctx) {
     },
     rumBundles,
   );
-  ctx.log.debug(`reduced ${totalBundles} bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+  ctx.log.debug(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
   return { rumBundles };
 }
 
 /**
- * @param {ParsedPath} path
+ * @param {PathInfo} path
+ * @param {UniversalContext} ctx
+ * @returns {Promise<any>}
+ */
+async function fetchMonthly(path, ctx) {
+  // @ts-ignore
+  const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()];
+
+  // fetch all bundles
+  let totalEvents = 0;
+  let totalBundles = 0;
+
+  const dailyBundles = await Promise.allSettled(
+    days.map(async (day) => {
+      // eslint-disable-next-line no-param-reassign
+      const dpath = path.clone(undefined, undefined, day);
+      const data = await fetchDaily(dpath, ctx);
+      totalBundles += data.rumBundles.length;
+      totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
+
+      return data;
+    }),
+  );
+  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
+
+  const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
+  const maxEvents = forceAll ? Infinity : 25000;
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
+
+  /** @type {RUMBundle[]} */
+  const rumBundles = [];
+  dailyBundles.reduce(
+    (acc, curr) => {
+      if (curr.status === 'rejected') {
+        return acc;
+      }
+      acc.push(
+        ...curr.value.rumBundles
+          .filter(() => (reductionFactor > 0 ? Math.random() > reductionFactor : true))
+          .map((b) => ({
+            ...b,
+            weight: b.weight * weightFactor,
+            events: forceAll ? b.events.map((ev) => ({ ...ev, timeDelta: undefined })) : b.events,
+          })),
+      );
+      return acc;
+    },
+    rumBundles,
+  );
+  ctx.log.debug(`reduced ${totalBundles} monthly bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+
+  return { rumBundles };
+}
+
+/**
+ * @param {PathInfo} path
  * @returns {string}
  */
 export function getCacheControl(path) {
@@ -195,16 +203,18 @@ export function getCacheControl(path) {
   // requested date is the latest possible second in the requested day/hour bundles
   const requested = new Date(
     path.year,
-    path.month ? (path.month - 1) : 11,
-    path.day || 31,
-    path.hour || 24,
+    typeof path.month === 'number' ? (path.month - 1) : 11,
+    typeof path.day === 'number' ? path.day : 31,
+    typeof path.hour === 'number' ? path.hour : 23,
+    59,
+    59,
   );
   let ttl = 10 * 60 * 1000; // 10min
   const diff = Number(now) - Number(requested);
   if (typeof path.hour === 'number') {
     // hourly bundles expire every 10min until the hour elapses
     // then within 10mins they should be stable forever
-    if (diff > (60 * 60 * 1000) + (10 * 60 * 1000)) {
+    if (diff > (10 * 60 * 1000)) {
       ttl = 31536000;
     }
   } else if (typeof path.day === 'number') {
@@ -214,33 +224,37 @@ export function getCacheControl(path) {
     if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
       ttl = 31536000;
     }
+  } else if (typeof path.month === 'number') {
+    // monthly bundles expire every 12h until the month elapses
+    // then within 1 hour they are stable forever
+    ttl = 12 * 60 * 60 * 1000; // 12 hours
+    // same threshold as daily, since monthly resource date is the last second of the month
+    if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
+      ttl = 31536000;
+    }
   }
   // public cache is fine, the domainkey can be cached and is included as cache key
   return `public, max-age=${ttl}`;
 }
 
 /**
- * Respond to HTTP request
+ * Handle /bundles route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {Promise<RResponse>}
  */
-// eslint-disable-next-line no-unused-vars
 export default async function handleRequest(req, ctx) {
   assertAuthorized(req, ctx);
 
-  const parsed = parsePath(ctx.pathInfo.suffix);
-
-  // TODO: handle other request levels, but for now just support hourly/daily
-  if (typeof parsed.day !== 'number') {
-    throw errorWithResponse(501, 'not implemented');
-  }
+  const path = parsePath(ctx.pathInfo.suffix);
 
   let data;
-  if (typeof parsed.hour !== 'number') {
-    data = await fetchDaily(parsed, ctx);
+  if (typeof path.day !== 'number') {
+    data = await fetchMonthly(path, ctx);
+  } else if (typeof path.hour !== 'number') {
+    data = await fetchDaily(path, ctx);
   } else {
-    data = await fetchHourly(parsed, ctx);
+    data = await fetchHourly(path, ctx);
   }
   if (!data) {
     return new Response('Not found', { status: 404 });
@@ -250,6 +264,6 @@ export default async function handleRequest(req, ctx) {
     ctx,
     req,
     JSON.stringify(data),
-    { 'cache-control': getCacheControl(parsed) },
+    { 'cache-control': getCacheControl(path) },
   );
 }

@@ -15,7 +15,7 @@
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
 import handleRequest from '../../src/api/index.js';
-import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
+import { DEFAULT_CONTEXT, Nock } from '../util.js';
 
 describe('api Tests', () => {
   describe('handleRequest()', () => {
@@ -30,11 +30,6 @@ describe('api Tests', () => {
     });
     afterEach(() => {
       nock.done();
-    });
-
-    it('monthly api not implemented', async () => {
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/bundles/domain/2024/03.json' } });
-      await assertRejectsWithResponse(() => handleRequest(req, ctx), 501, 'not implemented');
     });
 
     it('hourly api returns 404 if hour file does not exist', async () => {
