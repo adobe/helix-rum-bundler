@@ -9,17 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-/// <reference path="./types.d.ts" />
+/// <reference path="../types.d.ts" />
 // @ts-check
 
 import { Response } from '@adobe/fetch';
 import processQueue from '@adobe/helix-shared-process-queue';
-import { HelixStorage } from './support/storage.js';
+import { HelixStorage } from '../support/storage.js';
 import Manifest from './Manifest.js';
 import BundleGroup from './BundleGroup.js';
 import {
   errorWithResponse, getEnvVar, timeout, yesterday,
-} from './util.js';
+} from '../util.js';
 
 /**
  * @typedef {Record<string, {

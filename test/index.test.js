@@ -19,16 +19,16 @@ import { main } from '../src/index.js';
 
 describe('Index Tests', () => {
   it('rejects unauthorized requests', async () => {
-    const resp = await main(new Request('https://localhost/'), { env: {} });
+    const resp = await main(new Request('https://localhost/'), { env: {}, pathInfo: { suffix: '/bundles/x' } });
     assert.strictEqual(resp.status, 401);
   });
 
   it('performs bundling when invoked by scheduler', async () => {
     const { main: mmain } = await esmock('../src/index.js', {
-      '../src/bundler.js': {
+      '../src/bundler/index.js': {
         default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
       },
-      '../src/api.js': {
+      '../src/api/index.js': {
         default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
       },
     });

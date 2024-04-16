@@ -14,175 +14,20 @@
 
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
-import handleRequest, { parsePath, assertAuthorization, getCacheControl } from '../src/api.js';
-import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from './util.js';
+import { assertAuthorized, parsePath, getCacheControl } from '../../src/api/bundles.js';
+import { assertRejectsWithResponse } from '../util.js';
 
-describe('api Tests', () => {
-  describe('handleRequest()', () => {
-    /** @type {Request} */
-    let req;
-    /** @type {import('./util.js').Nocker} */
-    let nock;
-
-    beforeEach(() => {
-      req = new Request('https://localhost/', { headers: { 'x-api-key': 'domainkey' } });
-      nock = new Nock().env();
-    });
-    afterEach(() => {
-      nock.done();
-    });
-
-    it('monthly api not implemented', async () => {
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/domain/2024/03.json' } });
-      await assertRejectsWithResponse(() => handleRequest(req, ctx), 501, 'not implemented');
-    });
-
-    it('hourly api returns 404 if hour file does not exist', async () => {
-      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        .get('/example.com/2024/3/1/0.json?x-id=GetObject')
-        .reply(404);
-
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/example.com/2024/03/01/0.json' } });
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 200);
-      const { rumBundles } = await resp.json();
-      assert.deepStrictEqual(rumBundles, []);
-    });
-
-    it('get hourly data', async () => {
-      const now = new Date().toISOString();
-      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        .get('/example.com/2024/3/1/0.json?x-id=GetObject')
-        .reply(200, JSON.stringify({
-          bundles: {
-            'foo-/some/path': {
-              id: 'foo',
-              url: 'https://example.com/some/path',
-              timeSlot: now,
-              events: [{
-                checkpoint: 'top',
-              }],
-            },
-          },
-        }));
-
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/example.com/2024/03/01/0.json' } });
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 200);
-      const data = await resp.json();
-      assert.deepStrictEqual(data, {
-        rumBundles: [{
-          id: 'foo',
-          url: 'https://example.com/some/path',
-          timeSlot: now,
-          events: [{
-            checkpoint: 'top',
-          }],
-        }],
-      });
-    });
-
-    it('get daily data', async () => {
-      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        .get('/example.com/2024/3/1/0.json?x-id=GetObject')
-        .reply(200, JSON.stringify({
-          bundles: {
-            'foo-/some/path': {
-              id: 'foo',
-              url: 'https://example.com/some/path',
-              timeSlot: '1',
-              weight: 10,
-              events: [{
-                checkpoint: 'top',
-              }],
-            },
-            'bar-/some/other/path': {
-              id: 'bar',
-              url: 'https://example.com/some/other/path',
-              timeSlot: '2',
-              weight: 10,
-              events: [{
-                checkpoint: 'top',
-              }],
-            },
-          },
-        }))
-        .get('/example.com/2024/3/1/1.json?x-id=GetObject')
-        .reply(200, JSON.stringify({
-          bundles: {
-            'foo-/foo': {
-              id: 'foo',
-              url: 'https://example.com/foo',
-              timeSlot: '3',
-              weight: 10,
-              events: [],
-            },
-            'bar-/some/other/path': {
-              id: 'bar',
-              url: 'https://example.com/some/other/path',
-              timeSlot: '4',
-              weight: 10,
-              events: [{
-                checkpoint: 'top',
-              }],
-            },
-          },
-        }))
-        .get(() => true)
-        .times(22)
-        .reply(404);
-
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/example.com/2024/03/01.json' } });
-
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 200);
-
-      const data = await resp.json();
-      assert.deepStrictEqual(data, {
-        rumBundles: [
-          {
-            id: 'foo',
-            url: 'https://example.com/some/path',
-            timeSlot: '1',
-            weight: 10,
-            events: [{ checkpoint: 'top' }],
-          },
-          {
-            id: 'bar',
-            url: 'https://example.com/some/other/path',
-            timeSlot: '2',
-            weight: 10,
-            events: [{ checkpoint: 'top' }],
-          },
-          {
-            id: 'foo',
-            url: 'https://example.com/foo',
-            timeSlot: '3',
-            weight: 10,
-            events: [],
-          },
-          {
-            id: 'bar',
-            url: 'https://example.com/some/other/path',
-            timeSlot: '4',
-            weight: 10,
-            events: [{ checkpoint: 'top' }],
-          },
-        ],
-      });
-    });
-  });
-
-  describe('assertAuthorization()', () => {
+describe('api/bundles Tests', () => {
+  describe('assertAuthorized()', () => {
     it('should throw 401 response on unauthorized requests', async () => {
       const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' } };
 
-      await assertRejectsWithResponse(async () => assertAuthorization(
+      await assertRejectsWithResponse(async () => assertAuthorized(
         new Request('https://localhost/', { headers: {} }),
         ctx,
       ), 401, 'missing x-api-key');
 
-      await assertRejectsWithResponse(async () => assertAuthorization(
+      await assertRejectsWithResponse(async () => assertAuthorized(
         new Request('https://localhost/', { headers: { 'x-api-key': 'bar' } }),
         ctx,
       ), 403, 'invalid x-api-key');
@@ -191,7 +36,7 @@ describe('api Tests', () => {
     it('allows x-api-key header', () => {
       const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' } };
 
-      assert.doesNotThrow(() => assertAuthorization(
+      assert.doesNotThrow(() => assertAuthorized(
         new Request('https://localhost/', { headers: { 'x-api-key': 'foo' } }),
         ctx,
       ));
@@ -200,7 +45,7 @@ describe('api Tests', () => {
     it('allows domainkey param', () => {
       const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' }, data: { domainkey: 'foo' } };
 
-      assert.doesNotThrow(() => assertAuthorization(
+      assert.doesNotThrow(() => assertAuthorized(
         new Request('https://localhost/'),
         ctx,
       ));
@@ -216,7 +61,7 @@ describe('api Tests', () => {
 
     it('parses paths', () => {
       // with hour
-      let parsed = parsePath('/domain/2024/01/01/0.json');
+      let parsed = parsePath('/bundles/domain/2024/01/01/0.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/1/1/0');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
         domain: 'domain',
@@ -227,14 +72,14 @@ describe('api Tests', () => {
         toString: undefined,
       });
 
-      const parsedNoJson = parsePath('/domain/2024/01/01/0');
+      const parsedNoJson = parsePath('/bundles/domain/2024/01/01/0');
       assert.deepStrictEqual(
         { ...parsed, toString: undefined },
         { ...parsedNoJson, toString: undefined },
       );
 
       // with day
-      parsed = parsePath('/domain/2024/3/4.json');
+      parsed = parsePath('/bundles/domain/2024/3/4.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/3/4');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
         domain: 'domain',
@@ -245,7 +90,7 @@ describe('api Tests', () => {
       });
 
       // with month
-      parsed = parsePath('/domain/2024/12.json');
+      parsed = parsePath('/bundles/domain/2024/12.json');
       assert.strictEqual(parsed.toString(), '/domain/2024/12');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
         domain: 'domain',
@@ -255,7 +100,7 @@ describe('api Tests', () => {
       });
 
       // with year
-      parsed = parsePath('/domain/2024.json');
+      parsed = parsePath('/bundles/domain/2024.json');
       assert.strictEqual(parsed.toString(), '/domain/2024');
       assert.deepStrictEqual({ ...parsed, toString: undefined }, {
         domain: 'domain',

@@ -9,12 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-/// <reference path="./types.d.ts" />
+/// <reference path="../types.d.ts" />
 // @ts-check
 
 import { Response } from '@adobe/fetch';
-import { calculateDownsample, compressBody, errorWithResponse } from './util.js';
-import { HelixStorage } from './support/storage.js';
+import { calculateDownsample, compressBody, errorWithResponse } from '../util.js';
+import { HelixStorage } from '../support/storage.js';
 
 /**
  * @typedef {{
@@ -34,7 +34,7 @@ import { HelixStorage } from './support/storage.js';
  * @returns {void}
  * @throws {ErrorWithResponse} if unauthorized
  */
-export function assertAuthorization(req, ctx) {
+export function assertAuthorized(req, ctx) {
   // TODO: use domainkeys for auth, for now just restrict access to a super user key
   if (!ctx.env.TMP_SUPERUSER_API_KEY) {
     throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
@@ -52,14 +52,16 @@ export function assertAuthorization(req, ctx) {
 /**
  * parse request path
  * throw some x-error response for invalid path 404s for easier debugging
- * @param {string} path
+ * @param {string} ppath
  * @returns {ParsedPath}
  * @throws {ErrorWithResponse} if path is invalid
  */
-export function parsePath(path) {
-  if (!path) {
+export function parsePath(ppath) {
+  if (!ppath) {
     throw errorWithResponse(404, 'invalid path');
   }
+
+  let path = ppath.substring('/bundles'.length);
   if (!path.endsWith('.json')) {
     // eslint-disable-next-line no-param-reassign
     path += '.json';
@@ -225,7 +227,7 @@ export function getCacheControl(path) {
  */
 // eslint-disable-next-line no-unused-vars
 export default async function handleRequest(req, ctx) {
-  assertAuthorization(req, ctx);
+  assertAuthorized(req, ctx);
 
   const parsed = parsePath(ctx.pathInfo.suffix);
 
