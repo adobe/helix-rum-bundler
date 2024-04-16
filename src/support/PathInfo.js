@@ -75,7 +75,8 @@ export class PathInfo {
    * @returns {PathInfo}
    */
   clone(year, month, day, hour) {
-    const newPath = `/${this.route}/${this.domain}/${year ?? this.year}/${month ?? this.month}/${day ?? this.day}/${hour ?? this.hour}`;
-    return new PathInfo(newPath.replace(/\/*$/, ''));
+    const parts = ['', this.route, this.domain, year ?? this.year, month ?? this.month, day ?? this.day, hour ?? this.hour];
+    const newPath = parts.filter((p) => p !== undefined).join('/');
+    return new PathInfo(newPath);
   }
 }

@@ -146,7 +146,7 @@ async function fetchDaily(path, ctx) {
  */
 async function fetchMonthly(path, ctx) {
   // @ts-ignore
-  const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()];
+  const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
 
   // fetch all bundles
   let totalEvents = 0;
@@ -163,7 +163,7 @@ async function fetchMonthly(path, ctx) {
       return data;
     }),
   );
-  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
+  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
   const maxEvents = forceAll ? Infinity : 25000;
