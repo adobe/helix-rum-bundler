@@ -16,8 +16,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
 import fs from 'fs/promises';
-import bundleRUM, { sortRawEvents } from '../src/bundler.js';
-import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from './util.js';
+import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
+import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
 
 // eslint-disable-next-line no-underscore-dangle
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -106,7 +106,7 @@ describe('bundler Tests', () => {
   });
 
   describe('bundleRUM()', () => {
-    /** @type {import('./util.js').Nocker} */
+    /** @type {import('../util.js').Nocker} */
     let nock;
     beforeEach(() => {
       nock = new Nock().env();

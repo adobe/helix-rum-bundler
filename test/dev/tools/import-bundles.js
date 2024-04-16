@@ -16,7 +16,7 @@
 
 import { config as configEnv } from 'dotenv';
 import processQueue from '@adobe/helix-shared-process-queue';
-import { importEventsByKey, sortRawEvents } from '../../../src/bundler.js';
+import { importEventsByKey, sortRawEvents } from '../../../src/bundler/index.js';
 import executeBundleQuery from './bq/index.js';
 import { contextLike, parseDate, parseDateRange } from './util.js';
 

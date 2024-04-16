@@ -17,8 +17,8 @@ import secrets from '@adobe/helix-shared-secrets';
 import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
-import bundleRUM from './bundler.js';
-import handleRequest from './api.js';
+import bundleRUM from './bundler/index.js';
+import handleRequest from './api/index.js';
 
 /**
  * Perform bundling process if any:

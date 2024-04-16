@@ -9,11 +9,11 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-/// <reference path="./types.d.ts" />
+/// <reference path="../types.d.ts" />
 // @ts-check
 
-import LRUCache from './LRUCache.js';
-import { HelixStorage } from './support/storage.js';
+import LRUCache from '../support/LRUCache.js';
+import { HelixStorage } from '../support/storage.js';
 
 export default class Manifest {
   /**

@@ -14,7 +14,7 @@
 /* eslint-disable camelcase */
 
 import assert from 'assert';
-import { getEventProperties, getBundleProperties } from '../src/BundleGroup.js';
+import { getEventProperties, getBundleProperties } from '../../src/bundler/BundleGroup.js';
 
 const mockRawEvent = ({
   id = 'ABC',
