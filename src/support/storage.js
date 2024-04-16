@@ -384,7 +384,7 @@ class Bucket {
         Bucket: this.bucket,
         ContinuationToken,
         Prefix: prefix,
-        MaxKeys: limit,
+        MaxKeys: limit === Infinity ? 1000 : limit,
       }));
       ContinuationToken = result.IsTruncated ? result.NextContinuationToken : '';
       for (const content of (result.Contents || [])) {
@@ -407,6 +407,11 @@ class Bucket {
     };
   }
 
+  /**
+   * List folders, return array of folder names
+   * @param {string} prefix
+   * @returns {Promise<string[]>}
+   */
   async listFolders(prefix) {
     let ContinuationToken;
     const folders = [];
