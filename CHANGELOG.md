@@ -1,3 +1,10 @@
+## [1.0.23](https://github.com/adobe/helix-rum-bundler/compare/v1.0.22...v1.0.23) (2024-04-16)
+
+
+### Bug Fixes
+
+* pathinfo clone bug ([48be5e9](https://github.com/adobe/helix-rum-bundler/commit/48be5e9802c2d928294711b7d9bdb1bff5c3e048))
+
 ## [1.0.22](https://github.com/adobe/helix-rum-bundler/compare/v1.0.21...v1.0.22) (2024-04-16)
 
 
