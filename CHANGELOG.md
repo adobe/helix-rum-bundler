@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/adobe/helix-rum-bundler/compare/v1.1.0...v1.1.1) (2024-04-17)
+
+
+### Bug Fixes
+
+* add delete domainkey api ([4fee6df](https://github.com/adobe/helix-rum-bundler/commit/4fee6df13a003487cb589f5942604f6c53a453f1))
+
 # [1.1.0](https://github.com/adobe/helix-rum-bundler/compare/v1.0.24...v1.1.0) (2024-04-17)
 
 
