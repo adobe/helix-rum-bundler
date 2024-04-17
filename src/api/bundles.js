@@ -27,20 +27,25 @@ const MAX_EVENTS = 25000;
 /**
  * Check domainkey authorization
  * @param {UniversalContext} ctx
- * @returns {void}
+ * @param {string} domain
+ * @returns {Promise<void>}
  * @throws {ErrorWithResponse} if unauthorized
  */
-export function assertAuthorized(ctx) {
-  // TODO: use domainkeys for auth, for now just restrict access to a super user key
-  if (!ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
-  }
-
+export async function assertAuthorized(ctx, domain) {
   const key = ctx.data?.domainkey;
   if (!key) {
     throw errorWithResponse(401, 'missing domainkey param');
   }
-  if (key !== ctx.env.TMP_SUPERUSER_API_KEY) {
+
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  const buf = await bundleBucket.get(`/${domain}/.domainkey`);
+  if (!buf) {
+    // missing means no auth
+    return;
+  }
+
+  const domainkey = new TextDecoder('utf8').decode(buf);
+  if (key !== domainkey) {
     throw errorWithResponse(403, 'invalid domainkey param');
   }
 }
@@ -253,9 +258,8 @@ export function getCacheControl(path) {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  assertAuthorized(ctx);
-
   const path = parsePath(ctx.pathInfo.suffix);
+  await assertAuthorized(ctx, path.domain);
 
   let data;
   if (typeof path.day !== 'number') {

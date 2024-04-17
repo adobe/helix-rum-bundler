@@ -12,12 +12,12 @@
 /// <reference path="../types.d.ts" />
 // @ts-check
 
-import domains from './domains.js';
+import domainkey from './domainkey.js';
 import bundles from './bundles.js';
 import { errorWithResponse } from '../util.js';
 
 const handlers = {
-  domains,
+  domainkey,
   bundles,
 };
 
@@ -27,7 +27,6 @@ const handlers = {
  * @param {UniversalContext} ctx
  * @returns {Promise<RResponse>}
  */
-// eslint-disable-next-line no-unused-vars
 export default async function handleRequest(req, ctx) {
   const route = ctx.pathInfo.suffix.split('/')[1];
   const handler = handlers[route];

@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+import { errorWithResponse } from '../util.js';
+
 export class PathInfo {
   /** @type {string} */
   route;
@@ -40,24 +42,30 @@ export class PathInfo {
 
     this.route = route;
     this.domain = domain;
-    if (year) {
-      this.year = parseInt(year, 10);
-    }
-    if (month) {
-      this.month = parseInt(month, 10);
-    }
-    if (day) {
-      this.day = parseInt(day, 10);
-    }
-    if (hour) {
-      this.hour = parseInt(hour, 10);
-    }
+    if (this.route === 'domainkey') {
+      if (year) {
+        throw errorWithResponse(404, 'invalid path');
+      }
+    } else {
+      if (year) {
+        this.year = parseInt(year, 10);
+      }
+      if (month) {
+        this.month = parseInt(month, 10);
+      }
+      if (day) {
+        this.day = parseInt(day, 10);
+      }
+      if (hour) {
+        this.hour = parseInt(hour, 10);
+      }
 
-    if (Number.isNaN(this.year)
+      if (Number.isNaN(this.year)
     || Number.isNaN(this.month)
     || Number.isNaN(this.day)
     || Number.isNaN(this.hour)) {
-      throw new Error('invalid path');
+        throw errorWithResponse(404, 'invalid path');
+      }
     }
   }
 
