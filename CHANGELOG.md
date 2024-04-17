@@ -1,3 +1,10 @@
+## [1.0.24](https://github.com/adobe/helix-rum-bundler/compare/v1.0.23...v1.0.24) (2024-04-17)
+
+
+### Bug Fixes
+
+* limit concurrency, fanout monthly api on cdn, remove header auth option ([a4b2cd1](https://github.com/adobe/helix-rum-bundler/commit/a4b2cd14c6832badad0168647f99b6c107b07770))
+
 ## [1.0.23](https://github.com/adobe/helix-rum-bundler/compare/v1.0.22...v1.0.23) (2024-04-16)
 
 
