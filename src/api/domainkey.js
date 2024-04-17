@@ -100,6 +100,19 @@ async function fetchDomainKey(ctx, domain) {
 }
 
 /**
+ * remove domainkey
+ * the associated domain will become publically accessible
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ */
+async function removeDomainKey(ctx, domain) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  await bundleBucket.remove(`/${domain}/.domainkey`);
+
+  return new Response('', { status: 201 });
+}
+
+/**
  * Handle /domainkey route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -113,6 +126,8 @@ export default async function handleRequest(req, ctx) {
     return rotateDomainKey(ctx, domain);
   } else if (req.method === 'GET') {
     return fetchDomainKey(ctx, domain);
+  } else if (req.method === 'DELETE') {
+    return removeDomainKey(ctx, domain);
   }
   return new Response('method not allowed', { status: 405 });
 }
