@@ -41,8 +41,8 @@ Contains information needed to efficiently relate new RUM events to an existing 
 ```
 
 ### API
-- `GET /{domain}/{year}/${month}/{date}/{hour}.json`
-- `GET /{domain}/{year}/${month}/{date}.json`
+- `GET /bundles/{domain}/{year}/${month}/{date}/{hour}.json`
+- `GET /bundles/{domain}/{year}/${month}/{date}.json`
 ```jsonc
 // response
 {
@@ -79,3 +79,4 @@ Contains information needed to efficiently relate new RUM events to an existing 
   ]
 }
 ```
+- `GET /bundles/{domain}/{year}/${month}.json`

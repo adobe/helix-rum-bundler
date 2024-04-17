@@ -32,6 +32,7 @@
     "awsAttachAuthorizer": "helix-token-authorizer_v2",
     "params-file": "./params.json",
     "timeout": 600000,
+    "concurrency": 100,
     "dev": {
       "params-file": "./params.json"
     }

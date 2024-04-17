@@ -25,7 +25,7 @@ describe('api Tests', () => {
     let nock;
 
     beforeEach(() => {
-      req = new Request('https://localhost/', { headers: { 'x-api-key': 'domainkey' } });
+      req = new Request('https://localhost/');
       nock = new Nock().env();
     });
     afterEach(() => {
