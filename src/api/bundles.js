@@ -13,29 +13,35 @@
 // @ts-check
 
 import { Response } from '@adobe/fetch';
-import { calculateDownsample, compressBody, errorWithResponse } from '../util.js';
+import {
+  calculateDownsample, compressBody, errorWithResponse, getFetch,
+} from '../util.js';
 import { HelixStorage } from '../support/storage.js';
 import { PathInfo } from '../support/PathInfo.js';
 
 /**
+ * rough maximum number events in daily/monthly aggregate responses
+ */
+const MAX_EVENTS = 25000;
+
+/**
  * Check domainkey authorization
- * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {void}
  * @throws {ErrorWithResponse} if unauthorized
  */
-export function assertAuthorized(req, ctx) {
+export function assertAuthorized(ctx) {
   // TODO: use domainkeys for auth, for now just restrict access to a super user key
   if (!ctx.env.TMP_SUPERUSER_API_KEY) {
     throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
   }
 
-  const key = req.headers.get('x-api-key') || ctx.data?.domainkey;
+  const key = ctx.data?.domainkey;
   if (!key) {
-    throw errorWithResponse(401, 'missing x-api-key');
+    throw errorWithResponse(401, 'missing domainkey param');
   }
   if (key !== ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(403, 'invalid x-api-key');
+    throw errorWithResponse(403, 'invalid domainkey param');
   }
 }
 
@@ -108,10 +114,9 @@ async function fetchDaily(path, ctx) {
   // roughly 130B/event uncompressed, final payload size depends on bundle density
   // gzip gives ~90% reduction; shoot for 5MB before compression as maximum
   // 5M/130B ~= 38K events .. round down to 25K for safety
-  // TODO: make this deterministic
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  const maxEvents = forceAll ? Infinity : 25000;
+  const maxEvents = forceAll ? Infinity : MAX_EVENTS;
   const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
 
   /** @type {RUMBundle[]} */
@@ -127,7 +132,6 @@ async function fetchDaily(path, ctx) {
           .map((b) => ({
             ...b,
             weight: b.weight * weightFactor,
-            events: forceAll ? b.events.map((ev) => ({ ...ev, timeDelta: undefined })) : b.events,
           })),
       );
       return acc;
@@ -152,11 +156,19 @@ async function fetchMonthly(path, ctx) {
   let totalEvents = 0;
   let totalBundles = 0;
 
+  const fetch = getFetch(ctx);
+  const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
   const dailyBundles = await Promise.allSettled(
     days.map(async (day) => {
-      // eslint-disable-next-line no-param-reassign
-      const dpath = path.clone(undefined, undefined, day);
-      const data = await fetchDaily(dpath, ctx);
+      // fetch from the CDN so that it caches the result
+      const resp = await fetch(`${urlBase}/${day}?domainkey=${ctx.data.domainkey}`);
+      /** @type {any} */
+      let data;
+      if (resp.ok) {
+        data = await resp.json();
+      } else {
+        data = { rumBundles: [] };
+      }
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
@@ -165,9 +177,7 @@ async function fetchMonthly(path, ctx) {
   );
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
 
-  const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  const maxEvents = forceAll ? Infinity : 25000;
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS);
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -182,7 +192,6 @@ async function fetchMonthly(path, ctx) {
           .map((b) => ({
             ...b,
             weight: b.weight * weightFactor,
-            events: forceAll ? b.events.map((ev) => ({ ...ev, timeDelta: undefined })) : b.events,
           })),
       );
       return acc;
@@ -244,7 +253,7 @@ export function getCacheControl(path) {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  assertAuthorized(req, ctx);
+  assertAuthorized(ctx);
 
   const path = parsePath(ctx.pathInfo.suffix);
 

@@ -1,4 +1,4 @@
-import { Request, Response } from '@adobe/fetch';
+import { Request, Response, keepAliveNoCache } from '@adobe/fetch';
 import { Helix } from '@adobe/helix-universal';
 import BundleGroup from './BundleGroup';
 import Manifest from './Manifest';
@@ -29,10 +29,15 @@ declare module '@adobe/helix-universal' {
          * maximum duration for bundler process in milliseconds
          */
         BUNDLER_DURATION_LIMIT?: string;
+        /**
+         * cdn url for the bundler api
+         */
+        CDN_ENDPOINT: string;
         [key: string]: string;
       }
 
       attributes: {
+        fetchContext?: ReturnType<typeof keepAliveNoCache>;
         rumManifests: LRUCache<Manifest | Promise<Manifest>>;
         rumBundleGroups: LRUCache<BundleGroup | Promise<BundleGroup>>;
         [key: string]: unknown;

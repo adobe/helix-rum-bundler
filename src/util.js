@@ -12,9 +12,9 @@
 /// <reference path="./types.d.ts" />
 // @ts-check
 
-import { Response } from '@adobe/fetch';
 import { promisify } from 'util';
 import { gzip, brotliCompress } from 'zlib';
+import { keepAliveNoCache, Response } from '@adobe/fetch';
 
 class ErrorWithResponse extends Error {
   /**
@@ -43,6 +43,18 @@ export function errorWithResponse(status, xError, message = '') {
       },
     }),
   );
+}
+
+/**
+ * @param {UniversalContext} ctx
+ */
+export function getFetch(ctx) {
+  if (!ctx.attributes.fetchContext) {
+    ctx.attributes.fetchContext = keepAliveNoCache({
+      userAgent: 'adobe-fetch', // static user-agent for recorded tests
+    });
+  }
+  return ctx.attributes.fetchContext.fetch;
 }
 
 /**
