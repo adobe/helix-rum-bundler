@@ -14,26 +14,34 @@
 
 import assert from 'assert';
 import { assertAuthorized, parsePath, getCacheControl } from '../../src/api/bundles.js';
-import { assertRejectsWithResponse } from '../util.js';
+import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
 
 describe('api/bundles Tests', () => {
   describe('assertAuthorized()', () => {
-    it('should throw 401 response on unauthorized requests', async () => {
-      const ctx = { env: { }, data: {} };
-      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 401, 'no known key to compare');
+    /** @type {import('../util.js').Nocker} */
+    let nock;
 
-      ctx.env.TMP_SUPERUSER_API_KEY = 'foo';
-      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 401, 'missing domainkey param');
-
-      ctx.data.domainkey = 'bar';
-      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 403, 'invalid domainkey param');
+    beforeEach(() => {
+      nock = new Nock().env();
+    });
+    afterEach(() => {
+      nock.done();
     });
 
-    it('allows domainkey param', () => {
-      const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' }, data: { domainkey: 'foo' } };
+    it('should throw 401 response on unauthorized requests', async () => {
+      nock.domainKey('example.com', 'correct');
 
-      assert.doesNotThrow(() => assertAuthorized(
+      const ctx = DEFAULT_CONTEXT({ data: { domainkey: 'notcorrect' } });
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx, 'example.com'), 403, 'invalid domainkey param');
+    });
+
+    it('allows domainkey param', async () => {
+      nock.domainKey('example.com', 'foo');
+      const ctx = DEFAULT_CONTEXT({ data: { domainkey: 'foo' } });
+
+      await assert.doesNotReject(() => assertAuthorized(
         ctx,
+        'example.com',
       ));
     });
   });

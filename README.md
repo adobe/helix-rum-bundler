@@ -41,6 +41,9 @@ Contains information needed to efficiently relate new RUM events to an existing 
 ```
 
 ### API
+
+#### bundles
+> requires authorization, domainkey
 - `GET /bundles/{domain}/{year}/${month}/{date}/{hour}.json`
 - `GET /bundles/{domain}/{year}/${month}/{date}.json`
 ```jsonc
@@ -80,3 +83,8 @@ Contains information needed to efficiently relate new RUM events to an existing 
 }
 ```
 - `GET /bundles/{domain}/{year}/${month}.json`
+
+#### domainkey
+> requires authorization, membership in allowlist
+- `GET /domainkey/{domain}`
+- `POST /domainkey/{domain}`

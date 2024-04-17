@@ -18,9 +18,9 @@ declare module '@adobe/helix-universal' {
          */
         BATCH_LIMIT?: string;
         /** 
-         * temporary domainkey analogue 
+         * key to use for auth to add domainkey to runquery
          */
-        TMP_SUPERUSER_API_KEY?: string;
+        RUNQUERY_ROTATION_KEY?: string;
         /** 
          * key that allows invoking the bundler process on the deployed function 
          */
@@ -33,6 +33,10 @@ declare module '@adobe/helix-universal' {
          * cdn url for the bundler api
          */
         CDN_ENDPOINT: string;
+        /**
+         * temporary known superuser key for access to domainkey api
+         */
+        TMP_SUPERUSER_API_KEY: string;
         [key: string]: string;
       }
 

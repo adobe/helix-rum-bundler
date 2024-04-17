@@ -19,12 +19,14 @@ import nock from 'nock';
  * @typedef {ReturnType<Nock>} Nocker
  */
 
+const DEFAULT_DOMAIN_KEY = 'domainkey';
+
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
     BATCH_LIMIT: '100',
     CONCURRENCY_LIMIT: '4',
-    TMP_SUPERUSER_API_KEY: 'domainkey',
+    TMP_SUPERUSER_API_KEY: 'superkey',
     BUNDLER_PROCESS_ALL: 'true',
     BUNDLER_DURATION_LIMIT: String(9 * 60 * 1000),
     ...(overrides.env ?? {}),
@@ -133,6 +135,10 @@ export function Nock() {
       nock.cleanAll();
     }
   };
+
+  nocker.domainKey = (domain = 'example.com', key = DEFAULT_DOMAIN_KEY) => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+    .get(`/${domain}/.domainkey?x-id=GetObject`)
+    .reply(200, key);
 
   return nocker;
 }

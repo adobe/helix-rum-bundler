@@ -21,7 +21,7 @@ describe('api Tests', () => {
   describe('handleRequest()', () => {
     /** @type {Request} */
     let req;
-    /** @type {import('./util.js').Nocker} */
+    /** @type {import('../util.js').Nocker} */
     let nock;
 
     beforeEach(() => {
@@ -32,7 +32,8 @@ describe('api Tests', () => {
       nock.done();
     });
 
-    it('hourly api returns 404 if hour file does not exist', async () => {
+    it('hourly api returns empty bundles array if file does not exist', async () => {
+      nock.domainKey();
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/2024/3/1/0.json?x-id=GetObject')
         .reply(404);
@@ -46,6 +47,7 @@ describe('api Tests', () => {
 
     it('get hourly data', async () => {
       const now = new Date().toISOString();
+      nock.domainKey();
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/2024/3/1/0.json?x-id=GetObject')
         .reply(200, JSON.stringify({
@@ -78,6 +80,7 @@ describe('api Tests', () => {
     });
 
     it('get daily data', async () => {
+      nock.domainKey();
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/2024/3/1/0.json?x-id=GetObject')
         .reply(200, JSON.stringify({
