@@ -36,6 +36,10 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
     suffix: '/',
     ...(overrides.pathInfo ?? {}),
   },
+  data: {
+    domainkey: 'domainkey',
+    ...(overrides.data ?? {}),
+  },
 });
 
 /**

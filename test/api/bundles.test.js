@@ -13,40 +13,26 @@
 /* eslint-env mocha */
 
 import assert from 'assert';
-import { Request } from '@adobe/fetch';
 import { assertAuthorized, parsePath, getCacheControl } from '../../src/api/bundles.js';
 import { assertRejectsWithResponse } from '../util.js';
 
 describe('api/bundles Tests', () => {
   describe('assertAuthorized()', () => {
     it('should throw 401 response on unauthorized requests', async () => {
-      const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' } };
+      const ctx = { env: { }, data: {} };
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 401, 'no known key to compare');
 
-      await assertRejectsWithResponse(async () => assertAuthorized(
-        new Request('https://localhost/', { headers: {} }),
-        ctx,
-      ), 401, 'missing x-api-key');
+      ctx.env.TMP_SUPERUSER_API_KEY = 'foo';
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 401, 'missing domainkey param');
 
-      await assertRejectsWithResponse(async () => assertAuthorized(
-        new Request('https://localhost/', { headers: { 'x-api-key': 'bar' } }),
-        ctx,
-      ), 403, 'invalid x-api-key');
-    });
-
-    it('allows x-api-key header', () => {
-      const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' } };
-
-      assert.doesNotThrow(() => assertAuthorized(
-        new Request('https://localhost/', { headers: { 'x-api-key': 'foo' } }),
-        ctx,
-      ));
+      ctx.data.domainkey = 'bar';
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx), 403, 'invalid domainkey param');
     });
 
     it('allows domainkey param', () => {
       const ctx = { env: { TMP_SUPERUSER_API_KEY: 'foo' }, data: { domainkey: 'foo' } };
 
       assert.doesNotThrow(() => assertAuthorized(
-        new Request('https://localhost/'),
         ctx,
       ));
     });
