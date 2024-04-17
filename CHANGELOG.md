@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/adobe/helix-rum-bundler/compare/v1.0.24...v1.1.0) (2024-04-17)
+
+
+### Features
+
+* add domainkey route ([c7458e5](https://github.com/adobe/helix-rum-bundler/commit/c7458e5d37e008c40450f52bb7280aa3480cfd10))
+
 ## [1.0.24](https://github.com/adobe/helix-rum-bundler/compare/v1.0.23...v1.0.24) (2024-04-17)
 
 
