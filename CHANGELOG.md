@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/adobe/helix-rum-bundler/compare/v1.1.6...v1.1.7) (2024-04-18)
+
+
+### Bug Fixes
+
+* sec to ms for s3 caching ([9d943c8](https://github.com/adobe/helix-rum-bundler/commit/9d943c8e29fd7a21b953c333b2f1e96f4aab1953))
+
 ## [1.1.6](https://github.com/adobe/helix-rum-bundler/compare/v1.1.5...v1.1.6) (2024-04-18)
 
 
