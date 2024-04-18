@@ -197,6 +197,6 @@ function assertEnv() {
         await importBundlesForDate(ctx, key, domain, ymd, limit);
       }
     },
-    8,
+    12,
   );
 })().catch(console.error);
