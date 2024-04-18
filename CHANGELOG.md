@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/adobe/helix-rum-bundler/compare/v1.1.5...v1.1.6) (2024-04-18)
+
+
+### Bug Fixes
+
+* log ttl in aggregate store ([f90a952](https://github.com/adobe/helix-rum-bundler/commit/f90a952b7853c0fa85a215ecb7686dbb50c715f6))
+
 ## [1.1.5](https://github.com/adobe/helix-rum-bundler/compare/v1.1.4...v1.1.5) (2024-04-18)
 
 
