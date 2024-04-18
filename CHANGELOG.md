@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/adobe/helix-rum-bundler/compare/v1.1.4...v1.1.5) (2024-04-18)
+
+
+### Bug Fixes
+
+* store aggregates, ignore gets on expired objects ([dc934c9](https://github.com/adobe/helix-rum-bundler/commit/dc934c9d6bc464cfdb4e023210673c97c293d0bc))
+
 ## [1.1.4](https://github.com/adobe/helix-rum-bundler/compare/v1.1.3...v1.1.4) (2024-04-18)
 
 
