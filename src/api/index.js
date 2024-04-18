@@ -12,6 +12,7 @@
 /// <reference path="../types.d.ts" />
 // @ts-check
 
+import { Response } from '@adobe/fetch';
 import domainkey from './domainkey.js';
 import bundles from './bundles.js';
 import { errorWithResponse } from '../util.js';
@@ -32,6 +33,16 @@ export default async function handleRequest(req, ctx) {
   const handler = handlers[route];
   if (!handler) {
     throw errorWithResponse(404, 'not found');
+  }
+  if (req.method === 'OPTIONS') {
+    return new Response('', {
+      status: 204,
+      headers: {
+        'access-control-allow-methods': 'GET, POST, OPTIONS, DELETE',
+        'access-control-allow-headers': 'Authorization, content-type',
+        'access-control-max-age': '86400',
+      },
+    });
   }
 
   return handler(req, ctx);
