@@ -18,7 +18,9 @@ import { config as configEnv } from 'dotenv';
 import processQueue from '@adobe/helix-shared-process-queue';
 import { importEventsByKey, sortRawEvents } from '../../../src/bundler/index.js';
 import executeBundleQuery from './bq/index.js';
-import { contextLike, parseDate, parseDateRange } from './util.js';
+import {
+  contextLike, getMaskedUserAgent, parseDate, parseDateRange,
+} from './util.js';
 
 configEnv();
 
@@ -74,6 +76,19 @@ const fetchRUMBundles = async (domain, date, domainKey, limit, after) => {
 };
 
 /**
+ * @param {string} ua
+ */
+const maskUserAgent = (ua) => {
+  if (!ua) {
+    return 'undefined';
+  }
+  if (ua === 'undefined' || ua === 'bot' || ua.startsWith('mobile') || ua.startsWith('desktop')) {
+    return ua;
+  }
+  return getMaskedUserAgent(ua);
+};
+
+/**
  *
  * @param {UniversalContext} ctx
  * @param {string} domainKey
@@ -114,6 +129,7 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit, after) {
     ...bundle.events.map((evt) => ({
       ...bundle,
       ...evt,
+      user_agent: maskUserAgent(bundle.user_agent),
       rownum: undefined,
       time: Number(new Date(evt.time)),
       events: undefined,

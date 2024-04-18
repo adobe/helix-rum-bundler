@@ -70,3 +70,66 @@ export const parseDateRange = (start, end) => {
 
   return dates;
 };
+
+/**
+ * Extract the OS from the user agent string
+ * @returns {':android'|':ios'|':ipados'|''} the OS
+ */
+function getMobileOS(userAgent) {
+  if (userAgent.includes('android')) {
+    return ':android';
+  } else if (userAgent.includes('ipad')) {
+    return ':ipados';
+  } else if (userAgent.includes('like mac os')) {
+    return ':ios';
+  }
+  return '';
+}
+
+/**
+ * Extract the OS from the user agent string
+ * @returns {':windows'|':mac'|':linux'|''} the OS
+ */
+function getDesktopOS(userAgent) {
+  if (userAgent.includes('windows')) {
+    return ':windows';
+  } else if (userAgent.includes('mac os')) {
+    return ':mac';
+  } else if (userAgent.includes('linux')) {
+    return ':linux';
+  }
+  return '';
+}
+
+/**
+ * user agent masking
+ * to be applied to events imported from bq before 2023-09-11
+ * @param {string} userAgent
+ * @returns {string}
+ */
+export function getMaskedUserAgent(userAgent) {
+  if (!userAgent) {
+    return 'undefined';
+  }
+  const lcUA = userAgent.toLowerCase();
+
+  if (lcUA.includes('mobile')
+    || lcUA.includes('opera mini')) {
+    return `mobile${getMobileOS(lcUA)}`;
+  }
+  if (lcUA.includes('bot')
+    || lcUA.includes('spider')
+    || lcUA.includes('crawler')
+    || lcUA.includes('ahc/')
+    || lcUA.includes('node')
+    || lcUA.includes('python')
+    || lcUA.includes('probe')
+    || lcUA.includes('axios')
+    || lcUA.includes('curl')
+    || lcUA.includes('+https://')
+    || lcUA.includes('+http://')) {
+    return 'bot';
+  }
+
+  return `desktop${getDesktopOS(lcUA)}`;
+}
