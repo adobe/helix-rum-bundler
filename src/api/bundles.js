@@ -277,6 +277,9 @@ export default async function handleRequest(req, ctx) {
     ctx,
     req,
     JSON.stringify(data),
-    { 'cache-control': getCacheControl(path) },
+    {
+      'cache-control': getCacheControl(path),
+      'surrogate-key': path.surrogateKeys.join(' '),
+    },
   );
 }

@@ -74,6 +74,23 @@ export class PathInfo {
     return parts.filter((p) => p !== undefined).join('/');
   }
 
+  get surrogateKeys() {
+    if (this.route === 'domainkey') {
+      return [];
+    }
+    const keys = [this.domain, String(this.year)];
+    if (this.month !== undefined) {
+      keys.push(`${this.year}-${this.month}`);
+      if (this.day !== undefined) {
+        keys.push(`${this.year}-${this.month}-${this.day}`);
+        if (this.hour !== undefined) {
+          keys.push(`${this.year}-${this.month}-${this.day}-${this.hour}`);
+        }
+      }
+    }
+    return keys;
+  }
+
   /**
    * make new PathInfo with optional overrides
    * @param {number} [year]
