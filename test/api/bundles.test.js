@@ -13,7 +13,7 @@
 /* eslint-env mocha */
 
 import assert from 'assert';
-import { assertAuthorized, parsePath, getCacheControl } from '../../src/api/bundles.js';
+import { assertAuthorized, parsePath, getTTL } from '../../src/api/bundles.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
 
 describe('api/bundles Tests', () => {
@@ -113,7 +113,7 @@ describe('api/bundles Tests', () => {
     });
   });
 
-  describe('getCacheControl()', () => {
+  describe('getTTL()', () => {
     const ogDate = Date;
     beforeEach(() => {
       global.Date = class extends Date {
@@ -146,13 +146,13 @@ describe('api/bundles Tests', () => {
         month: 1,
         day: 1,
       };
-      let val = getCacheControl(resource); // daily bundle
-      assert.strictEqual(val, 'public, max-age=31536000');
+      let val = getTTL(resource); // daily bundle
+      assert.strictEqual(val, 31536000);
 
       Date.stub(2024, 0, 1);
       resource.hour = 0;
-      val = getCacheControl(resource); // hourly bundle
-      assert.strictEqual(val, 'public, max-age=31536000');
+      val = getTTL(resource); // hourly bundle
+      assert.strictEqual(val, 31536000);
     });
 
     it('daily/hourly bundles >1 month old should be cached forever', () => {
@@ -162,13 +162,13 @@ describe('api/bundles Tests', () => {
         month: 1,
         day: 1,
       };
-      let val = getCacheControl(resource); // daily bundle
-      assert.strictEqual(val, 'public, max-age=31536000');
+      let val = getTTL(resource); // daily bundle
+      assert.strictEqual(val, 31536000);
 
       Date.stub(2024, 1, 1);
       resource.hour = 0;
-      val = getCacheControl(resource); // hourly bundle
-      assert.strictEqual(val, 'public, max-age=31536000');
+      val = getTTL(resource); // hourly bundle
+      assert.strictEqual(val, 31536000);
     });
 
     it('monthly bundles >1h past end of month, should be cached forever', () => {
@@ -177,8 +177,8 @@ describe('api/bundles Tests', () => {
         year: 2024,
         month: 1, // jan
       };
-      const val = getCacheControl(resource);
-      assert.strictEqual(val, 'public, max-age=31536000');
+      const val = getTTL(resource);
+      assert.strictEqual(val, 31536000);
     });
 
     it('monthly bundles <1h past end of month, should be cached for 12h', () => {
@@ -187,8 +187,8 @@ describe('api/bundles Tests', () => {
         year: 2024,
         month: 1,
       };
-      const val = getCacheControl(resource);
-      assert.strictEqual(val, 'public, max-age=43200000');
+      const val = getTTL(resource);
+      assert.strictEqual(val, 43200000);
     });
 
     it('daily bundles <25h old should be cached for 60min', () => {
@@ -198,8 +198,8 @@ describe('api/bundles Tests', () => {
         month: 1,
         day: 1,
       };
-      const val = getCacheControl(resource);
-      assert.strictEqual(val, 'public, max-age=3600000');
+      const val = getTTL(resource);
+      assert.strictEqual(val, 3600000);
     });
 
     it('hourly bundles >=70m old should be cached forever', () => {
@@ -210,8 +210,8 @@ describe('api/bundles Tests', () => {
         day: 1,
         hour: 1,
       };
-      const val = getCacheControl(resource);
-      assert.strictEqual(val, 'public, max-age=31536000');
+      const val = getTTL(resource);
+      assert.strictEqual(val, 31536000);
     });
 
     it('hourly bundles <70min old should be cached for 10min', () => {
@@ -222,8 +222,8 @@ describe('api/bundles Tests', () => {
         day: 1,
         hour: 1,
       };
-      const val = getCacheControl(resource);
-      assert.strictEqual(val, 'public, max-age=600000');
+      const val = getTTL(resource);
+      assert.strictEqual(val, 600000);
     });
   });
 });

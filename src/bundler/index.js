@@ -44,7 +44,7 @@ async function lockOrThrow(ctx) {
   if (head) {
     throw errorWithResponse(409, 'bundling in progress', `bundling started at ${head.LastModified}`);
   }
-  await logBucket.put('.lock', '', 'text/plain', undefined, undefined);
+  await logBucket.put('.lock', '', 'text/plain', undefined, undefined, undefined);
 }
 
 /**

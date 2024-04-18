@@ -140,6 +140,11 @@ class Bucket {
       const result = await this.client.send(new GetObjectCommand(input));
       log.info(`object downloaded from: ${input.Bucket}/${input.Key}`);
 
+      if (new Date() > new Date(result.ExpiresString)) {
+        log.debug(`object expired: ${input.Bucket}/${input.Key}`);
+        return null;
+      }
+
       const buf = await new Response(result.Body, {}).buffer();
       if (meta) {
         Object.assign(meta, result.Metadata);
@@ -259,17 +264,19 @@ class Bucket {
    * @param {string} path object key
    * @param {Buffer|string} body data to store
    * @param {string} [contentType] content type. defaults to 'application/octet-stream'
+   * @param {Date} [expiresOn] expiration date
    * @param {object} [meta] metadata to store with the object. defaults to '{}'
    * @param {boolean} [compress = true]
    * @returns result obtained from S3
    */
-  async put(path, body, contentType = 'application/octet-stream', meta = {}, compress = true) {
+  async put(path, body, contentType = 'application/octet-stream', expiresOn = undefined, meta = {}, compress = true) {
     const input = {
       Body: body,
       Bucket: this.bucket,
       ContentType: contentType,
       Metadata: meta,
       Key: sanitizeKey(path),
+      Expires: expiresOn,
     };
     if (compress) {
       input.ContentEncoding = 'gzip';

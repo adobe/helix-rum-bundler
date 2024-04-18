@@ -71,32 +71,83 @@ export function parsePath(path) {
 }
 
 /**
- * @param {PathInfo} path
+ * fetches aggrate file for the given path, if it exists
+ * returns null if not found
  * @param {UniversalContext} ctx
- * @returns {Promise<{ rumBundles: RUMBundle[] }>}
+ * @param {PathInfo} path
  */
-async function fetchHourly(path, ctx) {
+async function fetchAggregate(ctx, path) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+
+  const key = `${path}/aggregate.json`;
+  const buf = await bundleBucket.get(key);
+  if (!buf) {
+    return null;
+  }
+  try {
+    const txt = new TextDecoder('utf8').decode(buf);
+    return JSON.parse(txt);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} path
+ * @param {string} data
+ * @param {number} ttl
+ */
+async function storeAggregate(ctx, path, data, ttl) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  const prefix = path.toString();
+  const key = `${prefix}/aggregate.json`;
+  const expiration = new Date(Date.now() + ttl);
+  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
+  await bundleBucket.put(key, data, 'application/json', expiration);
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} path
+ * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
+ */
+async function fetchHourly(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const key = `${path}.json`;
-  // ctx.log.debug('fetching bundle key: ', `${path}.json`);
   const buf = await bundleBucket.get(key);
   if (!buf) {
-    return { rumBundles: [] };
+    return {
+      data: {
+        rumBundles: [],
+      },
+      isAggregate: false,
+    };
   }
   const txt = new TextDecoder('utf8').decode(buf);
   const json = JSON.parse(txt);
 
   // convert to array of bundles
-  return { rumBundles: Object.values(json.bundles) };
+  return {
+    data: {
+      rumBundles: Object.values(json.bundles),
+    },
+    isAggregate: false,
+  };
 }
 
 /**
- * @param {PathInfo} path
  * @param {UniversalContext} ctx
- * @returns {Promise<any>}
+ * @param {PathInfo} path
+ * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
-async function fetchDaily(path, ctx) {
+async function fetchDaily(ctx, path) {
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
+  }
+
   // use all hours, just handle 404s
   const hours = [...Array(24).keys()];
 
@@ -107,7 +158,7 @@ async function fetchDaily(path, ctx) {
   const hourlyBundles = await Promise.allSettled(
     hours.map(async (hour) => {
       const hpath = path.clone(undefined, undefined, undefined, hour);
-      const data = await fetchHourly(hpath, ctx);
+      const { data } = await fetchHourly(ctx, hpath);
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
@@ -145,15 +196,20 @@ async function fetchDaily(path, ctx) {
   );
   ctx.log.debug(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
-  return { rumBundles };
+  return { data: { rumBundles }, isAggregate: false };
 }
 
 /**
- * @param {PathInfo} path
  * @param {UniversalContext} ctx
- * @returns {Promise<any>}
+ * @param {PathInfo} path
+ * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
-async function fetchMonthly(path, ctx) {
+async function fetchMonthly(ctx, path) {
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
+  }
+
   // @ts-ignore
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
 
@@ -205,14 +261,14 @@ async function fetchMonthly(path, ctx) {
   );
   ctx.log.debug(`reduced ${totalBundles} monthly bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
-  return { rumBundles };
+  return { data: { rumBundles }, isAggregate: false };
 }
 
 /**
  * @param {PathInfo} path
- * @returns {string}
+ * @returns {number}
  */
-export function getCacheControl(path) {
+export function getTTL(path) {
   const now = new Date(); // must be first for tests
   // requested date is the latest possible second in the requested day/hour bundles
   const requested = new Date(
@@ -248,7 +304,7 @@ export function getCacheControl(path) {
     }
   }
   // public cache is fine, the domainkey can be cached and is included as cache key
-  return `public, max-age=${ttl}`;
+  return ttl;
 }
 
 /**
@@ -262,23 +318,32 @@ export default async function handleRequest(req, ctx) {
   await assertAuthorized(ctx, path.domain);
 
   let data;
+  let isAggregate;
   if (typeof path.day !== 'number') {
-    data = await fetchMonthly(path, ctx);
+    ({ data, isAggregate } = await fetchMonthly(ctx, path));
   } else if (typeof path.hour !== 'number') {
-    data = await fetchDaily(path, ctx);
+    ({ data, isAggregate } = await fetchDaily(ctx, path));
   } else {
-    data = await fetchHourly(path, ctx);
+    // never store hourly aggregates, so pretend it already is one
+    isAggregate = true;
+    ({ data } = await fetchHourly(ctx, path));
   }
   if (!data) {
     return new Response('Not found', { status: 404 });
   }
 
+  data = JSON.stringify(data);
+  const ttl = getTTL(path);
+  if (!isAggregate) {
+    await storeAggregate(ctx, path, data, ttl);
+  }
+
   return compressBody(
     ctx,
     req,
-    JSON.stringify(data),
+    data,
     {
-      'cache-control': getCacheControl(path),
+      'cache-control': `public, max-age=${ttl}`,
       'surrogate-key': path.surrogateKeys.join(' '),
     },
   );
