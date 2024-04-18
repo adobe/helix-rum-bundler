@@ -37,6 +37,14 @@ declare module '@adobe/helix-universal' {
          * temporary known superuser key for access to domainkey api
          */
         TMP_SUPERUSER_API_KEY: string;
+        /**
+         * fastly api key, capable of purging cache by surrogate key
+         */
+        FASTLY_API_KEY: string;
+        /**
+         * fastly service id
+         */
+        FASTLY_SERVICE_ID: string;
         [key: string]: string;
       }
 

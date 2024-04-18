@@ -172,6 +172,13 @@ export const compressBody = async (ctx, req, data, headers = {}) => {
     // eslint-disable-next-line no-param-reassign
     headers['Content-Type'] = 'application/json';
   }
+  if (!headers.Vary && !headers.vary) {
+    // eslint-disable-next-line no-param-reassign
+    headers.vary = 'accept-encoding';
+  } else if (!headers.vary.toLowerCase().includes('accept-encoding')) {
+    // eslint-disable-next-line no-param-reassign
+    headers.vary += ', accept-encoding';
+  }
 
   const acceptEncoding = req.headers.get('accept-encoding');
   if (!acceptEncoding) {
