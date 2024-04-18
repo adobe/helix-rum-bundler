@@ -1,3 +1,11 @@
+## [1.1.4](https://github.com/adobe/helix-rum-bundler/compare/v1.1.3...v1.1.4) (2024-04-18)
+
+
+### Bug Fixes
+
+* add cache purging, vary header in compress ([1a5dd6f](https://github.com/adobe/helix-rum-bundler/commit/1a5dd6f370c51f08ec4b81366746f701a1957d2f))
+* reorder vary header ([4d707a6](https://github.com/adobe/helix-rum-bundler/commit/4d707a6edece6c6ea2459c9ef68b1d1a866a2dbd))
+
 ## [1.1.3](https://github.com/adobe/helix-rum-bundler/compare/v1.1.2...v1.1.3) (2024-04-18)
 
 
