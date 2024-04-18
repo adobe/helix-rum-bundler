@@ -103,14 +103,14 @@ async function storeAggregate(ctx, path, data, ttl) {
   const prefix = path.toString();
   const key = `${prefix}/aggregate.json`;
   const expiration = new Date(Date.now() + ttl);
-  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
+  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}  (${ttl})`);
   await bundleBucket.put(key, data, 'application/json', expiration);
 }
 
 /**
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
- * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
+ * @returns {Promise<{ rumBundles: RUMBundle[] }>}
  */
 async function fetchHourly(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -118,23 +118,13 @@ async function fetchHourly(ctx, path) {
   const key = `${path}.json`;
   const buf = await bundleBucket.get(key);
   if (!buf) {
-    return {
-      data: {
-        rumBundles: [],
-      },
-      isAggregate: false,
-    };
+    return { rumBundles: [] };
   }
   const txt = new TextDecoder('utf8').decode(buf);
   const json = JSON.parse(txt);
 
   // convert to array of bundles
-  return {
-    data: {
-      rumBundles: Object.values(json.bundles),
-    },
-    isAggregate: false,
-  };
+  return { rumBundles: Object.values(json.bundles) };
 }
 
 /**
@@ -158,7 +148,7 @@ async function fetchDaily(ctx, path) {
   const hourlyBundles = await Promise.allSettled(
     hours.map(async (hour) => {
       const hpath = path.clone(undefined, undefined, undefined, hour);
-      const { data } = await fetchHourly(ctx, hpath);
+      const data = await fetchHourly(ctx, hpath);
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
@@ -326,7 +316,7 @@ export default async function handleRequest(req, ctx) {
   } else {
     // never store hourly aggregates, so pretend it already is one
     isAggregate = true;
-    ({ data } = await fetchHourly(ctx, path));
+    data = await fetchHourly(ctx, path);
   }
   if (!data) {
     return new Response('Not found', { status: 404 });
