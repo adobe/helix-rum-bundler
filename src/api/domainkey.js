@@ -16,6 +16,7 @@ import { Response } from '@adobe/fetch';
 import { PathInfo } from '../support/PathInfo.js';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse, getFetch } from '../util.js';
+import { purgeSurrogateKey } from '../support/cache.js';
 
 /**
  * @param {{
@@ -54,7 +55,6 @@ function assertAuthorized(req, ctx) {
 async function rotateDomainKey(ctx, domain) {
   // generate uuid (uppercase)
   // replace domain key in storage
-  // TODO: purge cache of old keys
   const domainkey = crypto.randomUUID().toUpperCase();
 
   // update storage
@@ -71,6 +71,9 @@ async function rotateDomainKey(ctx, domain) {
   if (!resp.ok) {
     ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
   }
+
+  // purge cache
+  await purgeSurrogateKey(ctx, domain);
 
   return new Response(JSON.stringify({ domainkey }), {
     headers: {
@@ -108,6 +111,9 @@ async function fetchDomainKey(ctx, domain) {
 async function removeDomainKey(ctx, domain) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   await bundleBucket.remove(`/${domain}/.domainkey`);
+
+  // purge cache
+  await purgeSurrogateKey(ctx, domain);
 
   return new Response('', { status: 201 });
 }

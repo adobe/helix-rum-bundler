@@ -177,6 +177,13 @@ export const compressBody = async (ctx, req, data, headers = {}) => {
   if (!acceptEncoding) {
     return new Response(data, { headers });
   }
+  if (!headers.Vary && !headers.vary) {
+    // eslint-disable-next-line no-param-reassign
+    headers.vary = 'accept-encoding';
+  } else if (!headers.vary.toLowerCase().includes('accept-encoding')) {
+    // eslint-disable-next-line no-param-reassign
+    headers.vary += ', accept-encoding';
+  }
 
   if (acceptEncoding.includes('br')) {
     const compressed = await promisify(brotliCompress)(data);
