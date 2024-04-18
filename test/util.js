@@ -140,5 +140,13 @@ export function Nock() {
     .get(`/${domain}/.domainkey?x-id=GetObject`)
     .reply(200, key);
 
+  nocker.getAggregate = (year, month, date, data, domain = 'example.com') => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+    .get(`/${domain}/${year}${month ? `/${month}` : ''}${date ? `/${date}` : ''}/aggregate.json?x-id=GetObject`)
+    .reply(data ? 200 : 404, data);
+
+  nocker.putAggregate = (year, month, date, domain = 'example.com') => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+    .put(`/${domain}/${year}${month ? `/${month}` : ''}${date ? `/${date}` : ''}/aggregate.json?x-id=PutObject`)
+    .reply(200);
+
   return nocker;
 }

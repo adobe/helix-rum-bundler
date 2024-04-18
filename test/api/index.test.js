@@ -81,6 +81,9 @@ describe('api Tests', () => {
 
     it('get daily data', async () => {
       nock.domainKey();
+      nock.getAggregate(2024, 3, 1);
+      nock.putAggregate(2024, 3, 1);
+
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/2024/3/1/0.json?x-id=GetObject')
         .reply(200, JSON.stringify({
