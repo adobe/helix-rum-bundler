@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/adobe/helix-rum-bundler/compare/v1.1.2...v1.1.3) (2024-04-18)
+
+
+### Bug Fixes
+
+* add surrogate keys ([0060006](https://github.com/adobe/helix-rum-bundler/commit/0060006e669a258035f25c83b1a03c5e3e23c383))
+
 ## [1.1.2](https://github.com/adobe/helix-rum-bundler/compare/v1.1.1...v1.1.2) (2024-04-18)
 
 
