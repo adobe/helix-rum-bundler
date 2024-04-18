@@ -96,14 +96,14 @@ async function fetchAggregate(ctx, path) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
  * @param {string} data
- * @param {number} ttl
+ * @param {number} ttl in ms
  */
 async function storeAggregate(ctx, path, data, ttl) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const prefix = path.toString();
   const key = `${prefix}/aggregate.json`;
   const expiration = new Date(Date.now() + ttl);
-  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}  (${ttl})`);
+  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
   await bundleBucket.put(key, data, 'application/json', expiration);
 }
 
@@ -255,6 +255,7 @@ async function fetchMonthly(ctx, path) {
 }
 
 /**
+ * get TTL of the response in seconds
  * @param {PathInfo} path
  * @returns {number}
  */
@@ -325,7 +326,7 @@ export default async function handleRequest(req, ctx) {
   data = JSON.stringify(data);
   const ttl = getTTL(path);
   if (!isAggregate) {
-    await storeAggregate(ctx, path, data, ttl);
+    await storeAggregate(ctx, path, data, ttl * 1000);
   }
 
   return compressBody(
