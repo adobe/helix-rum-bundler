@@ -76,6 +76,7 @@ async function rotateDomainKey(ctx, domain) {
   await purgeSurrogateKey(ctx, domain);
 
   return new Response(JSON.stringify({ domainkey }), {
+    status: 201,
     headers: {
       'content-type': 'application/json',
     },
@@ -115,7 +116,7 @@ async function removeDomainKey(ctx, domain) {
   // purge cache
   await purgeSurrogateKey(ctx, domain);
 
-  return new Response('', { status: 201 });
+  return new Response('', { status: 204 });
 }
 
 /**
