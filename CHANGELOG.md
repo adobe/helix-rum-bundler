@@ -1,3 +1,10 @@
+## [1.1.8](https://github.com/adobe/helix-rum-bundler/compare/v1.1.7...v1.1.8) (2024-04-19)
+
+
+### Bug Fixes
+
+* open up cors origin ([8c6f0b2](https://github.com/adobe/helix-rum-bundler/commit/8c6f0b2313fa7cc0b07cc6e83b567b7ae11eb483))
+
 ## [1.1.7](https://github.com/adobe/helix-rum-bundler/compare/v1.1.6...v1.1.7) (2024-04-18)
 
 
