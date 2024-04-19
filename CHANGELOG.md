@@ -1,3 +1,10 @@
+## [1.1.10](https://github.com/adobe/helix-rum-bundler/compare/v1.1.9...v1.1.10) (2024-04-19)
+
+
+### Bug Fixes
+
+* tweak status codes ([e2640d9](https://github.com/adobe/helix-rum-bundler/commit/e2640d9482f59b4eba1532686831036d8afaea29))
+
 ## [1.1.9](https://github.com/adobe/helix-rum-bundler/compare/v1.1.8...v1.1.9) (2024-04-19)
 
 
