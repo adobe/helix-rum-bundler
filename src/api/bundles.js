@@ -32,10 +32,7 @@ const MAX_EVENTS = 25000;
  * @throws {ErrorWithResponse} if unauthorized
  */
 export async function assertAuthorized(ctx, domain) {
-  const key = ctx.data?.domainkey;
-  if (!key) {
-    throw errorWithResponse(401, 'missing domainkey param');
-  }
+  const key = ctx.data?.domainkey || '';
 
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const buf = await bundleBucket.get(`/${domain}/.domainkey`);
