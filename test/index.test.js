@@ -16,11 +16,16 @@ import assert from 'assert';
 import esmock from 'esmock';
 import { Request, Response } from '@adobe/fetch';
 import { main } from '../src/index.js';
+import { Nock } from './util.js';
 
 describe('Index Tests', () => {
   it('rejects unauthorized requests', async () => {
-    const resp = await main(new Request('https://localhost/'), { env: {}, pathInfo: { suffix: '/bundles/x' } });
-    assert.strictEqual(resp.status, 401);
+    const nock = Nock().domainKey('x', undefined);
+
+    const resp = await main(new Request('https://localhost/'), { env: {}, attributes: {}, pathInfo: { suffix: '/bundles/x' } });
+    assert.strictEqual(resp.status, 403);
+
+    nock.done();
   });
 
   it('performs bundling when invoked by scheduler', async () => {
