@@ -1,3 +1,10 @@
+## [1.1.9](https://github.com/adobe/helix-rum-bundler/compare/v1.1.8...v1.1.9) (2024-04-19)
+
+
+### Bug Fixes
+
+* tweak remove domainkey api ([1ffa911](https://github.com/adobe/helix-rum-bundler/commit/1ffa911403ca0cfb3b2a4cfee429acf749447290))
+
 ## [1.1.8](https://github.com/adobe/helix-rum-bundler/compare/v1.1.7...v1.1.8) (2024-04-19)
 
 
