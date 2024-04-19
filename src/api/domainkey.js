@@ -110,7 +110,7 @@ async function fetchDomainKey(ctx, domain) {
  */
 async function removeDomainKey(ctx, domain) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
-  await bundleBucket.remove(`/${domain}/.domainkey`);
+  await bundleBucket.put(`/${domain}/.domainkey`, '', 'text/plain');
 
   // purge cache
   await purgeSurrogateKey(ctx, domain);
