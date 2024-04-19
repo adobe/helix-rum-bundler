@@ -88,3 +88,4 @@ Contains information needed to efficiently relate new RUM events to an existing 
 > requires authorization, membership in allowlist
 - `GET /domainkey/{domain}`
 - `POST /domainkey/{domain}`
+- `DELETE /domainkey/{domain}`

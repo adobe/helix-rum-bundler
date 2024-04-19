@@ -100,12 +100,13 @@ function addCommonResponseHeadersWrapper(fn) {
     }
 
     // add CORS headers if origin is present
-    const origin = req.headers.get('origin');
-    if (origin) {
-      res.headers.set('access-control-allow-origin', origin);
-      res.headers.set('access-control-allow-credentials', 'true');
-      res.headers.set('access-control-expose-headers', 'x-error');
-    }
+    // const origin = req.headers.get('origin');
+    // if (origin) {
+    // res.headers.set('access-control-allow-origin', origin);
+    res.headers.set('access-control-allow-origin', '*');
+    res.headers.set('access-control-allow-credentials', 'true');
+    res.headers.set('access-control-expose-headers', 'x-error');
+    // }
     return res;
   };
 }
