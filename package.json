@@ -62,7 +62,7 @@
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.0.12",
     "@adobe/helix-universal-logger": "3.0.15",
-    "@aws-sdk/client-s3": "3.537.0",
+    "@aws-sdk/client-s3": "3.556.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.0.1"
   },
@@ -72,7 +72,7 @@
     "@adobe/helix-universal": "4.5.2",
     "@adobe/helix-universal-devserver": "1.1.23",
     "@adobe/semantic-release-coralogix": "1.1.28",
-    "@google-cloud/bigquery": "7.5.2",
+    "@google-cloud/bigquery": "7.6.0",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
@@ -85,12 +85,12 @@
     "husky": "9.0.11",
     "junit-report-builder": "3.2.1",
     "lint-staged": "15.2.2",
-    "mocha": "10.3.0",
+    "mocha": "10.4.0",
     "mocha-multi-reporters": "1.5.1",
     "nock": "13.5.4",
     "nodemon": "3.1.0",
     "semantic-release": "22.0.12",
-    "typescript": "5.4.3"
+    "typescript": "5.4.5"
   },
   "lint-staged": {
     "*.js": "eslint"
