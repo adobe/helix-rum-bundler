@@ -73,6 +73,7 @@ export function parsePath(path) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
  */
+// eslint-disable-next-line no-unused-vars
 async function fetchAggregate(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
@@ -130,10 +131,10 @@ async function fetchHourly(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchDaily(ctx, path) {
-  const aggregate = await fetchAggregate(ctx, path);
-  if (aggregate) {
-    return { data: aggregate, isAggregate: true };
-  }
+  // const aggregate = await fetchAggregate(ctx, path);
+  // if (aggregate) {
+  //   return { data: aggregate, isAggregate: true };
+  // }
 
   // use all hours, just handle 404s
   const hours = [...Array(24).keys()];
@@ -192,10 +193,10 @@ async function fetchDaily(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchMonthly(ctx, path) {
-  const aggregate = await fetchAggregate(ctx, path);
-  if (aggregate) {
-    return { data: aggregate, isAggregate: true };
-  }
+  // const aggregate = await fetchAggregate(ctx, path);
+  // if (aggregate) {
+  //   return { data: aggregate, isAggregate: true };
+  // }
 
   // @ts-ignore
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
@@ -320,16 +321,16 @@ export default async function handleRequest(req, ctx) {
     return new Response('Not found', { status: 404 });
   }
 
-  data = JSON.stringify(data);
+  const str = JSON.stringify(data);
   const ttl = getTTL(path);
   if (!isAggregate) {
-    await storeAggregate(ctx, path, data, ttl * 1000);
+    await storeAggregate(ctx, path, str, ttl * 1000);
   }
 
   return compressBody(
     ctx,
     req,
-    data,
+    str,
     {
       'cache-control': `public, max-age=${ttl}`,
       'surrogate-key': path.surrogateKeys.join(' '),
