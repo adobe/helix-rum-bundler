@@ -1,3 +1,10 @@
+## [1.1.12](https://github.com/adobe/helix-rum-bundler/compare/v1.1.11...v1.1.12) (2024-04-23)
+
+
+### Bug Fixes
+
+* temp disable aggregates ([599f352](https://github.com/adobe/helix-rum-bundler/commit/599f3525bdc51ce615b02feb31fa81a72ef234c9))
+
 ## [1.1.11](https://github.com/adobe/helix-rum-bundler/compare/v1.1.10...v1.1.11) (2024-04-20)
 
 
