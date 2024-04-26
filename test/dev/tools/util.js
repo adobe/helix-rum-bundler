@@ -142,12 +142,22 @@ export function getMaskedUserAgent(userAgent) {
 
 /**
  * @param {UniversalContext} ctx
+ * @returns {Promise<string[]>}
+ */
+export async function getDomains(ctx) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+
+  const domains = await bundleBucket.listFolders('');
+  return domains.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d));
+}
+
+/**
+ * @param {UniversalContext} ctx
  * @returns {Promise<{ missing:string[]; empty:string[] }>}
  */
 export async function findOpenDomains(ctx) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
-
-  const domains = await bundleBucket.listFolders('');
+  const domains = await getDomains(ctx);
   const collected = await processQueue(
     domains,
     async (domain) => {

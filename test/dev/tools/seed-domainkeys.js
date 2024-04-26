@@ -15,7 +15,7 @@
 import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
-import { contextLike } from './util.js';
+import { contextLike, getDomains } from './util.js';
 
 configEnv();
 
@@ -33,7 +33,7 @@ configEnv();
   const ctx = contextLike();
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const domains = await bundleBucket.listFolders('');
+  const domains = await getDomains(ctx);
   const missing = await processQueue(
     domains,
     async (domain) => {

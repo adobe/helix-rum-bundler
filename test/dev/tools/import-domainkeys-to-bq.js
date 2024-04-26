@@ -15,14 +15,13 @@
 import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
-import { contextLike } from './util.js';
+import { contextLike, getDomains } from './util.js';
 import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
 
 configEnv();
 
 /**
- * rotates all domain's keys that are missing
- * does not rotate empty `.domainkey` files, since those are purposefully open
+ * adds all domainkeys to biquery
  */
 
 (async () => {
@@ -33,10 +32,11 @@ configEnv();
   const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.DOMAINKEY_API_KEY } });
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const domains = await bundleBucket.listFolders('');
+  const domains = await getDomains(ctx);
   await processQueue(
     domains,
     async (domain) => {
+      console.log('process: ', domain);
       const buf = await bundleBucket.get(`${domain}/.domainkey`);
       if (!buf) {
         return;

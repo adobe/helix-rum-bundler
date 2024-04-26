@@ -65,16 +65,13 @@ export async function addRunQueryDomainkey(ctx, domain, domainkey) {
 }
 
 /**
- * update domainkey for domain in storage & runquery
+ * set domainkey for domain in storage & runquery
  * assume caller is authorized
  * @param {UniversalContext} ctx
  * @param {string} domain
+ * @param {string} domainkey
  */
-async function rotateDomainKey(ctx, domain) {
-  // generate uuid (uppercase)
-  // replace domain key in storage
-  const domainkey = crypto.randomUUID().toUpperCase();
-
+async function setDomainKey(ctx, domain, domainkey) {
   // update storage
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
@@ -85,6 +82,25 @@ async function rotateDomainKey(ctx, domain) {
   // purge cache
   await purgeSurrogateKey(ctx, domain);
 
+  return new Response('', {
+    status: 204,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * update domainkey for domain in storage & runquery
+ * assume caller is authorized
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ */
+async function rotateDomainKey(ctx, domain) {
+  // generate uuid (uppercase)
+  // replace domain key in storage
+  const domainkey = crypto.randomUUID().toUpperCase();
+  await setDomainKey(ctx, domain, domainkey);
   return new Response(JSON.stringify({ domainkey }), {
     status: 201,
     headers: {
@@ -145,6 +161,12 @@ export default async function handleRequest(req, ctx) {
     return fetchDomainKey(ctx, domain);
   } else if (req.method === 'DELETE') {
     return removeDomainKey(ctx, domain);
+  } else if (req.method === 'PUT') {
+    const { domainkey } = ctx.data;
+    if (typeof domainkey !== 'string') {
+      throw errorWithResponse(400, 'invalid domainkey');
+    }
+    return setDomainKey(ctx, domain, domainkey);
   }
   return new Response('method not allowed', { status: 405 });
 }
