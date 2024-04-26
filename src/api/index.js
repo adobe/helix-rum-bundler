@@ -38,7 +38,7 @@ export default async function handleRequest(req, ctx) {
     return new Response('', {
       status: 204,
       headers: {
-        'access-control-allow-methods': 'GET, POST, OPTIONS, DELETE',
+        'access-control-allow-methods': 'GET, POST, PUT, OPTIONS, DELETE',
         'access-control-allow-headers': 'Authorization, content-type',
         'access-control-max-age': '86400',
       },

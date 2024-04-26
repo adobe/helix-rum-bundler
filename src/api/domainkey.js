@@ -47,6 +47,50 @@ function assertAuthorized(req, ctx) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ * @param {string} domainkey
+ */
+export async function addRunQueryDomainkey(ctx, domain, domainkey) {
+  const fetch = getFetch(ctx);
+  const resp = await fetch(runQueryURL({ domain, domainkey }), {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
+    },
+  });
+  if (!resp.ok) {
+    ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
+  }
+}
+
+/**
+ * set domainkey for domain in storage & runquery
+ * assume caller is authorized
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ * @param {string} domainkey
+ */
+async function setDomainKey(ctx, domain, domainkey) {
+  // update storage
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
+
+  // update runquery
+  await addRunQueryDomainkey(ctx, domain, domainkey);
+
+  // purge cache
+  await purgeSurrogateKey(ctx, domain);
+
+  return new Response('', {
+    status: 204,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
  * update domainkey for domain in storage & runquery
  * assume caller is authorized
  * @param {UniversalContext} ctx
@@ -56,25 +100,7 @@ async function rotateDomainKey(ctx, domain) {
   // generate uuid (uppercase)
   // replace domain key in storage
   const domainkey = crypto.randomUUID().toUpperCase();
-
-  // update storage
-  const { bundleBucket } = HelixStorage.fromContext(ctx);
-  await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
-
-  // update runquery
-  const fetch = getFetch(ctx);
-  const resp = await fetch(runQueryURL({ domain, domainkey }), {
-    headers: {
-      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
-    },
-  });
-  if (!resp.ok) {
-    ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
-  }
-
-  // purge cache
-  await purgeSurrogateKey(ctx, domain);
-
+  await setDomainKey(ctx, domain, domainkey);
   return new Response(JSON.stringify({ domainkey }), {
     status: 201,
     headers: {
@@ -135,6 +161,12 @@ export default async function handleRequest(req, ctx) {
     return fetchDomainKey(ctx, domain);
   } else if (req.method === 'DELETE') {
     return removeDomainKey(ctx, domain);
+  } else if (req.method === 'PUT') {
+    const { domainkey } = ctx.data;
+    if (typeof domainkey !== 'string') {
+      throw errorWithResponse(400, 'invalid domainkey');
+    }
+    return setDomainKey(ctx, domain, domainkey);
   }
   return new Response('method not allowed', { status: 405 });
 }

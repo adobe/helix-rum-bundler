@@ -10,20 +10,26 @@
  * governing permissions and limitations under the License.
  */
 
+import processQueue from '@adobe/helix-shared-process-queue';
+import { HelixStorage } from '../../../src/support/storage.js';
+
 /**
  * @typedef {{ year: number; month: number; day: number; }} ParsedDate
  */
 
 /** @type {() => UniversalContext} */
-export const contextLike = () => ({
+export const contextLike = (overrides = {}) => ({
   // @ts-ignore
   log: console,
   // @ts-ignore
   env: {
     ...process.env,
+    ...(overrides.env ?? {}),
   },
   // @ts-ignore
-  attributes: {},
+  attributes: {
+    ...(overrides.attributes ?? {}),
+  },
 });
 
 /**
@@ -132,4 +138,48 @@ export function getMaskedUserAgent(userAgent) {
   }
 
   return `desktop${getDesktopOS(lcUA)}`;
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @returns {Promise<string[]>}
+ */
+export async function getDomains(ctx) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+
+  const domains = await bundleBucket.listFolders('');
+  return domains.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d));
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @returns {Promise<{ missing:string[]; empty:string[] }>}
+ */
+export async function findOpenDomains(ctx) {
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  const domains = await getDomains(ctx);
+  const collected = await processQueue(
+    domains,
+    async (domain) => {
+      const key = await bundleBucket.head(`${domain}/.domainkey`);
+      if (!key) {
+        return { missing: domain };
+      }
+      if (key.ContentLength === 0) {
+        return { empty: domain };
+      }
+      return undefined;
+    },
+  );
+  return collected.reduce((acc, curr) => {
+    if (curr) {
+      if (curr.missing) {
+        acc.missing.push(curr.missing);
+      }
+      if (curr.empty) {
+        acc.empty.push(curr.empty);
+      }
+    }
+    return acc;
+  }, { missing: [], empty: [] });
 }
