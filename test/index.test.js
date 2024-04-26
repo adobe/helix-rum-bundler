@@ -44,7 +44,7 @@ describe('Index Tests', () => {
 
     const resp = await mmain(
       new Request('https://localhost/'),
-      { env: {}, invocation: { event: { source: 'aws.scheduler' } } },
+      { log: console, env: {}, invocation: { event: { source: 'aws.scheduler' } } },
     );
     assert.strictEqual(resp.status, 200);
     assert.strictEqual(resp.headers.get('route'), 'bundle-rum');
