@@ -14,7 +14,6 @@
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';
 import secrets from '@adobe/helix-shared-secrets';
-import { logger } from '@adobe/helix-universal-logger';
 import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
 import bundleRUM from './bundler/index.js';
@@ -113,8 +112,6 @@ function addCommonResponseHeadersWrapper(fn) {
 
 /** @type {(...args: any[]) => Promise<RResponse>} */
 export const main = wrap(run)
-  .with(logger.trace)
-  .with(logger)
   .with(addCommonResponseHeadersWrapper)
   .with(bodyData)
   .with(secrets)
