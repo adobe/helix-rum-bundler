@@ -16,41 +16,43 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike, getDomains } from './util.js';
-import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
 
 configEnv();
 
 /**
- * adds all domainkeys to biquery
+ * logs all domainkeys currently in storage
  */
 
 (async () => {
-  if (!process.env.DOMAINKEY_API_KEY) {
-    throw Error('missing env variable: DOMAINKEY_API_KEY');
-  }
-
-  const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.DOMAINKEY_API_KEY } });
+  const ctx = contextLike();
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const domains = await getDomains(ctx);
-  await processQueue(
+  const entries = await processQueue(
     domains,
     async (domain) => {
-      const buf = await bundleBucket.get(`${domain}/.domainkey`);
-      if (!buf) {
-        return;
-      }
       try {
+        const buf = await bundleBucket.get(`${domain}/.domainkey`);
+        if (!buf) {
+          console.warn(`missing domainkey for ${domain}`);
+          return [domain, '<MISSING>'];
+        }
         const domainkey = new TextDecoder('utf8').decode(buf);
         if (!domainkey) {
-          return;
+          return [domain, '<OPEN>'];
         }
-
-        ctx.log.debug(`importing domainkey for ${domain}`);
-        await addRunQueryDomainkey(ctx, domain, domainkey);
+        return [domain, domainkey];
       } catch (e) {
-        console.error(`failed to import domainkey for ${domain}: `, e);
+        return [domain, `<ERROR: ${e.message}>`];
       }
     },
+  );
+
+  console.log(
+    JSON.stringify(
+      Object.fromEntries(entries),
+      undefined,
+      2,
+    ),
   );
 })().catch((e) => console.error(e));
