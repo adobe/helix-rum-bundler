@@ -1,3 +1,11 @@
+## [1.1.13](https://github.com/adobe/helix-rum-bundler/compare/v1.1.12...v1.1.13) (2024-04-26)
+
+
+### Bug Fixes
+
+* add domainkey to bq on rotate ([dd8cab0](https://github.com/adobe/helix-rum-bundler/commit/dd8cab088130a3234e6ae3ea126e5269e6ebc518))
+* put domainkey api ([51eafe5](https://github.com/adobe/helix-rum-bundler/commit/51eafe53b26d764131b041b2d1112f9af78ad251))
+
 ## [1.1.12](https://github.com/adobe/helix-rum-bundler/compare/v1.1.11...v1.1.12) (2024-04-23)
 
 
