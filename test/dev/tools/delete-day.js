@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+/* eslint-disable no-console */
+
 import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike, parseDate } from './util.js';

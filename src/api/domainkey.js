@@ -47,6 +47,24 @@ function assertAuthorized(req, ctx) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ * @param {string} domainkey
+ */
+export async function addRunQueryDomainkey(ctx, domain, domainkey) {
+  const fetch = getFetch(ctx);
+  const resp = await fetch(runQueryURL({ domain, domainkey }), {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
+    },
+  });
+  if (!resp.ok) {
+    ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
+  }
+}
+
+/**
  * update domainkey for domain in storage & runquery
  * assume caller is authorized
  * @param {UniversalContext} ctx
@@ -62,15 +80,7 @@ async function rotateDomainKey(ctx, domain) {
   await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
 
   // update runquery
-  const fetch = getFetch(ctx);
-  const resp = await fetch(runQueryURL({ domain, domainkey }), {
-    headers: {
-      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
-    },
-  });
-  if (!resp.ok) {
-    ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
-  }
+  await addRunQueryDomainkey(ctx, domain, domainkey);
 
   // purge cache
   await purgeSurrogateKey(ctx, domain);

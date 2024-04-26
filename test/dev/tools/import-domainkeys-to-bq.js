@@ -16,6 +16,7 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike } from './util.js';
+import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
 
 configEnv();
 
@@ -29,36 +30,27 @@ configEnv();
     throw Error('missing env variable: DOMAINKEY_API_KEY');
   }
 
-  const { DOMAINKEY_API_KEY: apiKey } = process.env;
-  const ctx = contextLike();
+  const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.DOMAINKEY_API_KEY } });
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const domains = await bundleBucket.listFolders('');
-  const missing = await processQueue(
+  await processQueue(
     domains,
     async (domain) => {
-      const key = await bundleBucket.head(`${domain}/.domainkey`);
-      if (!key) {
-        console.warn(`missing domainkey for ${domain}`);
-        return domain;
+      const buf = await bundleBucket.get(`${domain}/.domainkey`);
+      if (!buf) {
+        return;
       }
-      return undefined;
-    },
-  );
+      try {
+        const domainkey = new TextDecoder('utf8').decode(buf);
+        if (!domainkey) {
+          return;
+        }
 
-  await processQueue(
-    missing,
-    async (domain) => {
-      const resp = await fetch(`https://rum.fastly-aem.page/domainkey/${domain}`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${apiKey}`,
-        },
-      });
-      if (!resp.ok) {
-        console.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
-      } else {
-        console.info(`rotated domainkey for ${domain}`);
+        ctx.log.debug(`importing domainkey for ${domain}`);
+        await addRunQueryDomainkey(ctx, domain, domainkey);
+      } catch (e) {
+        console.error(`failed to import domainkey for ${domain}: `, e);
       }
     },
   );
