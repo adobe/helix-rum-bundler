@@ -1,3 +1,10 @@
+## [1.1.14](https://github.com/adobe/helix-rum-bundler/compare/v1.1.13...v1.1.14) (2024-04-26)
+
+
+### Bug Fixes
+
+* ttl fix, add tool for clearing aggregate files ([b5ae0cc](https://github.com/adobe/helix-rum-bundler/commit/b5ae0cc36706072696792c4a9f3c4b5b80ffc3e3))
+
 ## [1.1.13](https://github.com/adobe/helix-rum-bundler/compare/v1.1.12...v1.1.13) (2024-04-26)
 
 
