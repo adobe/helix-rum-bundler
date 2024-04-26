@@ -60,7 +60,7 @@ export async function addRunQueryDomainkey(ctx, domain, domainkey) {
     },
   });
   if (!resp.ok) {
-    ctx.log.warn(`failed to rotate domainkey for ${domain}: ${resp.status}`);
+    ctx.log.warn(`failed to add runquery domainkey for ${domain}: ${resp.status}`);
   }
 }
 

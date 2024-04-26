@@ -21,7 +21,7 @@ import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
 configEnv();
 
 /**
- * adds all domainkeys to biquery
+ * adds all domainkeys to bigquery
  */
 
 (async () => {
@@ -46,7 +46,7 @@ configEnv();
           return;
         }
 
-        ctx.log.debug(`importing domainkey for ${domain}`);
+        ctx.log.debug(`importing domainkey ${domainkey} for ${domain}`);
         await addRunQueryDomainkey(ctx, domain, domainkey);
       } catch (e) {
         console.error(`failed to import domainkey for ${domain}: `, e);
