@@ -1,3 +1,10 @@
+## [1.1.15](https://github.com/adobe/helix-rum-bundler/compare/v1.1.14...v1.1.15) (2024-04-26)
+
+
+### Bug Fixes
+
+* remove universal-logger ([46ece1b](https://github.com/adobe/helix-rum-bundler/commit/46ece1beecc993d9a2943f33290f24f21575c2e5))
+
 ## [1.1.14](https://github.com/adobe/helix-rum-bundler/compare/v1.1.13...v1.1.14) (2024-04-26)
 
 
