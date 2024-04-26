@@ -188,7 +188,7 @@ describe('api/bundles Tests', () => {
         month: 1,
       };
       const val = getTTL(resource);
-      assert.strictEqual(val, 43200000);
+      assert.strictEqual(val, 43200);
     });
 
     it('daily bundles <25h old should be cached for 60min', () => {
@@ -199,7 +199,7 @@ describe('api/bundles Tests', () => {
         day: 1,
       };
       const val = getTTL(resource);
-      assert.strictEqual(val, 3600000);
+      assert.strictEqual(val, 3600);
     });
 
     it('hourly bundles >=70m old should be cached forever', () => {
@@ -223,7 +223,7 @@ describe('api/bundles Tests', () => {
         hour: 1,
       };
       const val = getTTL(resource);
-      assert.strictEqual(val, 600000);
+      assert.strictEqual(val, 600);
     });
   });
 });

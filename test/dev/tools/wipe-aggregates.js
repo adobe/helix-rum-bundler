@@ -16,41 +16,50 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike, getDomains } from './util.js';
-import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
 
 configEnv();
 
 /**
- * adds all domainkeys to biquery
+ * wipes all aggregate files for all domains,
+ * or just domains in `DOMAIN` env var
  */
 
 (async () => {
-  if (!process.env.DOMAINKEY_API_KEY) {
-    throw Error('missing env variable: DOMAINKEY_API_KEY');
-  }
-
-  const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.DOMAINKEY_API_KEY } });
+  const ctx = contextLike();
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const domains = await getDomains(ctx);
+  let { DOMAINS: domains } = process.env;
+  if (domains) {
+    domains = domains.split(',');
+  } else {
+    domains = await getDomains(ctx);
+  }
+
+  const affected = [];
+  let removed = 0;
   await processQueue(
     domains,
     async (domain) => {
-      const buf = await bundleBucket.get(`${domain}/.domainkey`);
-      if (!buf) {
+      const toRemove = (await bundleBucket.list(`${domain}/`))
+        .objects
+        .filter(({ key }) => key.endsWith('/aggregate.json'))
+        .map(({ key }) => key);
+
+      if (!toRemove.length) {
         return;
       }
-      try {
-        const domainkey = new TextDecoder('utf8').decode(buf);
-        if (!domainkey) {
-          return;
-        }
 
-        ctx.log.debug(`importing domainkey for ${domain}`);
-        await addRunQueryDomainkey(ctx, domain, domainkey);
-      } catch (e) {
-        console.error(`failed to import domainkey for ${domain}: `, e);
+      affected.push(domain);
+      removed += toRemove.length;
+
+      // batch remove in sets of up to 1000
+      const ps = [];
+      for (let i = 0; i < toRemove.length; i += 1000) {
+        ps.push(bundleBucket.remove(toRemove.slice(i, i + 1000)));
       }
+      await Promise.allSettled(ps);
     },
   );
+
+  console.info(`wiped ${removed} aggregates files from ${domains.length} domains: `, `\n\t${affected.join('\n\t')}`);
 })().catch((e) => console.error(e));

@@ -73,7 +73,6 @@ export function parsePath(path) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
  */
-// eslint-disable-next-line no-unused-vars
 async function fetchAggregate(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
@@ -131,10 +130,10 @@ async function fetchHourly(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchDaily(ctx, path) {
-  // const aggregate = await fetchAggregate(ctx, path);
-  // if (aggregate) {
-  //   return { data: aggregate, isAggregate: true };
-  // }
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
+  }
 
   // use all hours, just handle 404s
   const hours = [...Array(24).keys()];
@@ -193,10 +192,10 @@ async function fetchDaily(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchMonthly(ctx, path) {
-  // const aggregate = await fetchAggregate(ctx, path);
-  // if (aggregate) {
-  //   return { data: aggregate, isAggregate: true };
-  // }
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
+  }
 
   // @ts-ignore
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
@@ -253,7 +252,7 @@ async function fetchMonthly(ctx, path) {
 }
 
 /**
- * get TTL of the response in seconds
+ * get TTL of the response in `seconds`
  * @param {PathInfo} path
  * @returns {number}
  */
@@ -268,7 +267,7 @@ export function getTTL(path) {
     59,
     59,
   );
-  let ttl = 10 * 60 * 1000; // 10min
+  let ttl = 10 * 60; // 10min
   const diff = Number(now) - Number(requested);
   if (typeof path.hour === 'number') {
     // hourly bundles expire every 10min until the hour elapses
@@ -279,14 +278,14 @@ export function getTTL(path) {
   } else if (typeof path.day === 'number') {
     // daily bundles expire every hour until the day elapses in UTC
     // then within 1 hour they should be stable forever
-    ttl = 60 * 60 * 1000; // 1 hour
+    ttl = 60 * 60; // 1 hour
     if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
       ttl = 31536000;
     }
   } else if (typeof path.month === 'number') {
     // monthly bundles expire every 12h until the month elapses
     // then within 1 hour they are stable forever
-    ttl = 12 * 60 * 60 * 1000; // 12 hours
+    ttl = 12 * 60 * 60; // 12 hours
     // same threshold as daily, since monthly resource date is the last second of the month
     if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
       ttl = 31536000;
