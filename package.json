@@ -67,9 +67,9 @@
   },
   "devDependencies": {
     "@adobe/eslint-config-helix": "2.0.6",
-    "@adobe/helix-deploy": "11.0.23",
+    "@adobe/helix-deploy": "11.0.24",
     "@adobe/helix-universal": "4.5.2",
-    "@adobe/helix-universal-devserver": "1.1.24",
+    "@adobe/helix-universal-devserver": "1.1.25",
     "@adobe/semantic-release-coralogix": "1.1.28",
     "@google-cloud/bigquery": "7.6.1",
     "@semantic-release/changelog": "6.0.3",
