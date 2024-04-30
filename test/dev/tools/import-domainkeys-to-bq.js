@@ -16,7 +16,7 @@ import processQueue from '@adobe/helix-shared-process-queue';
 import { config as configEnv } from 'dotenv';
 import { HelixStorage } from '../../../src/support/storage.js';
 import { contextLike, getDomains } from './util.js';
-import { addRunQueryDomainkey } from '../../../src/api/domainkey.js';
+import { addRunQueryDomainkey } from '../../../src/support/domains.js';
 
 configEnv();
 

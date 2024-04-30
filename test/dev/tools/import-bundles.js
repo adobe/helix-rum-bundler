@@ -137,7 +137,7 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit, after) {
   ], []);
 
   // do equivalent steps as bundler.js
-  const rawEventMap = sortRawEvents(events, ctx.log);
+  const { rawEventMap } = sortRawEvents(events, ctx.log);
   await importEventsByKey(ctx, rawEventMap);
 
   console.debug(`imported ${totalEvents} events from ${bundles.length} bundles`);

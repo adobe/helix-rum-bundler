@@ -15,21 +15,9 @@
 import { Response } from '@adobe/fetch';
 import { PathInfo } from '../support/PathInfo.js';
 import { HelixStorage } from '../support/storage.js';
-import { errorWithResponse, getFetch } from '../util.js';
+import { errorWithResponse } from '../support/util.js';
 import { purgeSurrogateKey } from '../support/cache.js';
-
-/**
- * @param {{
-*  domain: string;
-*  domainkey: string;
-* }} param0
-* @returns {string}
-*/
-const runQueryURL = ({
-  domain,
-  domainkey,
-}) => 'https://helix-pages.anywhere.run/helix-services/run-query@v3/rotate-domainkeys?'
-+ `url=${domain}&newkey=${domainkey}&note=rumbundler`;
+import { setDomainKey, fetchDomainKey } from '../support/domains.js';
 
 /**
  * @param {RRequest} req
@@ -47,41 +35,15 @@ function assertAuthorized(req, ctx) {
 }
 
 /**
+ * Update domainkey for domain in storage & runquery.
+ * Assumes caller is authorized.
+ *
  * @param {UniversalContext} ctx
  * @param {string} domain
  * @param {string} domainkey
  */
-export async function addRunQueryDomainkey(ctx, domain, domainkey) {
-  const fetch = getFetch(ctx);
-  const resp = await fetch(runQueryURL({ domain, domainkey }), {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
-    },
-  });
-  if (!resp.ok) {
-    ctx.log.warn(`failed to add runquery domainkey for ${domain}: ${resp.status}`);
-  }
-}
-
-/**
- * set domainkey for domain in storage & runquery
- * assume caller is authorized
- * @param {UniversalContext} ctx
- * @param {string} domain
- * @param {string} domainkey
- */
-async function setDomainKey(ctx, domain, domainkey) {
-  // update storage
-  const { bundleBucket } = HelixStorage.fromContext(ctx);
-  await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
-
-  // update runquery
-  await addRunQueryDomainkey(ctx, domain, domainkey);
-
-  // purge cache
-  await purgeSurrogateKey(ctx, domain);
-
+async function updateDomainKey(ctx, domain, domainkey) {
+  await setDomainKey(ctx, domain, domainkey);
   return new Response('', {
     status: 204,
     headers: {
@@ -91,16 +53,14 @@ async function setDomainKey(ctx, domain, domainkey) {
 }
 
 /**
- * update domainkey for domain in storage & runquery
- * assume caller is authorized
+ * Rotate domainkey for domain in storage & runquery.
+ * Assumes caller is authorized.
+ *
  * @param {UniversalContext} ctx
  * @param {string} domain
  */
 async function rotateDomainKey(ctx, domain) {
-  // generate uuid (uppercase)
-  // replace domain key in storage
-  const domainkey = crypto.randomUUID().toUpperCase();
-  await setDomainKey(ctx, domain, domainkey);
+  const domainkey = await setDomainKey(ctx, domain);
   return new Response(JSON.stringify({ domainkey }), {
     status: 201,
     headers: {
@@ -110,18 +70,17 @@ async function rotateDomainKey(ctx, domain) {
 }
 
 /**
- * get domainkey for domain
- * assume caller is authorized
+ * Get domainkey for domain.
+ * Assumes caller is authorized.
+ *
  * @param {UniversalContext} ctx
  * @param {string} domain
  */
-async function fetchDomainKey(ctx, domain) {
-  const { bundleBucket } = HelixStorage.fromContext(ctx);
-  const buf = await bundleBucket.get(`/${domain}/.domainkey`);
-  if (!buf) {
+async function getDomainKey(ctx, domain) {
+  const domainkey = await fetchDomainKey(ctx, domain);
+  if (domainkey === null) {
     return new Response('not found', { status: 404 });
   }
-  const domainkey = new TextDecoder('utf8').decode(buf);
   return new Response(JSON.stringify({ domainkey }), {
     headers: {
       'content-type': 'application/json',
@@ -130,8 +89,9 @@ async function fetchDomainKey(ctx, domain) {
 }
 
 /**
- * remove domainkey
- * the associated domain will become publically accessible
+ * Remove domainkey for domain.
+ * The domain will become publicly accessible.
+ *
  * @param {UniversalContext} ctx
  * @param {string} domain
  */
@@ -158,7 +118,7 @@ export default async function handleRequest(req, ctx) {
   if (req.method === 'POST') {
     return rotateDomainKey(ctx, domain);
   } else if (req.method === 'GET') {
-    return fetchDomainKey(ctx, domain);
+    return getDomainKey(ctx, domain);
   } else if (req.method === 'DELETE') {
     return removeDomainKey(ctx, domain);
   } else if (req.method === 'PUT') {
@@ -166,7 +126,7 @@ export default async function handleRequest(req, ctx) {
     if (typeof domainkey !== 'string') {
       throw errorWithResponse(400, 'invalid domainkey');
     }
-    return setDomainKey(ctx, domain, domainkey);
+    return updateDomainKey(ctx, domain, domainkey);
   }
   return new Response('method not allowed', { status: 405 });
 }

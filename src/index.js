@@ -98,14 +98,9 @@ function addCommonResponseHeadersWrapper(fn) {
       res.headers.set('cache-control', 'no-store, private, must-revalidate');
     }
 
-    // add CORS headers if origin is present
-    // const origin = req.headers.get('origin');
-    // if (origin) {
-    // res.headers.set('access-control-allow-origin', origin);
     res.headers.set('access-control-allow-origin', '*');
     res.headers.set('access-control-allow-credentials', 'true');
     res.headers.set('access-control-expose-headers', 'x-error');
-    // }
     return res;
   };
 }
