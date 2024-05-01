@@ -16,8 +16,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
 import fs from 'fs/promises';
+import zlib from 'zlib';
+import { promisify } from 'util';
 import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
+
+const gzip = promisify(zlib.gzip);
 
 // eslint-disable-next-line no-underscore-dangle
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,20 +55,23 @@ describe('bundler Tests', () => {
 
     it('ignores urls without host', () => {
       const sorted = sortRawEvents([{ url: '/some/absolute/path' }], log);
-      assert.deepStrictEqual(sorted, {});
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [] });
     });
 
     it('sorts into domain/date keys', () => {
       const t1 = 0;
       const t2 = 61 * 60 * 1000;
 
-      const sorted = sortRawEvents([
+      const { rawEventMap: sorted, domains } = sortRawEvents([
         { url: 'https://example.com', time: t1, checkpoint: 1 },
         { url: 'https://example.com', time: t2, checkpoint: 2 },
         { url: 'http://example.com:80', time: t1, checkpoint: 3 },
       ], log);
 
       assert.strictEqual(Object.keys(sorted).length, 2);
+      assert.strictEqual(domains.length, 1);
+
+      assert.strictEqual(domains[0], 'example.com');
       assert.deepStrictEqual(sorted['/example.com/1970/1/1/0.json'], {
         events: [
           {
@@ -108,10 +115,14 @@ describe('bundler Tests', () => {
   describe('bundleRUM()', () => {
     /** @type {import('../util.js').Nocker} */
     let nock;
+    let ogUUID;
     beforeEach(() => {
       nock = new Nock().env();
+      ogUUID = crypto.randomUUID;
+      crypto.randomUUID = () => 'test-new-key';
     });
     afterEach(() => {
+      crypto.randomUUID = ogUUID;
       nock.done();
     });
 
@@ -136,6 +147,7 @@ describe('bundler Tests', () => {
         subdomain: {
           manifest: undefined,
           bundle: undefined,
+          domainkey: undefined,
         },
         apex: {
           manifest: [],
@@ -167,6 +179,15 @@ describe('bundler Tests', () => {
 
       // subdomain
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        // check if domain exists (no)
+        .head('/sub.example.com/.domainkey')
+        .reply(404)
+        // create domainkey for new domain
+        .put('/sub.example.com/.domainkey?x-id=PutObject')
+        .reply(200, (_, body) => {
+          bodies.subdomain.domainkey = body;
+          return [200];
+        })
         // get manifest
         .get('/sub.example.com/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
@@ -188,9 +209,17 @@ describe('bundler Tests', () => {
           bodies.subdomain.bundle = body;
           return [200];
         });
+      // add domainkey to subdomain
+      nock('https://helix-pages.anywhere.run')
+        .post('/helix-services/run-query@v3/rotate-domainkeys')
+        .query('url=sub.example.com&newkey=TEST-NEW-KEY&note=rumbundler')
+        .reply(200);
 
       // apex
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        // check if domain exists (yes)
+        .head('/example.com/.domainkey')
+        .reply(200)
         // get manifest
         .get('/example.com/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
@@ -252,6 +281,7 @@ describe('bundler Tests', () => {
           },
         },
       });
+      assert.strictEqual(subdomain.domainkey, (await gzip('TEST-NEW-KEY')).toString('hex'));
 
       // 3 manifest updates & 3 bundles for apex, since events were processed into 3 sessions
       // assert.deepStrictEqual(subdomain.manifest[0], { sessions: { '0--/': { hour: 0 } } });

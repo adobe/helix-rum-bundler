@@ -15,9 +15,10 @@
 import { Response } from '@adobe/fetch';
 import {
   calculateDownsample, compressBody, errorWithResponse, getFetch,
-} from '../util.js';
+} from '../support/util.js';
 import { HelixStorage } from '../support/storage.js';
 import { PathInfo } from '../support/PathInfo.js';
+import { fetchDomainKey } from '../support/domains.js';
 
 /**
  * rough maximum number events in daily/monthly aggregate responses
@@ -32,17 +33,19 @@ const MAX_EVENTS = 25000;
  * @throws {ErrorWithResponse} if unauthorized
  */
 export async function assertAuthorized(ctx, domain) {
-  const key = ctx.data?.domainkey || '';
+  const actual = ctx.data?.domainkey || '';
 
-  const { bundleBucket } = HelixStorage.fromContext(ctx);
-  const buf = await bundleBucket.get(`/${domain}/.domainkey`);
-  if (!buf) {
-    // missing means no auth
+  const expected = await fetchDomainKey(ctx, domain);
+  if (!expected) {
+    // missing or empty means no auth
+    // but missing domainkey should not occur
+    if (expected === null) {
+      ctx.log.warn(`missing domainkey for ${domain}`);
+    }
     return;
   }
 
-  const domainkey = new TextDecoder('utf8').decode(buf);
-  if (key !== domainkey) {
+  if (actual !== expected) {
     throw errorWithResponse(403, 'invalid domainkey param');
   }
 }
@@ -291,7 +294,6 @@ export function getTTL(path) {
       ttl = 31536000;
     }
   }
-  // public cache is fine, the domainkey can be cached and is included as cache key
   return ttl;
 }
 
@@ -331,6 +333,7 @@ export default async function handleRequest(req, ctx) {
     req,
     str,
     {
+      // public cache is fine, the domainkey can be cached and is included as cache key
       'cache-control': `public, max-age=${ttl}`,
       'surrogate-key': path.surrogateKeys.join(' '),
     },

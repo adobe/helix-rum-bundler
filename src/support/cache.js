@@ -12,7 +12,7 @@
 /// <reference path="../types.d.ts" />
 // @ts-check
 
-import { getFetch } from '../util.js';
+import { getFetch } from './util.js';
 
 /**
  * Purge Fastly cache by surrogate key

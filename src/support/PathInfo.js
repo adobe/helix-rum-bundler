@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { errorWithResponse } from '../util.js';
+import { errorWithResponse } from './util.js';
 
 export class PathInfo {
   /** @type {string} */

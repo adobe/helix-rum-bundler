@@ -15,7 +15,7 @@
 import { Response } from '@adobe/fetch';
 import domainkey from './domainkey.js';
 import bundles from './bundles.js';
-import { errorWithResponse } from '../util.js';
+import { errorWithResponse } from '../support/util.js';
 
 const handlers = {
   domainkey,

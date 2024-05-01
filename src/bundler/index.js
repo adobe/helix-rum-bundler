@@ -19,7 +19,8 @@ import Manifest from './Manifest.js';
 import BundleGroup from './BundleGroup.js';
 import {
   errorWithResponse, getEnvVar, timeout, yesterday,
-} from '../util.js';
+} from '../support/util.js';
+import { isNewDomain, setDomainKey } from '../support/domains.js';
 
 /**
  * @typedef {Record<string, {
@@ -58,6 +59,7 @@ async function unlock(ctx) {
 }
 
 /**
+ * Add events to bundle groups and manifests.
  *
  * @param {UniversalContext} ctx
  * @param {Record<string, RawRUMEvent[]>} eventsBySessionId {sessionID => [event]}
@@ -84,10 +86,8 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
           // if event exists in a session within last 24h, add it to that session
           let session;
           if (manifest.has(sId)) {
-          // log.debug('storing event in existing manifest (same day)');
             session = manifest.get(sId);
           } else if (yManifest?.has(sId)) {
-          // log.debug('storing event in existing manifest (previous day)');
             session = yManifest.get(sId);
           }
 
@@ -104,7 +104,7 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
           events.forEach((e) => group.push(sId, e));
           // if no session existing, add it
           if (!session) {
-          // add to current day's manifest
+            // add to current day's manifest
             manifest.add(sId, hour);
           }
         } catch (e) {
@@ -179,11 +179,13 @@ export async function importEventsByKey(ctx, rawEventMap) {
  *
  * @param {RawRUMEvent[]} rawEvents
  * @param {UniversalContext['log'] | Console} log
- * @returns {RawEventMap}
+ * @returns {{rawEventMap: RawEventMap; domains: string[]}}
  */
 export function sortRawEvents(rawEvents, log) {
-  /** @type {Record<string, {events: RawRUMEvent[]; info: BundleInfo}>} */
+  /** @type {RawEventMap} */
   const rawEventMap = {};
+  /** @type {Set<string>} */
+  const domains = new Set();
 
   rawEvents.forEach((pevent) => {
     if (pevent.url.startsWith('/')) {
@@ -198,6 +200,7 @@ export function sortRawEvents(rawEvents, log) {
       const date = new Date(event.time);
       const url = new URL(event.url);
       const domain = url.host;
+      domains.add(domain);
 
       // remove query/search params
       url.search = '';
@@ -222,7 +225,10 @@ export function sortRawEvents(rawEvents, log) {
     }
   });
 
-  return rawEventMap;
+  return {
+    rawEventMap,
+    domains: [...domains],
+  };
 }
 
 /**
@@ -271,7 +277,18 @@ async function doBundling(ctx) {
     return !isTruncated;
   }
 
-  const rawEventMap = sortRawEvents(rawEvents, log);
+  const { rawEventMap, domains } = sortRawEvents(rawEvents, log);
+
+  // find all new domains, generate domainkeys for them
+  await processQueue(
+    domains,
+    async (domain) => {
+      if (await isNewDomain(ctx, domain)) {
+        await setDomainKey(ctx, domain, undefined, false);
+      }
+    },
+    concurrency,
+  );
 
   log.debug(`processing ${Object.keys(rawEventMap).length} bundle keys`);
   await importEventsByKey(ctx, rawEventMap);

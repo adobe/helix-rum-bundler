@@ -14,7 +14,7 @@
 
 import LRUCache from '../support/LRUCache.js';
 import { HelixStorage } from '../support/storage.js';
-import { pruneUndefined } from '../util.js';
+import { pruneUndefined } from '../support/util.js';
 
 /**
  * @param {RawRUMEvent} event

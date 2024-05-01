@@ -15,8 +15,8 @@
 import assert from 'assert';
 import {
   pruneUndefined, getEnvVar, yesterday, timeout, calculateDownsample, magnitude,
-} from '../src/util.js';
-import { assertRejectsWithResponse, sleep } from './util.js';
+} from '../../src/support/util.js';
+import { assertRejectsWithResponse, sleep } from '../util.js';
 
 describe('util Tests', () => {
   describe('pruneUndefined()', () => {
