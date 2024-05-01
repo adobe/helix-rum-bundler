@@ -1,3 +1,11 @@
+## [1.1.17](https://github.com/adobe/helix-rum-bundler/compare/v1.1.16...v1.1.17) (2024-05-01)
+
+
+### Bug Fixes
+
+* generate domainkeys for new domains ([164c345](https://github.com/adobe/helix-rum-bundler/commit/164c34527750df3a15e89acd9f140b76c9808382))
+* upgrade workflow node version ([ed88a20](https://github.com/adobe/helix-rum-bundler/commit/ed88a20ff603c3faa0b8229c15ec6ab7066036f3))
+
 ## [1.1.16](https://github.com/adobe/helix-rum-bundler/compare/v1.1.15...v1.1.16) (2024-04-27)
 
 
