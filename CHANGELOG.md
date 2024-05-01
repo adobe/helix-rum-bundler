@@ -1,3 +1,10 @@
+## [1.1.18](https://github.com/adobe/helix-rum-bundler/compare/v1.1.17...v1.1.18) (2024-05-01)
+
+
+### Bug Fixes
+
+* log new domains ([ab36460](https://github.com/adobe/helix-rum-bundler/commit/ab3646038ed4c76aeae3c1e1e009b463798d7b08))
+
 ## [1.1.17](https://github.com/adobe/helix-rum-bundler/compare/v1.1.16...v1.1.17) (2024-05-01)
 
 
