@@ -27,9 +27,9 @@ import { fetchDomainKey } from '../support/domains.js';
  * - final payload size depends on bundle density
  * - gzip gives ~90% reduction
  *
- * 10k events ~= 1.3MB uncompressed
+ * 5k events ~= 650KB uncompressed
  */
-const MAX_EVENTS = 10_000;
+const MAX_EVENTS = 5_000;
 
 /**
  * Check domainkey authorization
