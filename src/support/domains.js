@@ -85,7 +85,7 @@ export async function addRunQueryDomainkey(ctx, domain, domainkey) {
  * @param {string|undefined} [domainkey]
  * @returns {Promise<string>}
  */
-export async function setDomainKey(ctx, domain, domainkey) {
+export async function setDomainKey(ctx, domain, domainkey, purgeCache = true) {
   if (!domainkey) {
     // eslint-disable-next-line no-param-reassign
     domainkey = crypto.randomUUID().toUpperCase();
@@ -99,7 +99,7 @@ export async function setDomainKey(ctx, domain, domainkey) {
     // update runquery
     addRunQueryDomainkey(ctx, domain, domainkey),
     // purge cache
-    purgeSurrogateKey(ctx, domain),
+    purgeCache ? purgeSurrogateKey(ctx, domain) : Promise.resolve(),
   ]);
   return domainkey;
 }

@@ -284,7 +284,7 @@ async function doBundling(ctx) {
     domains,
     async (domain) => {
       if (await isNewDomain(ctx, domain)) {
-        await setDomainKey(ctx, domain);
+        await setDomainKey(ctx, domain, undefined, false);
       }
     },
     concurrency,
