@@ -21,9 +21,15 @@ import { PathInfo } from '../support/PathInfo.js';
 import { fetchDomainKey } from '../support/domains.js';
 
 /**
- * rough maximum number events in daily/monthly aggregate responses
+ * Estimated maximum number events in daily/monthly aggregate responses.
+ *
+ * - roughly 130B/event uncompressed
+ * - final payload size depends on bundle density
+ * - gzip gives ~90% reduction
+ *
+ * 10k events ~= 1.3MB uncompressed
  */
-const MAX_EVENTS = 25000;
+const MAX_EVENTS = 10_000;
 
 /**
  * Check domainkey authorization
@@ -156,10 +162,6 @@ async function fetchDaily(ctx, path) {
     }),
   );
   ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
-
-  // roughly 130B/event uncompressed, final payload size depends on bundle density
-  // gzip gives ~90% reduction; shoot for 5MB before compression as maximum
-  // 5M/130B ~= 38K events .. round down to 25K for safety
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
   const maxEvents = forceAll ? Infinity : MAX_EVENTS;
