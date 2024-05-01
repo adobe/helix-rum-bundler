@@ -284,6 +284,7 @@ async function doBundling(ctx) {
     domains,
     async (domain) => {
       if (await isNewDomain(ctx, domain)) {
+        log.info(`new domain identified: ${domain}`);
         await setDomainKey(ctx, domain, undefined, false);
       }
     },
