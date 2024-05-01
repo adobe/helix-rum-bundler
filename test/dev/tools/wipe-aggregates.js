@@ -34,6 +34,7 @@ configEnv();
   } else {
     domains = await getDomains(ctx);
   }
+  console.info(`wiping aggregates for ${domains.length} domains: `, domains.join(', '));
 
   const affected = [];
   let removed = 0;
