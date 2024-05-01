@@ -1,3 +1,10 @@
+## [1.1.20](https://github.com/adobe/helix-rum-bundler/compare/v1.1.19...v1.1.20) (2024-05-01)
+
+
+### Bug Fixes
+
+* reduce max events ([e40ff40](https://github.com/adobe/helix-rum-bundler/commit/e40ff40ac87f367e22f94c4a9a08be383961ad78))
+
 ## [1.1.19](https://github.com/adobe/helix-rum-bundler/compare/v1.1.18...v1.1.19) (2024-05-01)
 
 
