@@ -118,11 +118,11 @@ describe('bundler Tests', () => {
     let ogUUID;
     beforeEach(() => {
       nock = new Nock().env();
-      ogUUID = global.crypto.randomUUID;
-      global.crypto.randomUUID = () => 'test-new-key';
+      ogUUID = crypto.randomUUID;
+      crypto.randomUUID = () => 'test-new-key';
     });
     afterEach(() => {
-      global.crypto.randomUUID = ogUUID;
+      crypto.randomUUID = ogUUID;
       nock.done();
     });
 
