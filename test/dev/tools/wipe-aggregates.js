@@ -21,7 +21,7 @@ configEnv();
 
 /**
  * wipes all aggregate files for all domains,
- * or just domains in `DOMAIN` env var
+ * or just domains in `DOMAINS` env var
  */
 
 (async () => {
