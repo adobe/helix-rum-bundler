@@ -192,7 +192,8 @@ async function fetchDaily(ctx, path) {
   );
   log.info(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
-  return { data: { rumBundles }, isAggregate: !forceAll };
+  // treat forcedAll as aggregate so it doesn't get stored
+  return { data: { rumBundles }, isAggregate: forceAll };
 }
 
 /**
