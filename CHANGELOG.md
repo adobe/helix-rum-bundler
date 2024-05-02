@@ -1,3 +1,11 @@
+## [1.1.21](https://github.com/adobe/helix-rum-bundler/compare/v1.1.20...v1.1.21) (2024-05-02)
+
+
+### Bug Fixes
+
+* logs, typo, limits ([37c3da3](https://github.com/adobe/helix-rum-bundler/commit/37c3da3a1ab3d4385555bc29bca8cb0b38435309))
+* test ([2e93805](https://github.com/adobe/helix-rum-bundler/commit/2e93805f07b9892a124b91ae318b632fc3614446))
+
 ## [1.1.20](https://github.com/adobe/helix-rum-bundler/compare/v1.1.19...v1.1.20) (2024-05-01)
 
 
