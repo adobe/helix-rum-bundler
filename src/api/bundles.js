@@ -29,7 +29,10 @@ import { fetchDomainKey } from '../support/domains.js';
  *
  * 5k events ~= 650KB uncompressed
  */
-const MAX_EVENTS = 5_000;
+const MAX_EVENTS = {
+  daily: 5_000,
+  monthly: 20_000,
+};
 
 /**
  * Check domainkey authorization
@@ -109,7 +112,7 @@ async function storeAggregate(ctx, path, data, ttl) {
   const prefix = path.toString();
   const key = `${prefix}/aggregate.json`;
   const expiration = new Date(Date.now() + ttl);
-  ctx.log.debug(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
+  ctx.log.info(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
   await bundleBucket.put(key, data, 'application/json', expiration);
 }
 
@@ -139,6 +142,7 @@ async function fetchHourly(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchDaily(ctx, path) {
+  const { log } = ctx;
   const aggregate = await fetchAggregate(ctx, path);
   if (aggregate) {
     return { data: aggregate, isAggregate: true };
@@ -161,10 +165,10 @@ async function fetchDaily(ctx, path) {
       return data;
     }),
   );
-  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
+  log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  const maxEvents = forceAll ? Infinity : MAX_EVENTS;
+  const maxEvents = forceAll ? Infinity : MAX_EVENTS.daily;
   const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
 
   /** @type {RUMBundle[]} */
@@ -186,9 +190,10 @@ async function fetchDaily(ctx, path) {
     },
     rumBundles,
   );
-  ctx.log.debug(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+  log.info(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
-  return { data: { rumBundles }, isAggregate: false };
+  // treat forcedAll as aggregate so it doesn't get stored
+  return { data: { rumBundles }, isAggregate: forceAll };
 }
 
 /**
@@ -197,6 +202,7 @@ async function fetchDaily(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchMonthly(ctx, path) {
+  const { log } = ctx;
   const aggregate = await fetchAggregate(ctx, path);
   if (aggregate) {
     return { data: aggregate, isAggregate: true };
@@ -228,9 +234,9 @@ async function fetchMonthly(ctx, path) {
       return data;
     }),
   );
-  ctx.log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
+  log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
 
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS);
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS.monthly);
 
   /** @type {RUMBundle[]} */
   const rumBundles = [];
@@ -251,7 +257,7 @@ async function fetchMonthly(ctx, path) {
     },
     rumBundles,
   );
-  ctx.log.debug(`reduced ${totalBundles} monthly bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+  log.info(`reduced ${totalBundles} monthly bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
   return { data: { rumBundles }, isAggregate: false };
 }
