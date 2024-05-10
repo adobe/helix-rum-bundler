@@ -1,3 +1,10 @@
+## [1.1.23](https://github.com/adobe/helix-rum-bundler/compare/v1.1.22...v1.1.23) (2024-05-10)
+
+
+### Bug Fixes
+
+* set min bundle weight to 1 ([9c11fec](https://github.com/adobe/helix-rum-bundler/commit/9c11fec54c00cd4e192d72bbf624e2341c83e512))
+
 ## [1.1.22](https://github.com/adobe/helix-rum-bundler/compare/v1.1.21...v1.1.22) (2024-05-04)
 
 
