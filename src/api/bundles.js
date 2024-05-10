@@ -132,8 +132,10 @@ async function fetchHourly(ctx, path) {
   const txt = new TextDecoder('utf8').decode(buf);
   const json = JSON.parse(txt);
 
-  // convert to array of bundles
-  return { rumBundles: Object.values(json.bundles) };
+  // convert to array of bundles, change weight < 1 to 1
+  const rumBundles = Object.values(json.bundles)
+    .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
+  return { rumBundles };
 }
 
 /**
