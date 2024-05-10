@@ -13,23 +13,29 @@
 import { execute } from './sendquery.js';
 // import { cleanRequestParams } from './util.js';
 
+const DEFAULT_LIMIT = 1_000_000;
+
 /**
  * Execute run-query rum-bundle query
+ * @param {UniversalContext} ctx
  * @param {string} domain
  * @param {string} domainKey
  * @param {string} date
- * @returns {Promise<any[]>}
+ * @param {number} [limit]
+ * @param {string} [after]
+ * @returns {Promise<{results: any[]; truncated: boolean;}>}
  */
-export default async function executeBundleQuery(domain, domainKey, date) {
+export default async function executeBundleQuery(ctx, domain, domainKey, date, limit, after) {
   const {
     results,
-    // truncated,
+    truncated,
     // headers,
     // description,
     // requestParams,
     // responseDetails,
     // responseMetadata,
   } = await execute(
+    ctx,
     process.env.GOOGLE_CLIENT_EMAIL,
     process.env.GOOGLE_PRIVATE_KEY,
     process.env.GOOGLE_PROJECT_ID,
@@ -38,8 +44,12 @@ export default async function executeBundleQuery(domain, domainKey, date) {
       url: domain,
       domainkey: domainKey,
       startdate: date,
-      limit: 999999,
+      limit: limit || DEFAULT_LIMIT,
+      ...(after ? { after } : {}),
     },
   );
-  return results;
+  return {
+    results,
+    truncated,
+  };
 }

@@ -17,10 +17,10 @@ import { HelixStorage } from '../../../src/support/storage.js';
  * @typedef {{ year: number; month: number; day: number; }} ParsedDate
  */
 
-/** @type {() => UniversalContext} */
+/** @type {(overrides?: Partial<UniversalContext>) => UniversalContext} */
 export const contextLike = (overrides = {}) => ({
   // @ts-ignore
-  log: console,
+  log: overrides.log ?? console,
   // @ts-ignore
   env: {
     ...process.env,
