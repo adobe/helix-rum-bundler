@@ -51,13 +51,14 @@ async function processParams(query, params) {
 /**
  * executes a query using Google Bigquery API
  *
+ * @param {UniversalContext} ctx
  * @param {string} email email address of the Google service account
  * @param {string} key private key of the global Google service account
  * @param {string} project the Google project ID
  * @param {string} query the name of a .sql file in queries directory
  * @param {object} params parameters for substitution into query
  */
-export async function execute(email, key, project, query, params = {}) {
+export async function execute(ctx, email, key, project, query, params = {}) {
   const {
     headerParams,
     description,
@@ -66,11 +67,14 @@ export async function execute(email, key, project, query, params = {}) {
     responseDetails,
   } = await processParams(query, params);
   try {
-    const credentials = await auth(email, key.replace(/\\n/g, '\n'));
-    const bq = new BigQuery({
-      projectId: project,
-      credentials,
-    });
+    if (!ctx.attributes.bigquery) {
+      const credentials = await auth(email, key.replace(/\\n/g, '\n'));
+      ctx.attributes.bigquery = new BigQuery({
+        projectId: project,
+        credentials,
+      });
+    }
+    const bq = ctx.attributes.bigquery;
 
     // check if dataset exists in that location
 

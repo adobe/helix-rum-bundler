@@ -26,6 +26,7 @@ configEnv();
 
 /** @type {'bigquery'|'runquery'} */
 const BACKEND = 'bigquery';
+const LIMIT = 1_000_000;
 
 /**
  * @param {{
@@ -47,13 +48,14 @@ const runQueryURL = ({
 + `url=${domain}&startdate=${date}&domainkey=${domainKey}${limit ? `&limit=${limit}` : ''}${after ? `&after=${after}` : ''}`;
 
 /**
+ * @param {UniversalContext} ctx
  * @param {string} domain
  * @param {string} date
  * @param {string} domainKey
  * @param {number} [limit]
  * @param {string} [after]
  */
-const fetchRUMBundles = async (domain, date, domainKey, limit, after) => {
+const fetchRUMBundles = async (ctx, domain, date, domainKey, limit, after) => {
   let data;
   // @ts-ignore
   if (BACKEND === 'runquery') {
@@ -69,7 +71,7 @@ const fetchRUMBundles = async (domain, date, domainKey, limit, after) => {
     }
     ({ results: { data } } = await res.json());
   } else {
-    data = await executeBundleQuery(domain, domainKey, date);
+    ({ results: data } = await executeBundleQuery(ctx, domain, domainKey, date, limit, after));
   }
 
   return data || [];
@@ -98,16 +100,17 @@ const maskUserAgent = (ua) => {
  * @param {string} [after]
  */
 async function importBundlesForDate(ctx, domainKey, domain, ymd, limit, after) {
+  const { log } = ctx;
   const { year, month, day } = ymd;
   const date = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
-  console.info(`fetching bundles from ${BACKEND} for ${domain} on ${date}`);
-  const data = await fetchRUMBundles(domain, date, domainKey, limit, after);
+  log.info(`fetching bundles from ${BACKEND} for ${domain} on ${date}${after ? ` after ${after}` : ''}`);
+  const data = await fetchRUMBundles(ctx, domain, date, domainKey, limit, after);
   if (!data.length) {
     return;
   }
 
-  console.debug(`processing ${data.length} bundles on ${domain}`);
+  log.debug(`processing ${data.length} bundles on ${domain}`);
   let totalEvents = 0;
   let ignoredEvents = 0;
   let lastId;
@@ -121,28 +124,35 @@ async function importBundlesForDate(ctx, domainKey, domain, ymd, limit, after) {
     return true;
   });
 
-  console.debug(`ignoring ${ignoredEvents} events from ${data.length - bundles.length} (${(((data.length - bundles.length) / bundles.length) * 100).toFixed(2)}%) bundles on ${domain} due to missing id`);
+  log.debug(`ignoring ${ignoredEvents} events from ${data.length - bundles.length} (${(((data.length - bundles.length) / bundles.length) * 100).toFixed(2)}%) bundles on ${domain} due to missing id`);
 
   // convert bundles to array of events so they can be resorted by bundlegroup key
-  const events = bundles.reduce((acc, bundle) => [
-    ...acc,
-    ...bundle.events.map((evt) => ({
-      ...bundle,
-      ...evt,
-      user_agent: maskUserAgent(bundle.user_agent),
-      rownum: undefined,
-      time: Number(new Date(evt.time)),
-      events: undefined,
-    })),
-  ], []);
+  const events = bundles.reduce((acc, bundle) => {
+    const userAgent = maskUserAgent(bundle.user_agent);
+    acc.push(
+      ...bundle.events.map((evt) => ({
+        ...bundle,
+        ...evt,
+        user_agent: userAgent,
+        rownum: undefined,
+        time: Number(new Date(evt.time)),
+        events: undefined,
+      })),
+    );
+    return acc;
+  }, []);
+
+  log.debug(`unbundled ${events.length} events`);
 
   // do equivalent steps as bundler.js
-  const { rawEventMap } = sortRawEvents(events, ctx.log);
+  const { rawEventMap } = sortRawEvents(events, log);
+  log.debug('resorted events');
+
   await importEventsByKey(ctx, rawEventMap);
 
-  console.debug(`imported ${totalEvents} events from ${bundles.length} bundles`);
-  if (lastId && BACKEND === 'runquery') {
-    console.debug(`importing next page after ${lastId}`);
+  log.debug(`imported ${totalEvents} events from ${bundles.length} bundles`);
+  if (lastId && data.length >= LIMIT) {
+    log.debug(`importing next page after ${lastId}`);
 
     // get next page
     // eslint-disable-next-line consistent-return
@@ -165,8 +175,20 @@ function assertEnv() {
 (async () => {
   assertEnv();
 
-  const ctx = contextLike();
-  const limit = undefined;
+  const timestamped = ['log', 'info', 'debug', 'warn', 'error'];
+  /** @type {any} */
+  const log = Object.fromEntries(
+    Object.entries(console).map(
+      ([k, v]) => [
+        k,
+        timestamped.includes(k)
+          ? (...args) => v(`[${new Date().toISOString()}]`, ...args)
+          : v,
+      ],
+    ),
+  );
+  const ctx = contextLike({ log });
+  const limit = LIMIT;
   /** @type {string} */
   // @ts-ignore
   const key = process.env.DOMAIN_KEY;
