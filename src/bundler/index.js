@@ -174,6 +174,63 @@ export async function importEventsByKey(ctx, rawEventMap) {
 }
 
 /**
+ * Get virtual destinations for event, if any.
+ *
+ * @param {RawRUMEvent} event
+ * @param {BundleInfo} info
+ * @returns {VirtualDestination[]}
+ */
+export function getVirtualDestinations(event, info) {
+  /**
+   * @type {{
+   *   test: (e: RawRUMEvent) => boolean;
+   *   destination: (e: RawRUMEvent, info: BundleInfo) => VirtualDestination;
+   * }[]}
+   */
+  const rules = [{
+    test: (e) => e.checkpoint.startsWith('sidekick:'),
+    destination: (e, pinfo) => {
+      const domain = 'sidekick.aem.live';
+      const {
+        year, month, day, hour,
+      } = pinfo;
+      return {
+        key: `/${domain}/${year}/${month}/${day}/${hour}.json`,
+        info: {
+          ...pinfo,
+          domain,
+        },
+      };
+    },
+  },
+  {
+    // all top events, for viewing all domains' events
+    // downsample by 100x
+    test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
+    destination: (e, pinfo) => {
+      const domain = 'all.virtual.aem.live';
+      const {
+        year, month, day, hour,
+      } = pinfo;
+      return {
+        key: `/${domain}/${year}/${month}/${day}/${hour}.json`,
+        info: {
+          ...pinfo,
+          domain,
+        },
+        event: {
+          ...e,
+          weight: e.weight * 100,
+        },
+      };
+    },
+  }];
+  return rules
+    .filter((rule) => rule.test(event))
+    .map((rule) => rule.destination(event, info));
+}
+
+/**
  * Sort raw event into map (storageKey => rawEvent[])
  * Also do some initial sanitization, like removing qps from event urls
  *
@@ -184,6 +241,7 @@ export async function importEventsByKey(ctx, rawEventMap) {
 export function sortRawEvents(rawEvents, log) {
   /** @type {RawEventMap} */
   const rawEventMap = {};
+  const virtualMap = {};
   /** @type {Set<string>} */
   const domains = new Set();
 
@@ -220,6 +278,17 @@ export function sortRawEvents(rawEvents, log) {
         rawEventMap[key] = { events: [], info };
       }
       rawEventMap[key].events.push(event);
+
+      const virtualDests = getVirtualDestinations(event, {
+        domain, year, month, day, hour,
+      });
+      virtualDests.forEach((vd) => {
+        const { key: vkey, info, event: vevent } = vd;
+        if (!virtualMap[vkey]) {
+          virtualMap[vkey] = { events: [], info };
+        }
+        virtualMap[vkey].events.push(vevent || event);
+      });
     } catch (e) {
       log.warn('invalid url: ', event.url, event.id);
     }
