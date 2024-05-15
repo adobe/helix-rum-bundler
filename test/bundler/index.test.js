@@ -463,7 +463,15 @@ describe('bundler Tests', () => {
     });
 
     describe('should bundle events to virtual destinations', () => {
-      it('sidekick events', async () => {
+      let ogRandom;
+      beforeEach(() => {
+        ogRandom = Math.random;
+      });
+      afterEach(() => {
+        Math.random = ogRandom;
+      });
+
+      it('sidekick events are grouped to sidekick.aem.live', async () => {
         const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
         const mockEventResponseBody = makeEventFile({
           id: 'foo',
@@ -599,16 +607,32 @@ describe('bundler Tests', () => {
           },
         });
       });
-      it('sidekick events', async () => {
+
+      it.only('~1% of top events should be grouped to all.virtual.aem.live', async () => {
+        const vals = [
+          /** example.one doesn't hit threshold, excluded */
+          1,
+          /** example.two does hit threshold, included */
+          0.001,
+        ];
+        Math.random = () => vals.shift();
         const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
         const mockEventResponseBody = makeEventFile({
           id: 'foo',
-          checkpoint: 'sidekick:loaded',
-          url: 'https://test.example',
+          checkpoint: 'top',
+          url: 'https://test.one/1',
           time: 1337,
+          weight: 100,
+        }, {
+          id: 'bar',
+          checkpoint: 'top',
+          url: 'https://test.two/2',
+          time: 1338,
+          weight: 100,
         });
         const bodies = {
-          apex: {},
+          one: {},
+          two: {},
           virtual: {},
         };
 
@@ -637,49 +661,69 @@ describe('bundler Tests', () => {
         // domain bundling
         nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
           // check if domain exists (yes)
-          .head('/test.example/.domainkey')
+          .head('/test.one/.domainkey')
+          .reply(200)
+          .head('/test.two/.domainkey')
           .reply(200)
           // get manifest
-          .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
+          .get('/test.one/1970/1/1/.manifest.json?x-id=GetObject')
+          .reply(404)
+          .get('/test.two/1970/1/1/.manifest.json?x-id=GetObject')
           .reply(404)
           // get yesterday's manifest
-          .get('/test.example/1969/12/31/.manifest.json?x-id=GetObject')
+          .get('/test.one/1969/12/31/.manifest.json?x-id=GetObject')
+          .reply(404)
+          .get('/test.two/1969/12/31/.manifest.json?x-id=GetObject')
           .reply(404)
           // instantiate bundlegroup
-          .get('/test.example/1970/1/1/0.json?x-id=GetObject')
+          .get('/test.one/1970/1/1/0.json?x-id=GetObject')
           .reply(404)
-          // store manifest
-          .put('/test.example/1970/1/1/.manifest.json?x-id=PutObject')
+          .get('/test.two/1970/1/1/0.json?x-id=GetObject')
+          .reply(404)
+          // store manifest (one)
+          .put('/test.one/1970/1/1/.manifest.json?x-id=PutObject')
           .reply((_, body) => {
-            bodies.apex.manifest = body;
+            bodies.one.manifest = body;
             return [200];
           })
-          // store bundlegroup
-          .put('/test.example/1970/1/1/0.json?x-id=PutObject')
+          // store manifest (two)
+          .put('/test.two/1970/1/1/.manifest.json?x-id=PutObject')
           .reply((_, body) => {
-            bodies.apex.bundle = body;
+            bodies.two.manifest = body;
+            return [200];
+          })
+          // store bundlegroup (one)
+          .put('/test.one/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.one.bundle = body;
+            return [200];
+          })
+          // store bundlegroup (two)
+          .put('/test.two/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.two.bundle = body;
             return [200];
           });
 
         // virtual domain bundling
         nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
           // get manifest
-          .get('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+          .get('/all.virtual.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
           .reply(404)
           // get yesterday's manifest
-          .get('/sidekick.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+          .get('/all.virtual.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
           .reply(404)
           // instantiate bundlegroup
-          .get('/sidekick.aem.live/1970/1/1/0.json?x-id=GetObject')
+          .get('/all.virtual.aem.live/1970/1/1/0.json?x-id=GetObject')
           .reply(404)
           // store manifest
-          .put('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+          .put('/all.virtual.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.manifest = body;
             return [200];
           })
           // store bundlegroup
-          .put('/sidekick.aem.live/1970/1/1/0.json?x-id=PutObject')
+          .put('/all.virtual.aem.live/1970/1/1/0.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.bundle = body;
             return [200];
@@ -687,24 +731,50 @@ describe('bundler Tests', () => {
         const ctx = DEFAULT_CONTEXT();
         await bundleRUM(ctx);
 
-        assert.deepStrictEqual(bodies.apex.manifest, {
+        assert.deepStrictEqual(bodies.one.manifest, {
           sessions: {
-            'foo--/': {
+            'foo--/1': {
               hour: 0,
             },
           },
         });
-        assert.deepStrictEqual(bodies.apex.bundle, {
+        assert.deepStrictEqual(bodies.one.bundle, {
           bundles: {
-            'foo--/': {
+            'foo--/1': {
               id: 'foo',
               time: '1970-01-01T00:00:01.337Z',
               timeSlot: '1970-01-01T00:00:00.000Z',
-              url: 'https://test.example/',
+              url: 'https://test.one/1',
+              weight: 100,
               events: [
                 {
-                  checkpoint: 'sidekick:loaded',
+                  checkpoint: 'top',
                   timeDelta: 1337,
+                },
+              ],
+            },
+          },
+        });
+
+        assert.deepStrictEqual(bodies.two.manifest, {
+          sessions: {
+            'bar--/2': {
+              hour: 0,
+            },
+          },
+        });
+        assert.deepStrictEqual(bodies.two.bundle, {
+          bundles: {
+            'bar--/2': {
+              id: 'bar',
+              time: '1970-01-01T00:00:01.338Z',
+              timeSlot: '1970-01-01T00:00:00.000Z',
+              url: 'https://test.two/2',
+              weight: 100,
+              events: [
+                {
+                  checkpoint: 'top',
+                  timeDelta: 1338,
                 },
               ],
             },
@@ -713,22 +783,23 @@ describe('bundler Tests', () => {
 
         assert.deepStrictEqual(bodies.virtual.manifest, {
           sessions: {
-            'foo--test.example--/': {
+            'bar--test.two--/2': {
               hour: 0,
             },
           },
         });
         assert.deepStrictEqual(bodies.virtual.bundle, {
           bundles: {
-            'foo--test.example--/': {
-              id: 'foo',
-              time: '1970-01-01T00:00:01.337Z',
+            'bar--test.two--/2': {
+              id: 'bar',
+              time: '1970-01-01T00:00:01.338Z',
               timeSlot: '1970-01-01T00:00:00.000Z',
-              url: 'https://test.example/',
+              url: 'https://test.two/2',
+              weight: 10000,
               events: [
                 {
-                  checkpoint: 'sidekick:loaded',
-                  timeDelta: 1337,
+                  checkpoint: 'top',
+                  timeDelta: 1338,
                 },
               ],
             },
