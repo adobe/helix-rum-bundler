@@ -19,7 +19,7 @@ import { main } from '../src/index.js';
 import { Nock } from './util.js';
 
 describe('Index Tests', () => {
-  it.skip('rejects unauthorized requests', async () => {
+  it('rejects unauthorized requests', async () => {
     const nock = Nock().domainKey('x', 'y');
 
     const resp = await main(new Request('https://localhost/'), {

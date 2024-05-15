@@ -55,7 +55,7 @@ describe('bundler Tests', () => {
 
     it('ignores urls without host', () => {
       const sorted = sortRawEvents([{ url: '/some/absolute/path' }], log);
-      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [] });
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
     it('sorts into domain/date keys', () => {
@@ -608,7 +608,7 @@ describe('bundler Tests', () => {
         });
       });
 
-      it.only('~1% of top events should be grouped to all.virtual.aem.live', async () => {
+      it('~1% of top events should be grouped to all.virtual.aem.live', async () => {
         const vals = [
           /** example.one doesn't hit threshold, excluded */
           1,
