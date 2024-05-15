@@ -120,8 +120,9 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
  *
  * @param {UniversalContext} ctx
  * @param {RawEventMap} rawEventMap
+ * @param {boolean} [isVirtual=false]
  */
-export async function importEventsByKey(ctx, rawEventMap) {
+export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const { log } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
 
@@ -141,7 +142,10 @@ export async function importEventsByKey(ctx, rawEventMap) {
       /** @type {Record<string, RawRUMEvent[]>} */
       const eventsBySessionId = {};
       events.forEach((event) => {
-        const sessionId = `${event.id}--${new URL(event.url).pathname}`;
+        // if bundle is virtual, include the domain in the session ID
+        // since the events being sorted into this key may have different domains
+        const evUrl = new URL(event.url);
+        const sessionId = `${event.id}${isVirtual ? `--${evUrl.hostname}` : ''}--${evUrl.pathname}`;
         if (!eventsBySessionId[sessionId]) {
           eventsBySessionId[sessionId] = [];
         }
@@ -236,11 +240,16 @@ export function getVirtualDestinations(event, info) {
  *
  * @param {RawRUMEvent[]} rawEvents
  * @param {UniversalContext['log'] | Console} log
- * @returns {{rawEventMap: RawEventMap; domains: string[]}}
+ * @returns {{
+ *   rawEventMap: RawEventMap;
+ *   virtualMap: RawEventMap;
+ *   domains: string[]
+ * }}
  */
 export function sortRawEvents(rawEvents, log) {
   /** @type {RawEventMap} */
   const rawEventMap = {};
+  /** @type {RawEventMap} */
   const virtualMap = {};
   /** @type {Set<string>} */
   const domains = new Set();
@@ -296,6 +305,7 @@ export function sortRawEvents(rawEvents, log) {
 
   return {
     rawEventMap,
+    virtualMap,
     domains: [...domains],
   };
 }
@@ -346,7 +356,7 @@ async function doBundling(ctx) {
     return !isTruncated;
   }
 
-  const { rawEventMap, domains } = sortRawEvents(rawEvents, log);
+  const { rawEventMap, virtualMap, domains } = sortRawEvents(rawEvents, log);
 
   // find all new domains, generate domainkeys for them
   await processQueue(
@@ -361,7 +371,10 @@ async function doBundling(ctx) {
   );
 
   log.debug(`processing ${Object.keys(rawEventMap).length} bundle keys`);
-  await importEventsByKey(ctx, rawEventMap);
+  await Promise.all([
+    importEventsByKey(ctx, rawEventMap),
+    importEventsByKey(ctx, virtualMap, true),
+  ]);
 
   // move all events into processed folder
   await processQueue(

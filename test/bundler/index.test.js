@@ -462,9 +462,279 @@ describe('bundler Tests', () => {
       });
     });
 
-    it('should bundle events to virtual destinations', async () => {
-      // TODO:
+    describe('should bundle events to virtual destinations', () => {
+      it('sidekick events', async () => {
+        const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
+        const mockEventResponseBody = makeEventFile({
+          id: 'foo',
+          checkpoint: 'sidekick:loaded',
+          url: 'https://test.example',
+          time: 1337,
+        });
+        const bodies = {
+          apex: {},
+          virtual: {},
+        };
 
+        nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
+          // logs not locked
+          .head('/.lock')
+          .reply(404)
+          // lock logs
+          .put('/.lock?x-id=PutObject')
+          .reply(200)
+          // list logs
+          .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+          .reply(200, logFileList)
+          // get log file contents
+          .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
+          .reply(200, mockEventResponseBody)
+          // move log file to processed
+          .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
+          .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
+          .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+          .reply(200)
+          // unlock
+          .delete('/.lock?x-id=DeleteObject')
+          .reply(200);
+
+        // domain bundling
+        nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+          // check if domain exists (yes)
+          .head('/test.example/.domainkey')
+          .reply(200)
+          // get manifest
+          .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // get yesterday's manifest
+          .get('/test.example/1969/12/31/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // instantiate bundlegroup
+          .get('/test.example/1970/1/1/0.json?x-id=GetObject')
+          .reply(404)
+          // store manifest
+          .put('/test.example/1970/1/1/.manifest.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.apex.manifest = body;
+            return [200];
+          })
+          // store bundlegroup
+          .put('/test.example/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.apex.bundle = body;
+            return [200];
+          });
+
+        // virtual domain bundling
+        nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+          // get manifest
+          .get('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // get yesterday's manifest
+          .get('/sidekick.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // instantiate bundlegroup
+          .get('/sidekick.aem.live/1970/1/1/0.json?x-id=GetObject')
+          .reply(404)
+          // store manifest
+          .put('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.virtual.manifest = body;
+            return [200];
+          })
+          // store bundlegroup
+          .put('/sidekick.aem.live/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.virtual.bundle = body;
+            return [200];
+          });
+        const ctx = DEFAULT_CONTEXT();
+        await bundleRUM(ctx);
+
+        assert.deepStrictEqual(bodies.apex.manifest, {
+          sessions: {
+            'foo--/': {
+              hour: 0,
+            },
+          },
+        });
+        assert.deepStrictEqual(bodies.apex.bundle, {
+          bundles: {
+            'foo--/': {
+              id: 'foo',
+              time: '1970-01-01T00:00:01.337Z',
+              timeSlot: '1970-01-01T00:00:00.000Z',
+              url: 'https://test.example/',
+              events: [
+                {
+                  checkpoint: 'sidekick:loaded',
+                  timeDelta: 1337,
+                },
+              ],
+            },
+          },
+        });
+
+        assert.deepStrictEqual(bodies.virtual.manifest, {
+          sessions: {
+            'foo--test.example--/': {
+              hour: 0,
+            },
+          },
+        });
+        assert.deepStrictEqual(bodies.virtual.bundle, {
+          bundles: {
+            'foo--test.example--/': {
+              id: 'foo',
+              time: '1970-01-01T00:00:01.337Z',
+              timeSlot: '1970-01-01T00:00:00.000Z',
+              url: 'https://test.example/',
+              events: [
+                {
+                  checkpoint: 'sidekick:loaded',
+                  timeDelta: 1337,
+                },
+              ],
+            },
+          },
+        });
+      });
+      it('sidekick events', async () => {
+        const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
+        const mockEventResponseBody = makeEventFile({
+          id: 'foo',
+          checkpoint: 'sidekick:loaded',
+          url: 'https://test.example',
+          time: 1337,
+        });
+        const bodies = {
+          apex: {},
+          virtual: {},
+        };
+
+        nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
+          // logs not locked
+          .head('/.lock')
+          .reply(404)
+          // lock logs
+          .put('/.lock?x-id=PutObject')
+          .reply(200)
+          // list logs
+          .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+          .reply(200, logFileList)
+          // get log file contents
+          .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
+          .reply(200, mockEventResponseBody)
+          // move log file to processed
+          .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
+          .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
+          .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+          .reply(200)
+          // unlock
+          .delete('/.lock?x-id=DeleteObject')
+          .reply(200);
+
+        // domain bundling
+        nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+          // check if domain exists (yes)
+          .head('/test.example/.domainkey')
+          .reply(200)
+          // get manifest
+          .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // get yesterday's manifest
+          .get('/test.example/1969/12/31/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // instantiate bundlegroup
+          .get('/test.example/1970/1/1/0.json?x-id=GetObject')
+          .reply(404)
+          // store manifest
+          .put('/test.example/1970/1/1/.manifest.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.apex.manifest = body;
+            return [200];
+          })
+          // store bundlegroup
+          .put('/test.example/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.apex.bundle = body;
+            return [200];
+          });
+
+        // virtual domain bundling
+        nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+          // get manifest
+          .get('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // get yesterday's manifest
+          .get('/sidekick.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+          .reply(404)
+          // instantiate bundlegroup
+          .get('/sidekick.aem.live/1970/1/1/0.json?x-id=GetObject')
+          .reply(404)
+          // store manifest
+          .put('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.virtual.manifest = body;
+            return [200];
+          })
+          // store bundlegroup
+          .put('/sidekick.aem.live/1970/1/1/0.json?x-id=PutObject')
+          .reply((_, body) => {
+            bodies.virtual.bundle = body;
+            return [200];
+          });
+        const ctx = DEFAULT_CONTEXT();
+        await bundleRUM(ctx);
+
+        assert.deepStrictEqual(bodies.apex.manifest, {
+          sessions: {
+            'foo--/': {
+              hour: 0,
+            },
+          },
+        });
+        assert.deepStrictEqual(bodies.apex.bundle, {
+          bundles: {
+            'foo--/': {
+              id: 'foo',
+              time: '1970-01-01T00:00:01.337Z',
+              timeSlot: '1970-01-01T00:00:00.000Z',
+              url: 'https://test.example/',
+              events: [
+                {
+                  checkpoint: 'sidekick:loaded',
+                  timeDelta: 1337,
+                },
+              ],
+            },
+          },
+        });
+
+        assert.deepStrictEqual(bodies.virtual.manifest, {
+          sessions: {
+            'foo--test.example--/': {
+              hour: 0,
+            },
+          },
+        });
+        assert.deepStrictEqual(bodies.virtual.bundle, {
+          bundles: {
+            'foo--test.example--/': {
+              id: 'foo',
+              time: '1970-01-01T00:00:01.337Z',
+              timeSlot: '1970-01-01T00:00:00.000Z',
+              url: 'https://test.example/',
+              events: [
+                {
+                  checkpoint: 'sidekick:loaded',
+                  timeDelta: 1337,
+                },
+              ],
+            },
+          },
+        });
+      });
     });
   });
 });
