@@ -461,5 +461,10 @@ describe('bundler Tests', () => {
         },
       });
     });
+
+    it('should bundle events to virtual destinations', async () => {
+      // TODO:
+
+    });
   });
 });
