@@ -1,3 +1,90 @@
+## [1.1.24](https://github.com/adobe/helix-rum-bundler/compare/v1.1.23...v1.1.24) (2024-05-11)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#62](https://github.com/adobe/helix-rum-bundler/issues/62)) ([6992c9a](https://github.com/adobe/helix-rum-bundler/commit/6992c9a95c6e0b3e8d0f7c7ebe171720eac10f10))
+
+## [1.1.23](https://github.com/adobe/helix-rum-bundler/compare/v1.1.22...v1.1.23) (2024-05-10)
+
+
+### Bug Fixes
+
+* set min bundle weight to 1 ([9c11fec](https://github.com/adobe/helix-rum-bundler/commit/9c11fec54c00cd4e192d72bbf624e2341c83e512))
+
+## [1.1.22](https://github.com/adobe/helix-rum-bundler/compare/v1.1.21...v1.1.22) (2024-05-04)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#56](https://github.com/adobe/helix-rum-bundler/issues/56)) ([cb0585c](https://github.com/adobe/helix-rum-bundler/commit/cb0585c850d9230f21822c84e82e4a770cf93023))
+
+## [1.1.21](https://github.com/adobe/helix-rum-bundler/compare/v1.1.20...v1.1.21) (2024-05-02)
+
+
+### Bug Fixes
+
+* logs, typo, limits ([37c3da3](https://github.com/adobe/helix-rum-bundler/commit/37c3da3a1ab3d4385555bc29bca8cb0b38435309))
+* test ([2e93805](https://github.com/adobe/helix-rum-bundler/commit/2e93805f07b9892a124b91ae318b632fc3614446))
+
+## [1.1.20](https://github.com/adobe/helix-rum-bundler/compare/v1.1.19...v1.1.20) (2024-05-01)
+
+
+### Bug Fixes
+
+* reduce max events ([e40ff40](https://github.com/adobe/helix-rum-bundler/commit/e40ff40ac87f367e22f94c4a9a08be383961ad78))
+
+## [1.1.19](https://github.com/adobe/helix-rum-bundler/compare/v1.1.18...v1.1.19) (2024-05-01)
+
+
+### Bug Fixes
+
+* reduce max events ([ab7a691](https://github.com/adobe/helix-rum-bundler/commit/ab7a6917e87f9f02b35752265e988ed2ae0e4b9f))
+
+## [1.1.18](https://github.com/adobe/helix-rum-bundler/compare/v1.1.17...v1.1.18) (2024-05-01)
+
+
+### Bug Fixes
+
+* log new domains ([ab36460](https://github.com/adobe/helix-rum-bundler/commit/ab3646038ed4c76aeae3c1e1e009b463798d7b08))
+
+## [1.1.17](https://github.com/adobe/helix-rum-bundler/compare/v1.1.16...v1.1.17) (2024-05-01)
+
+
+### Bug Fixes
+
+* generate domainkeys for new domains ([164c345](https://github.com/adobe/helix-rum-bundler/commit/164c34527750df3a15e89acd9f140b76c9808382))
+* upgrade workflow node version ([ed88a20](https://github.com/adobe/helix-rum-bundler/commit/ed88a20ff603c3faa0b8229c15ec6ab7066036f3))
+
+## [1.1.16](https://github.com/adobe/helix-rum-bundler/compare/v1.1.15...v1.1.16) (2024-04-27)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#49](https://github.com/adobe/helix-rum-bundler/issues/49)) ([a857285](https://github.com/adobe/helix-rum-bundler/commit/a857285e620699434abf19d65aa0c6cb11da90d8))
+
+## [1.1.15](https://github.com/adobe/helix-rum-bundler/compare/v1.1.14...v1.1.15) (2024-04-26)
+
+
+### Bug Fixes
+
+* remove universal-logger ([46ece1b](https://github.com/adobe/helix-rum-bundler/commit/46ece1beecc993d9a2943f33290f24f21575c2e5))
+
+## [1.1.14](https://github.com/adobe/helix-rum-bundler/compare/v1.1.13...v1.1.14) (2024-04-26)
+
+
+### Bug Fixes
+
+* ttl fix, add tool for clearing aggregate files ([b5ae0cc](https://github.com/adobe/helix-rum-bundler/commit/b5ae0cc36706072696792c4a9f3c4b5b80ffc3e3))
+
+## [1.1.13](https://github.com/adobe/helix-rum-bundler/compare/v1.1.12...v1.1.13) (2024-04-26)
+
+
+### Bug Fixes
+
+* add domainkey to bq on rotate ([dd8cab0](https://github.com/adobe/helix-rum-bundler/commit/dd8cab088130a3234e6ae3ea126e5269e6ebc518))
+* put domainkey api ([51eafe5](https://github.com/adobe/helix-rum-bundler/commit/51eafe53b26d764131b041b2d1112f9af78ad251))
+
 ## [1.1.12](https://github.com/adobe/helix-rum-bundler/compare/v1.1.11...v1.1.12) (2024-04-23)
 
 

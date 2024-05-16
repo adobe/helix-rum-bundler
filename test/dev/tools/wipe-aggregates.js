@@ -34,7 +34,8 @@ configEnv();
   } else {
     domains = await getDomains(ctx);
   }
-  console.info(`wiping aggregates for ${domains.length} domains: `, domains.join(', '));
+  const domainCount = domains.length;
+  console.info(`wiping aggregates for ${domainCount} domains: `, domains.join(', '));
 
   const affected = [];
   let removed = 0;
@@ -62,5 +63,5 @@ configEnv();
     },
   );
 
-  console.info(`wiped ${removed} aggregates files from ${domains.length} domains: `, `\n\t${affected.join('\n\t')}`);
+  console.info(`wiped ${removed} aggregates files from ${domainCount} domains: `, `\n\t${affected.join('\n\t')}`);
 })().catch((e) => console.error(e));
