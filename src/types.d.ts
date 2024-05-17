@@ -66,6 +66,7 @@ declare global {
   export type UniversalContext = Helix.UniversalContext;
 
   export interface RawRUMEvent {
+    checkpoint: string;
     time: number;
     host: string;
     url: string;
@@ -78,6 +79,8 @@ declare global {
     CLS?: number;
     LCP?: number;
     FID?: number;
+    /** included in virtual domain bundles */
+    domain?: string;
     [key: string]: string | number | null | undefined;
   }
 
@@ -156,5 +159,21 @@ declare global {
     /** ex. 'desktop' */
     user_agent: string;
     events: RunQueryEvent[];
+  }
+
+  export interface VirtualDestination {
+    /**
+     * Virtual bundle file ke
+     */
+    key: string;
+    /**
+     * Virtual bundle info
+     */
+    info: BundleInfo;
+    /**
+     * Override of raw event.
+     * Should at minimum include the original domain.
+     */
+    event: RawRUMEvent;
   }
 }

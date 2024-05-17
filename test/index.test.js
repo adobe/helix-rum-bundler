@@ -25,6 +25,7 @@ describe('Index Tests', () => {
     const resp = await main(new Request('https://localhost/'), {
       env: {},
       attributes: {},
+      log: console,
       pathInfo: { suffix: '/bundles/x' },
     });
     assert.strictEqual(resp.status, 403);

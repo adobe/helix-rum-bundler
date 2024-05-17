@@ -33,6 +33,7 @@ export const getBundleProperties = (event) => {
     userAgent: event.user_agent,
     referer: event.string,
     weight: event.weight,
+    domain: event.domain,
     events: [],
   };
 };
@@ -84,6 +85,7 @@ export const getEventProperties = (event, bundle) => {
   return pruneUndefined({
     ...event,
     timeDelta,
+    domain: undefined,
     time: undefined,
     id: undefined,
     host: undefined,

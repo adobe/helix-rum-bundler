@@ -33,6 +33,51 @@ const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 
 /**
+ * @type {{
+ *   domain: string;
+ *   test: (e: RawRUMEvent) => boolean;
+ *   destination: (e: RawRUMEvent, info: BundleInfo) => VirtualDestination;
+ * }[]}
+ */
+const VIRTUAL_DOMAIN_RULES = [{
+  domain: 'sidekick',
+  test: (e) => e.checkpoint.startsWith('sidekick:'),
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        domain: info.domain,
+      },
+    };
+  },
+},
+{
+  // all top events, for viewing all domains' events
+  // downsample by 100x
+  domain: 'all',
+  test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        weight: e.weight * 100,
+        domain: info.domain,
+      },
+    };
+  },
+}];
+
+/**
  * Lock the log bucket to prevent concurrent bundling.
  * If `.lock` file already exists, throw 409 response.
  *
@@ -120,8 +165,9 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
  *
  * @param {UniversalContext} ctx
  * @param {RawEventMap} rawEventMap
+ * @param {boolean} [isVirtual=false]
  */
-export async function importEventsByKey(ctx, rawEventMap) {
+export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const { log } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
 
@@ -141,7 +187,10 @@ export async function importEventsByKey(ctx, rawEventMap) {
       /** @type {Record<string, RawRUMEvent[]>} */
       const eventsBySessionId = {};
       events.forEach((event) => {
-        const sessionId = `${event.id}--${new URL(event.url).pathname}`;
+        // if bundle is virtual, include the domain in the session ID
+        // since the events being sorted into this key may have different domains
+        const evUrl = new URL(event.url);
+        const sessionId = `${event.id}${isVirtual ? `--${evUrl.hostname}` : ''}--${evUrl.pathname}`;
         if (!eventsBySessionId[sessionId]) {
           eventsBySessionId[sessionId] = [];
         }
@@ -174,31 +223,66 @@ export async function importEventsByKey(ctx, rawEventMap) {
 }
 
 /**
+ * Get virtual destinations for event, if any.
+ *
+ * @param {RawRUMEvent} event
+ * @param {BundleInfo} info
+ * @returns {VirtualDestination[]}
+ */
+export function getVirtualDestinations(event, info) {
+  return VIRTUAL_DOMAIN_RULES
+    .filter((rule) => rule.test(event))
+    .map((rule) => rule.destination(event, info));
+}
+
+/**
  * Sort raw event into map (storageKey => rawEvent[])
  * Also do some initial sanitization, like removing qps from event urls
  *
  * @param {RawRUMEvent[]} rawEvents
  * @param {UniversalContext['log'] | Console} log
- * @returns {{rawEventMap: RawEventMap; domains: string[]}}
+ * @returns {{
+ *   rawEventMap: RawEventMap;
+ *   virtualMap: RawEventMap;
+ *   domains: string[]
+ * }}
  */
 export function sortRawEvents(rawEvents, log) {
   /** @type {RawEventMap} */
   const rawEventMap = {};
+  /** @type {RawEventMap} */
+  const virtualMap = {};
   /** @type {Set<string>} */
   const domains = new Set();
 
   rawEvents.forEach((pevent) => {
     if (pevent.url.startsWith('/')) {
-      log.info('ignoring event with invalid url (absolute path): ', pevent);
+      log.info('ignoring event with invalid url (absolute path): ', pevent.url, pevent.id);
+      return;
+    } else if (pevent.url.includes('..')) {
+      log.info('ignoring event with invalid url (relative): ', pevent.url, pevent.id);
       return;
     }
 
     const event = {
       ...pevent,
     };
+
+    /** @type {URL} */
+    let url;
     try {
+      url = new URL(event.url);
+    } catch {
+      log.info('ignoring event with invalid url (non-url): ', event.url, event.id);
+      return;
+    }
+
+    try {
+      if (!url.hostname.includes('.')) {
+        log.info('ignoring event with invalid url (no tld): ', event.url, event.id);
+        return;
+      }
       const date = new Date(event.time);
-      const url = new URL(event.url);
       const domain = url.host;
       domains.add(domain);
 
@@ -220,13 +304,25 @@ export function sortRawEvents(rawEvents, log) {
         rawEventMap[key] = { events: [], info };
       }
       rawEventMap[key].events.push(event);
+
+      const virtualDests = getVirtualDestinations(event, {
+        domain, year, month, day, hour,
+      });
+      virtualDests.forEach((vd) => {
+        const { key: vkey, info, event: vevent } = vd;
+        if (!virtualMap[vkey]) {
+          virtualMap[vkey] = { events: [], info };
+        }
+        virtualMap[vkey].events.push(vevent || event);
+      });
     } catch (e) {
-      log.warn('invalid url: ', event.url, event.id);
+      log.warn('failed to sort raw event: ', e.message, event.url);
     }
   });
 
   return {
     rawEventMap,
+    virtualMap,
     domains: [...domains],
   };
 }
@@ -277,7 +373,7 @@ async function doBundling(ctx) {
     return !isTruncated;
   }
 
-  const { rawEventMap, domains } = sortRawEvents(rawEvents, log);
+  const { rawEventMap, virtualMap, domains } = sortRawEvents(rawEvents, log);
 
   // find all new domains, generate domainkeys for them
   await processQueue(
@@ -292,7 +388,10 @@ async function doBundling(ctx) {
   );
 
   log.debug(`processing ${Object.keys(rawEventMap).length} bundle keys`);
-  await importEventsByKey(ctx, rawEventMap);
+  await Promise.all([
+    importEventsByKey(ctx, rawEventMap),
+    importEventsByKey(ctx, virtualMap, true),
+  ]);
 
   // move all events into processed folder
   await processQueue(
