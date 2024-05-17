@@ -257,20 +257,29 @@ export function sortRawEvents(rawEvents, log) {
 
   rawEvents.forEach((pevent) => {
     if (pevent.url.startsWith('/')) {
-      log.info('ignoring event with invalid url (absolute path): ', pevent);
+      log.info('ignoring event with invalid url (absolute path): ', pevent.url, pevent.id);
       return;
     } else if (pevent.url.includes('..')) {
-      log.info('ignoring event with invalid url (relative): ', pevent);
+      log.info('ignoring event with invalid url (relative): ', pevent.url, pevent.id);
       return;
     }
 
     const event = {
       ...pevent,
     };
+
+    /** @type {URL} */
+    let url;
     try {
-      const url = new URL(event.url);
+      url = new URL(event.url);
+    } catch {
+      log.info('ignoring event with invalid url (non-url): ', event.url, event.id);
+      return;
+    }
+
+    try {
       if (!url.hostname.includes('.')) {
-        log.info('ignoring event with invalid url (no tld): ', pevent);
+        log.info('ignoring event with invalid url (no tld): ', event.url, event.id);
         return;
       }
       const date = new Date(event.time);
@@ -307,7 +316,7 @@ export function sortRawEvents(rawEvents, log) {
         virtualMap[vkey].events.push(vevent || event);
       });
     } catch (e) {
-      log.warn('invalid url: ', event.url, event.id);
+      log.warn('failed to sort raw event: ', e.message, event.url);
     }
   });
 
