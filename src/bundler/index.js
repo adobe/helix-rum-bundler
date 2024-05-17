@@ -33,6 +33,51 @@ const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 
 /**
+ * @type {{
+ *   domain: string;
+ *   test: (e: RawRUMEvent) => boolean;
+ *   destination: (e: RawRUMEvent, info: BundleInfo) => VirtualDestination;
+ * }[]}
+ */
+const VIRTUAL_DOMAIN_RULES = [{
+  domain: 'sidekick',
+  test: (e) => e.checkpoint.startsWith('sidekick:'),
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        domain: info.domain,
+      },
+    };
+  },
+},
+{
+  // all top events, for viewing all domains' events
+  // downsample by 100x
+  domain: 'all',
+  test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        weight: e.weight * 100,
+        domain: info.domain,
+      },
+    };
+  },
+}];
+
+/**
  * Lock the log bucket to prevent concurrent bundling.
  * If `.lock` file already exists, throw 409 response.
  *
@@ -185,51 +230,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
  * @returns {VirtualDestination[]}
  */
 export function getVirtualDestinations(event, info) {
-  /**
-   * @type {{
-   *   test: (e: RawRUMEvent) => boolean;
-   *   destination: (e: RawRUMEvent, info: BundleInfo) => VirtualDestination;
-   * }[]}
-   */
-  const rules = [{
-    test: (e) => e.checkpoint.startsWith('sidekick:'),
-    destination: (e, pinfo) => {
-      const domain = 'sidekick.aem.live';
-      const {
-        year, month, day, hour,
-      } = pinfo;
-      return {
-        key: `/${domain}/${year}/${month}/${day}/${hour}.json`,
-        info: {
-          ...pinfo,
-          domain,
-        },
-      };
-    },
-  },
-  {
-    // all top events, for viewing all domains' events
-    // downsample by 100x
-    test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
-    destination: (e, pinfo) => {
-      const domain = 'all.virtual.aem.live';
-      const {
-        year, month, day, hour,
-      } = pinfo;
-      return {
-        key: `/${domain}/${year}/${month}/${day}/${hour}.json`,
-        info: {
-          ...pinfo,
-          domain,
-        },
-        event: {
-          ...e,
-          weight: e.weight * 100,
-        },
-      };
-    },
-  }];
-  return rules
+  return VIRTUAL_DOMAIN_RULES
     .filter((rule) => rule.test(event))
     .map((rule) => rule.destination(event, info));
 }
@@ -258,14 +259,21 @@ export function sortRawEvents(rawEvents, log) {
     if (pevent.url.startsWith('/')) {
       log.info('ignoring event with invalid url (absolute path): ', pevent);
       return;
+    } else if (pevent.url.includes('..')) {
+      log.info('ignoring event with invalid url (relative): ', pevent);
+      return;
     }
 
     const event = {
       ...pevent,
     };
     try {
-      const date = new Date(event.time);
       const url = new URL(event.url);
+      if (!url.hostname.includes('.')) {
+        log.info('ignoring event with invalid url (no tld): ', pevent);
+        return;
+      }
+      const date = new Date(event.time);
       const domain = url.host;
       domains.add(domain);
 

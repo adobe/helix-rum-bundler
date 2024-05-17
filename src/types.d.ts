@@ -79,6 +79,8 @@ declare global {
     CLS?: number;
     LCP?: number;
     FID?: number;
+    /** included in virtual domain bundles */
+    domain?: string;
     [key: string]: string | number | null | undefined;
   }
 
@@ -169,9 +171,9 @@ declare global {
      */
     info: BundleInfo;
     /**
-     * Optional override of raw event.
-     * If not defined uses regular raw event.
+     * Override of raw event.
+     * Should at minimum include the original domain.
      */
-    event?: RawRUMEvent;
+    event: RawRUMEvent;
   }
 }

@@ -58,6 +58,16 @@ describe('bundler Tests', () => {
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
+    it('ignores urls with relative patterns', () => {
+      const sorted = sortRawEvents([{ url: 'https://test.example/../foo' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
+    it('ignores urls with no TLD', () => {
+      const sorted = sortRawEvents([{ url: 'https://foo' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
     it('sorts into domain/date keys', () => {
       const t1 = 0;
       const t2 = 61 * 60 * 1000;
@@ -471,7 +481,7 @@ describe('bundler Tests', () => {
         Math.random = ogRandom;
       });
 
-      it('sidekick events are grouped to sidekick.aem.live', async () => {
+      it('sidekick events are grouped to "sidekick" virtual domain', async () => {
         const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
         const mockEventResponseBody = makeEventFile({
           id: 'foo',
@@ -536,22 +546,22 @@ describe('bundler Tests', () => {
         // virtual domain bundling
         nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
           // get manifest
-          .get('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+          .get('/sidekick/1970/1/1/.manifest.json?x-id=GetObject')
           .reply(404)
           // get yesterday's manifest
-          .get('/sidekick.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+          .get('/sidekick/1969/12/31/.manifest.json?x-id=GetObject')
           .reply(404)
           // instantiate bundlegroup
-          .get('/sidekick.aem.live/1970/1/1/0.json?x-id=GetObject')
+          .get('/sidekick/1970/1/1/0.json?x-id=GetObject')
           .reply(404)
           // store manifest
-          .put('/sidekick.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+          .put('/sidekick/1970/1/1/.manifest.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.manifest = body;
             return [200];
           })
           // store bundlegroup
-          .put('/sidekick.aem.live/1970/1/1/0.json?x-id=PutObject')
+          .put('/sidekick/1970/1/1/0.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.bundle = body;
             return [200];
@@ -597,6 +607,7 @@ describe('bundler Tests', () => {
               time: '1970-01-01T00:00:01.337Z',
               timeSlot: '1970-01-01T00:00:00.000Z',
               url: 'https://test.example/',
+              domain: 'test.example',
               events: [
                 {
                   checkpoint: 'sidekick:loaded',
@@ -608,7 +619,7 @@ describe('bundler Tests', () => {
         });
       });
 
-      it('~1% of top events should be grouped to all.virtual.aem.live', async () => {
+      it('~1% of top events should be grouped to "all" virtual domain', async () => {
         const vals = [
           /** example.one doesn't hit threshold, excluded */
           1,
@@ -708,22 +719,22 @@ describe('bundler Tests', () => {
         // virtual domain bundling
         nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
           // get manifest
-          .get('/all.virtual.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+          .get('/all/1970/1/1/.manifest.json?x-id=GetObject')
           .reply(404)
           // get yesterday's manifest
-          .get('/all.virtual.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+          .get('/all/1969/12/31/.manifest.json?x-id=GetObject')
           .reply(404)
           // instantiate bundlegroup
-          .get('/all.virtual.aem.live/1970/1/1/0.json?x-id=GetObject')
+          .get('/all/1970/1/1/0.json?x-id=GetObject')
           .reply(404)
           // store manifest
-          .put('/all.virtual.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+          .put('/all/1970/1/1/.manifest.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.manifest = body;
             return [200];
           })
           // store bundlegroup
-          .put('/all.virtual.aem.live/1970/1/1/0.json?x-id=PutObject')
+          .put('/all/1970/1/1/0.json?x-id=PutObject')
           .reply((_, body) => {
             bodies.virtual.bundle = body;
             return [200];
@@ -796,6 +807,7 @@ describe('bundler Tests', () => {
               timeSlot: '1970-01-01T00:00:00.000Z',
               url: 'https://test.two/2',
               weight: 10000,
+              domain: 'test.two',
               events: [
                 {
                   checkpoint: 'top',
