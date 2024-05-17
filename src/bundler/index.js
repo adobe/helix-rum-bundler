@@ -40,7 +40,7 @@ const DEFAULT_CONCURRENCY_LIMIT = 4;
  * }[]}
  */
 const VIRTUAL_DOMAIN_RULES = [{
-  domain: 'sidekick',
+  domain: 'aem.live(sidekick)',
   test: (e) => e.checkpoint.startsWith('sidekick:'),
   destination(e, info) {
     return {
@@ -59,7 +59,7 @@ const VIRTUAL_DOMAIN_RULES = [{
 {
   // all top events, for viewing all domains' events
   // downsample by 100x
-  domain: 'all',
+  domain: 'aem.live(all)',
   test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
   destination(e, info) {
     return {

@@ -25,11 +25,11 @@ configEnv();
  */
 
 (async () => {
-  if (!process.env.DOMAINKEY_API_KEY) {
-    throw Error('missing env variable: DOMAINKEY_API_KEY');
+  if (!process.env.RUNQUERY_ROTATION_KEY) {
+    throw Error('missing env variable: RUNQUERY_ROTATION_KEY');
   }
 
-  const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.DOMAINKEY_API_KEY } });
+  const ctx = contextLike({ env: { RUNQUERY_ROTATION_KEY: process.env.RUNQUERY_ROTATION_KEY } });
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const domains = await getDomains(ctx);
@@ -52,5 +52,6 @@ configEnv();
         console.error(`failed to import domainkey for ${domain}: `, e);
       }
     },
+    3,
   );
 })().catch((e) => console.error(e));
