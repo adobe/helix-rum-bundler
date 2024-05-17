@@ -1,3 +1,13 @@
+## [1.1.25](https://github.com/adobe/helix-rum-bundler/compare/v1.1.24...v1.1.25) (2024-05-17)
+
+
+### Bug Fixes
+
+* add virtual domain handling ([87b6ed7](https://github.com/adobe/helix-rum-bundler/commit/87b6ed7c72cd043bc4d19c23254b7358d33dc4a2))
+* better logging ([ec98bc0](https://github.com/adobe/helix-rum-bundler/commit/ec98bc0e23c1661b1acfdb432f6ac7f6b947a22c))
+* cleanup, reject more invalid urls ([5ac22d9](https://github.com/adobe/helix-rum-bundler/commit/5ac22d9e42cdb555d3a3811cb6d61f6896d3708b))
+* store virtual domain bundles, add tests ([833267c](https://github.com/adobe/helix-rum-bundler/commit/833267c17b907f41e2f4811c5080ea966e72454b))
+
 ## [1.1.24](https://github.com/adobe/helix-rum-bundler/compare/v1.1.23...v1.1.24) (2024-05-11)
 
 
