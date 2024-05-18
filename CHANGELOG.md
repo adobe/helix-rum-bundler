@@ -1,3 +1,10 @@
+## [1.1.26](https://github.com/adobe/helix-rum-bundler/compare/v1.1.25...v1.1.26) (2024-05-18)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @aws-sdk/client-s3 to v3.577.0 ([#68](https://github.com/adobe/helix-rum-bundler/issues/68)) ([b358c92](https://github.com/adobe/helix-rum-bundler/commit/b358c9216fd4831e288701ce46d307c9df2fdd23))
+
 ## [1.1.25](https://github.com/adobe/helix-rum-bundler/compare/v1.1.24...v1.1.25) (2024-05-17)
 
 
