@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/adobe/helix-rum-bundler/compare/v1.1.26...v1.2.0) (2024-05-22)
+
+
+### Features
+
+* LCP event has a source and target ([#72](https://github.com/adobe/helix-rum-bundler/issues/72)) ([5d5b38c](https://github.com/adobe/helix-rum-bundler/commit/5d5b38c57050b9b295104e72f43e7297487c0c32))
+
 ## [1.1.26](https://github.com/adobe/helix-rum-bundler/compare/v1.1.25...v1.1.26) (2024-05-18)
 
 
