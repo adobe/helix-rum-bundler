@@ -72,11 +72,13 @@ export const getEventProperties = (event, bundle) => {
     const type = getCWVEventType(event);
     if (type) {
       // @ts-ignore
-      return {
+      return pruneUndefined({
         checkpoint: `cwv-${type.toLowerCase()}`,
         value: event[type],
         timeDelta,
-      };
+        source: event.source ?? undefined,
+        target: event.target ?? undefined,
+      });
     }
     return { checkpoint: 'cwv', timeDelta };
   }

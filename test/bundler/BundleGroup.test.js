@@ -98,6 +98,23 @@ describe('BundleGroup Tests', () => {
       assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-cls', value: 10, timeDelta: 1 });
     });
 
+    it('preserves lcp source and target', () => {
+      const bundle = getBundleProperties(mockRawEvent());
+      const eventProps = getEventProperties(mockRawEvent({
+        checkpoint: 'cwv',
+        LCP: 10,
+        source: 'source',
+        target: 'target',
+      }), bundle);
+      assert.deepStrictEqual(eventProps, {
+        checkpoint: 'cwv-lcp',
+        value: 10,
+        timeDelta: 1,
+        source: 'source',
+        target: 'target',
+      });
+    });
+
     it('creates top level cwv events', () => {
       const bundle = getBundleProperties(mockRawEvent());
       const eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv' }), bundle);
