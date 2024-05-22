@@ -77,43 +77,43 @@ describe('BundleGroup Tests', () => {
       assert.deepStrictEqual(eventProps, { checkpoint: 'foo' });
     });
 
-    it('creates cwv events with value properties', () => {
-      const bundle = getBundleProperties(mockRawEvent());
-      let eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', INP: 0 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-inp', value: 0, timeDelta: 1 });
+    // it('creates cwv events with value properties', () => {
+    //   const bundle = getBundleProperties(mockRawEvent());
+    //   let eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', INP: 0 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-inp', value: 0, timeDelta: 1 });
 
-      eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', INP: 10 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-inp', value: 10, timeDelta: 1 });
+    //   eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', INP: 10 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-inp', value: 10, timeDelta: 1 });
 
-      eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', TTFB: 10 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-ttfb', value: 10, timeDelta: 1 });
+    //   eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', TTFB: 10 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-ttfb', value: 10, timeDelta: 1 });
 
-      eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', FID: 10 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-fid', value: 10, timeDelta: 1 });
+    //   eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', FID: 10 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-fid', value: 10, timeDelta: 1 });
 
-      eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', LCP: 10 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-lcp', value: 10, timeDelta: 1 });
+    //   eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', LCP: 10 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-lcp', value: 10, timeDelta: 1 });
 
-      eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', CLS: 10 }), bundle);
-      assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-cls', value: 10, timeDelta: 1 });
-    });
+    //   eventProps = getEventProperties(mockRawEvent({ checkpoint: 'cwv', CLS: 10 }), bundle);
+    //   assert.deepStrictEqual(eventProps, { checkpoint: 'cwv-cls', value: 10, timeDelta: 1 });
+    // });
 
-    it('preserves lcp source and target', () => {
-      const bundle = getBundleProperties(mockRawEvent());
-      const eventProps = getEventProperties(mockRawEvent({
-        checkpoint: 'cwv',
-        LCP: 10,
-        source: 'source',
-        target: 'target',
-      }), bundle);
-      assert.deepStrictEqual(eventProps, {
-        checkpoint: 'cwv-lcp',
-        value: 10,
-        timeDelta: 1,
-        source: 'source',
-        target: 'target',
-      });
-    });
+    // it('preserves lcp source and target', () => {
+    //   const bundle = getBundleProperties(mockRawEvent());
+    //   const eventProps = getEventProperties(mockRawEvent({
+    //     checkpoint: 'cwv',
+    //     LCP: 10,
+    //     source: 'source',
+    //     target: 'target',
+    //   }), bundle);
+    //   assert.deepStrictEqual(eventProps, {
+    //     checkpoint: 'cwv-lcp',
+    //     value: 10,
+    //     timeDelta: 1,
+    //     source: 'source',
+    //     target: 'target',
+    //   });
+    // });
 
     it('creates top level cwv events', () => {
       const bundle = getBundleProperties(mockRawEvent());

@@ -78,6 +78,7 @@ export const getEventProperties = (event, bundle) => {
         timeDelta,
         source: event.source ?? undefined,
         target: event.target ?? undefined,
+        test: 'Alex testing...',
       });
     }
     return { checkpoint: 'cwv', timeDelta };
