@@ -129,11 +129,16 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
 
         try {
           // if event exists in a session within last 24h, add it to that session
+          /** @type {SessionData|undefined} */
           let session;
+          /** @type {Manifest|undefined} */
+          let sessionManifest;
           if (manifest.has(sId)) {
             session = manifest.get(sId);
+            sessionManifest = manifest;
           } else if (yManifest?.has(sId)) {
             session = yManifest.get(sId);
+            sessionManifest = manifest;
           }
 
           const group = await BundleGroup.fromContext(
@@ -141,7 +146,7 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
             domain,
             year,
             month,
-            day,
+            sessionManifest?.day ?? day,
             session ? session.hour : hour,
           );
           groups.add(group);

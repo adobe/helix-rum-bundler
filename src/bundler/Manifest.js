@@ -37,13 +37,20 @@ export default class Manifest {
   dirty = false;
 
   /**
+   * @type {number}
+   */
+  day;
+
+  /**
    * @param {UniversalContext} ctx
    * @param {string} key
+   * @param {number} day
    * @param {ManifestData} [data]
    */
-  constructor(ctx, key, data) {
+  constructor(ctx, key, day, data) {
     this.ctx = ctx;
     this.key = key;
+    this.day = day;
     this.sessions = data?.sessions || {};
   }
 
@@ -97,12 +104,12 @@ export default class Manifest {
    * @param {string} domain
    * @param {number} year
    * @param {number} month
-   * @param {number} date
+   * @param {number} day
    * @returns {Promise<Manifest>}
    */
-  static async fromContext(ctx, domain, year, month, date) {
+  static async fromContext(ctx, domain, year, month, day) {
     const { log } = ctx;
-    const key = `${domain}/${year}/${month}/${date}`;
+    const key = `${domain}/${year}/${month}/${day}`;
 
     if (!ctx.attributes.rumManifests) {
       ctx.attributes.rumManifests = new LRUCache({ name: 'Manifest' });
@@ -125,7 +132,7 @@ export default class Manifest {
       } catch (e) {
         log.error('failed to get manifest', e);
       }
-      const manifest = new Manifest(ctx, key, data);
+      const manifest = new Manifest(ctx, key, day, data);
       ctx.attributes.rumManifests.set(key, manifest);
       return manifest;
     })();
