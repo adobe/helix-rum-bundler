@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/adobe/helix-rum-bundler/compare/v1.2.0...v1.2.1) (2024-05-24)
+
+
+### Bug Fixes
+
+* use previous day as needed when adding event to existing session ([22888d6](https://github.com/adobe/helix-rum-bundler/commit/22888d65627931ce90732fb5383cd6030f3a0f49))
+
 # [1.2.0](https://github.com/adobe/helix-rum-bundler/compare/v1.1.26...v1.2.0) (2024-05-22)
 
 
