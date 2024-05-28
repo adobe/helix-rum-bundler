@@ -138,7 +138,7 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
             sessionManifest = manifest;
           } else if (yManifest?.has(sId)) {
             session = yManifest.get(sId);
-            sessionManifest = manifest;
+            sessionManifest = yManifest;
           }
 
           const group = await BundleGroup.fromContext(
