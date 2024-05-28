@@ -21,6 +21,7 @@ import {
   errorWithResponse, getEnvVar, timeout, yesterday,
 } from '../support/util.js';
 import { isNewDomain, setDomainKey } from '../support/domains.js';
+import VIRTUAL_DOMAIN_RULES from './virtual.js';
 
 /**
  * @typedef {Record<string, {
@@ -31,51 +32,6 @@ import { isNewDomain, setDomainKey } from '../support/domains.js';
 
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
-
-/**
- * @type {{
- *   domain: string;
- *   test: (e: RawRUMEvent) => boolean;
- *   destination: (e: RawRUMEvent, info: BundleInfo) => VirtualDestination;
- * }[]}
- */
-const VIRTUAL_DOMAIN_RULES = [{
-  domain: 'sidekick',
-  test: (e) => e.checkpoint.startsWith('sidekick:'),
-  destination(e, info) {
-    return {
-      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-      info: {
-        ...info,
-        domain: this.domain,
-      },
-      event: {
-        ...e,
-        domain: info.domain,
-      },
-    };
-  },
-},
-{
-  // all top events, for viewing all domains' events
-  // downsample by 100x
-  domain: 'all',
-  test: (e) => e.checkpoint === 'top' && Math.random() < 0.01,
-  destination(e, info) {
-    return {
-      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-      info: {
-        ...info,
-        domain: this.domain,
-      },
-      event: {
-        ...e,
-        weight: e.weight * 100,
-        domain: info.domain,
-      },
-    };
-  },
-}];
 
 /**
  * Lock the log bucket to prevent concurrent bundling.
