@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/adobe/helix-rum-bundler/compare/v1.2.3...v1.2.4) (2024-05-28)
+
+
+### Bug Fixes
+
+* more virtual domains ([b5164d6](https://github.com/adobe/helix-rum-bundler/commit/b5164d64b9d83b9f1ade8978c36f3f7560d2b778))
+
 ## [1.2.3](https://github.com/adobe/helix-rum-bundler/compare/v1.2.2...v1.2.3) (2024-05-28)
 
 
