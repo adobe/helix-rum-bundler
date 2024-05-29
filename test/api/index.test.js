@@ -15,7 +15,7 @@
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
 import handleRequest from '../../src/api/index.js';
-import { DEFAULT_CONTEXT, Nock } from '../util.js';
+import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
 
 describe('api Tests', () => {
   describe('handleRequest()', () => {
@@ -249,6 +249,19 @@ describe('api Tests', () => {
           },
         ],
       });
+    });
+
+    it('unknown route, returns 404', async () => {
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/foo' } });
+      const prom = handleRequest(req, ctx);
+      await assertRejectsWithResponse(prom, 404);
+    });
+
+    it('OPTIOMS always returns 204 for valid routes', async () => {
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs' } });
+      req = new Request('https://localhost/', { method: 'OPTIONS' });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 204);
     });
   });
 });

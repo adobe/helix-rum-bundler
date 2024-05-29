@@ -34,6 +34,7 @@ const handlers = {
 export default async function handleRequest(req, ctx) {
   const info = PathInfo.fromContext(ctx);
   const handler = handlers[info.route];
+  /* c8 ignore next 3 */
   if (!handler) {
     throw errorWithResponse(404, 'not found');
   }

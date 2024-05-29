@@ -24,11 +24,12 @@ export async function purgeSurrogateKey(ctx, key) {
   const { FASTLY_API_KEY, FASTLY_SERVICE_ID } = ctx.env;
   const fetch = getFetch(ctx);
   const resp = await fetch(`https://api.fastly.com/service/${FASTLY_SERVICE_ID}/purge/${key}`, {
+    method: 'POST',
     headers: {
       'Fastly-Key': FASTLY_API_KEY,
     },
   });
   if (!resp.ok) {
-    ctx.log.warn(`Failed to purge Fastly cache for key ${key}: ${resp.status}`);
+    ctx.log.error(`Failed to purge Fastly cache for key ${key}: ${resp.status}`);
   }
 }

@@ -33,6 +33,7 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
     CONCURRENCY_LIMIT: '4',
     TMP_SUPERUSER_API_KEY: 'superkey',
     BUNDLER_PROCESS_ALL: 'true',
+    FASTLY_SERVICE_ID: 'fake-service',
     BUNDLER_DURATION_LIMIT: String(9 * 60 * 1000),
     ...(overrides.env ?? {}),
   },
@@ -159,6 +160,10 @@ export function Nock() {
 
   nocker.putAggregate = (year, month, date, domain = 'example.com') => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
     .put(`/${domain}/${year}${month ? `/${month}` : ''}${date ? `/${date}` : ''}/aggregate.json?x-id=PutObject`)
+    .reply(200);
+
+  nocker.purgeFastly = (key) => nocker('https://api.fastly.com')
+    .post(`/service/fake-service/purge/${key}`)
     .reply(200);
 
   return nocker;
