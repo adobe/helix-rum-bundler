@@ -16,45 +16,7 @@ import { Response } from '@adobe/fetch';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
 import { assertSuperuserAuthorized } from '../support/authorization.js';
-
-/**
- * @param {UniversalContext} ctx
- * @param {string} id
- * @returns {Promise<boolean>}
- */
-async function doesOrgExist(ctx, id) {
-  const { usersBucket } = HelixStorage.fromContext(ctx);
-  const org = await usersBucket.head(`/orgs/${id}/org.json`);
-  return !!org;
-}
-
-/**
- * Get domain-orgkey map
- *
- * @param {UniversalContext} ctx
- * @param {string} domain
- * @returns {Promise<Record<string, string>>}
- */
-async function getDomainOrgkeyMap(ctx, domain) {
-  const { usersBucket } = HelixStorage.fromContext(ctx);
-  const buf = await usersBucket.get(`/domains/${domain}/.orgkeys.json`);
-  if (!buf) {
-    return {};
-  }
-  return JSON.parse(new TextDecoder('utf8').decode(buf));
-}
-
-/**
- * Store domain-orgkey map
- *
- * @param {UniversalContext} ctx
- * @param {string} domain
- * @param {Record<string, string>} map
- */
-async function storeDomainOrgkeyMap(ctx, domain, map) {
-  const { usersBucket } = HelixStorage.fromContext(ctx);
-  await usersBucket.put(`/domains/${domain}/.orgkeys.json`, JSON.stringify(map), 'application/json');
-}
+import { doesOrgExist, getDomainOrgkeyMap, storeDomainOrgkeyMap } from '../support/orgs.js';
 
 /**
  * Sets { [org]: [orgkey] } in `{usersbucket}/domains/{domain}/.orgkeys.json`

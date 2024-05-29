@@ -12,6 +12,7 @@
 /// <reference path="../types.d.ts" />
 // @ts-check
 
+import { getDomainOrgkeyMap } from './orgs.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
 
@@ -46,6 +47,9 @@ export function assertSuperuserAuthorized(req, ctx) {
 }
 
 /**
+ * Asserts that the bearer token is either superuser or org admin.
+ * Used for authorizing modifications to orgs that org admins are permitted.
+ *
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @param {string} org
@@ -64,6 +68,28 @@ export async function assertOrgAdminAuthorized(req, ctx, org) {
     }
 
     if (actual !== expected) {
+      throw e;
+    }
+  }
+}
+
+/**
+ * Asserts that the bearer token is allowed to CRUD the domainkey for the domain.
+ *
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ */
+export async function assertAuthorizedForDomain(req, ctx, domain) {
+  try {
+    assertSuperuserAuthorized(req, ctx);
+  } catch (e) {
+    const actual = req.headers.get('authorization')?.slice(7); // bearer
+    if (!actual) {
+      throw e;
+    }
+    const allowedKeys = Object.values(await getDomainOrgkeyMap(ctx, domain));
+    if (!allowedKeys.includes(actual)) {
       throw e;
     }
   }
