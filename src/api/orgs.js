@@ -230,6 +230,72 @@ async function removeDomainFromOrg(req, ctx, info) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {string} orgId
+ * @param {string} orgkey
+ * @param {string[]} domains
+ */
+// eslint-disable-next-line no-underscore-dangle
+async function _setOrgkey(ctx, orgId, orgkey, domains) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  await Promise.all([
+    usersBucket.put(`/orgs/${orgId}/.orgkey`, orgkey, 'text/plain'),
+    addOrgkeyToDomains(ctx, domains, orgId, orgkey),
+  ]);
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function rotateOrgkey(req, ctx, info) {
+  const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const { domains } = org;
+  const orgkey = crypto.randomUUID().toUpperCase();
+  await _setOrgkey(ctx, id, orgkey, domains);
+
+  return new Response(JSON.stringify({ orgkey }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function setOrgkey(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { orgkey } = ctx.data;
+  if (!orgkey || typeof orgkey !== 'string') {
+    throw errorWithResponse(400, 'invalid orgkey');
+  }
+
+  const { org: id } = info;
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const { domains } = org;
+  await _setOrgkey(ctx, id, orgkey, domains);
+
+  return new Response('', { status: 204 });
+}
+
+/**
  * Handle /orgs route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -239,6 +305,9 @@ export default async function handleRequest(req, ctx) {
   const info = PathInfo.fromContext(ctx);
   if (req.method === 'POST') {
     if (info.org) {
+      if (info.subroute === 'key') {
+        return rotateOrgkey(req, ctx, info);
+      }
       return updateOrg(req, ctx, info);
     }
     return createOrg(req, ctx);
@@ -250,6 +319,10 @@ export default async function handleRequest(req, ctx) {
   } else if (req.method === 'DELETE') {
     if (info.subroute === 'domains') {
       return removeDomainFromOrg(req, ctx, info);
+    }
+  } else if (req.method === 'PUT') {
+    if (info.subroute === 'key') {
+      return setOrgkey(req, ctx, info);
     }
   }
   return new Response('method not allowed', { status: 405 });

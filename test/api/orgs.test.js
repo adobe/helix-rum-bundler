@@ -316,4 +316,80 @@ describe('api/orgs Tests', () => {
       assert.deepStrictEqual(data, { domains: ['foo.example', 'www.adobe.com'] });
     });
   });
+
+  describe('POST /orgs/:id/key', () => {
+    it('returns 404 for non-existent org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+      const req = REQUEST({ method: 'POST' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('rotates the orgkey', async () => {
+      const bodies = {};
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['existing.example'] }))
+        .put('/orgs/adobe/.orgkey?x-id=PutObject', async (b) => {
+          bodies.orgkey = await ungzip(b);
+          return true;
+        })
+        .reply(200)
+        .get('/domains/existing.example/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ adobe: 'should-be-overwritten', foo: 'should-be-retained' }))
+        .put('/domains/existing.example/.orgkeys.json?x-id=PutObject', async (b) => {
+          bodies.domainOrgkeyMap = await ungzip(b);
+          return true;
+        })
+        .reply(200);
+
+      const req = REQUEST({ method: 'POST' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const { orgkey } = await resp.json();
+      assert.strictEqual(orgkey, 'TEST-UUID');
+      assert.strictEqual(bodies.orgkey, 'TEST-UUID');
+      assert.strictEqual(bodies.domainOrgkeyMap, '{"adobe":"TEST-UUID","foo":"should-be-retained"}');
+    });
+  });
+
+  describe('PUT /orgs/:id/key', () => {
+    it('returns 404 for non-existent org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+      const req = REQUEST({ method: 'PUT' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'valid-key' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('rejects invalid orgkey', async () => {
+      const req = REQUEST({ method: 'PUT' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 123 } });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'invalid orgkey');
+    });
+
+    it('sets the orgkey', async () => {
+      const bodies = {};
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: [] }))
+        .put('/orgs/adobe/.orgkey?x-id=PutObject', async (b) => {
+          bodies.orgkey = await ungzip(b);
+          return true;
+        })
+        .reply(200);
+
+      const req = REQUEST({ method: 'PUT' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'MY-NEW-ORGKEY' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 204);
+      assert.strictEqual(bodies.orgkey, 'MY-NEW-ORGKEY');
+    });
+  });
 });
