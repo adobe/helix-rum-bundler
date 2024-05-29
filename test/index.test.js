@@ -10,8 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
-
 import assert from 'assert';
 import esmock from 'esmock';
 import { Request, Response } from '@adobe/fetch';

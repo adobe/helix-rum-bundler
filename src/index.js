@@ -9,7 +9,6 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-/// <reference path="./types.d.ts" />
 
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';

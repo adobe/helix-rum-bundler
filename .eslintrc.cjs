@@ -13,4 +13,12 @@
 module.exports = {
   root: true,
   extends: '@adobe/helix',
+  overrides: [
+    {
+      files: ['test/**/*.test.js'],
+      env: {
+        mocha: true,
+      },
+    },
+  ],
 };

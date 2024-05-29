@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
 import assert from 'assert';
 import { h1NoCache } from '@adobe/fetch';
 import { createTargets } from './post-deploy-utils.js';

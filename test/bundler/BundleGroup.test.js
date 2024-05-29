@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
 /* eslint-disable camelcase */
 
 import assert from 'assert';

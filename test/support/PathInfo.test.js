@@ -10,8 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
-
 import assert from 'assert';
 import { assertRejectsWithResponse } from '../util.js';
 import { PathInfo } from '../../src/support/PathInfo.js';
