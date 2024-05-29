@@ -172,5 +172,83 @@ describe('api Tests', () => {
         ],
       });
     });
+
+    it('get monthly data', async () => {
+      nock.domainKey();
+      nock.getAggregate(2024, 2);
+      nock.putAggregate(2024, 2);
+
+      const responseBodies = [[{
+        id: 'foo',
+        url: 'https://example.com/foo',
+        timeSlot: '1',
+        weight: 100,
+        events: [{ checkpoint: 'top' }],
+      }], [{
+        id: 'bar',
+        url: 'https://example.com/bar',
+        timeSlot: '2',
+        weight: 100,
+        events: [{ checkpoint: 'top' }],
+      }], [{
+        id: 'baz',
+        url: 'https://example.com/baz',
+        timeSlot: '3',
+        weight: 100,
+        events: [{ checkpoint: 'top' }],
+      }],
+      ...new Array(25).fill([]),
+      [{
+        id: 'end',
+        url: 'https://example.com/end',
+        timeSlot: '29',
+        weight: 100,
+        events: [{ checkpoint: 'top' }],
+      }]];
+      nock('https://endpoint.example')
+        .get((uri) => uri.startsWith('/bundles/example.com/2024/2/'))
+        .times(29) // honors leap years
+        .reply(() => [200, JSON.stringify({ rumBundles: responseBodies.shift() })]);
+
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/bundles/example.com/2024/02' } });
+
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.strictEqual(responseBodies.length, 0);
+
+      const data = await resp.json();
+      assert.deepStrictEqual(data, {
+        rumBundles: [
+          {
+            id: 'foo',
+            url: 'https://example.com/foo',
+            timeSlot: '1',
+            weight: 100,
+            events: [{ checkpoint: 'top' }],
+          },
+          {
+            id: 'bar',
+            url: 'https://example.com/bar',
+            timeSlot: '2',
+            weight: 100,
+            events: [{ checkpoint: 'top' }],
+          },
+          {
+            id: 'baz',
+            url: 'https://example.com/baz',
+            timeSlot: '3',
+            weight: 100,
+            events: [{ checkpoint: 'top' }],
+          },
+          {
+            id: 'end',
+            url: 'https://example.com/end',
+            timeSlot: '29',
+            weight: 100,
+            events: [{ checkpoint: 'top' }],
+          },
+        ],
+      });
+    });
   });
 });

@@ -28,6 +28,7 @@ const DEFAULT_DOMAIN_KEY = 'domainkey';
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
+    CDN_ENDPOINT: 'https://endpoint.example',
     BATCH_LIMIT: '100',
     CONCURRENCY_LIMIT: '4',
     TMP_SUPERUSER_API_KEY: 'superkey',
