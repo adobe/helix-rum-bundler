@@ -1,3 +1,17 @@
+# [1.3.0](https://github.com/adobe/helix-rum-bundler/compare/v1.2.4...v1.3.0) (2024-05-29)
+
+
+### Bug Fixes
+
+* allow orgkey to access domainkey ([a1659c6](https://github.com/adobe/helix-rum-bundler/commit/a1659c6f478337bdbe90c8a2f4c13906c2c08303))
+
+
+### Features
+
+* add domains to org ([92389cf](https://github.com/adobe/helix-rum-bundler/commit/92389cf8ad22385b9459d4c1e5c0f456c3b6e099))
+* create, list orgs ([fcb5f44](https://github.com/adobe/helix-rum-bundler/commit/fcb5f449d9a91a227eb43c809110e31a11feb977))
+* remove domain from org ([19958e6](https://github.com/adobe/helix-rum-bundler/commit/19958e6bdaf24da39efc6e5e723814b920702ef8))
+
 ## [1.2.4](https://github.com/adobe/helix-rum-bundler/compare/v1.2.3...v1.2.4) (2024-05-28)
 
 
