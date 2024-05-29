@@ -3,6 +3,7 @@ import { Helix } from '@adobe/helix-universal';
 import BundleGroup from './BundleGroup';
 import Manifest from './Manifest';
 import LRUCache from './LRUCache';
+import { PathInfo } from './support/PathInfo';
 
 declare module '@adobe/helix-universal' {
   export namespace Helix {
@@ -52,6 +53,7 @@ declare module '@adobe/helix-universal' {
         fetchContext?: ReturnType<typeof keepAliveNoCache>;
         rumManifests: LRUCache<Manifest | Promise<Manifest>>;
         rumBundleGroups: LRUCache<BundleGroup | Promise<BundleGroup>>;
+        pathInfo: PathInfo;
         [key: string]: unknown;
       }
 

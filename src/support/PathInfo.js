@@ -16,8 +16,14 @@ export class PathInfo {
   /** @type {string} */
   route;
 
+  /** @type {string|undefined} */
+  subroute;
+
   /** @type {string} */
   domain;
+
+  /** @type {string|undefined} */
+  org;
 
   /** @type {number} */
   year;
@@ -31,42 +37,82 @@ export class PathInfo {
   /** @type {number|undefined} */
   hour;
 
+  /** @type {string[]} */
+  segments;
+
   constructor(path) {
     if (!path.endsWith('.json')) {
       // eslint-disable-next-line no-param-reassign
       path += '.json';
     }
 
-    const segments = path.slice(0, -'.json'.length).split('/').slice(1);
-    const [route, domain, year, month, day, hour] = segments;
-
-    this.route = route;
-    this.domain = domain;
-    if (this.route === 'domainkey') {
-      if (year) {
-        throw errorWithResponse(404, 'invalid path');
-      }
-    } else {
-      if (year) {
-        this.year = parseInt(year, 10);
-      }
-      if (month) {
-        this.month = parseInt(month, 10);
-      }
-      if (day) {
-        this.day = parseInt(day, 10);
-      }
-      if (hour) {
-        this.hour = parseInt(hour, 10);
-      }
-
-      if (Number.isNaN(this.year)
-    || Number.isNaN(this.month)
-    || Number.isNaN(this.day)
-    || Number.isNaN(this.hour)) {
-        throw errorWithResponse(404, 'invalid path');
-      }
+    this.segments = path.slice(0, -'.json'.length).split('/').slice(1);
+    [this.route] = this.segments;
+    switch (this.route) {
+      case 'orgs':
+        this.initOrgsRoute();
+        break;
+      case 'domainkey':
+        this.initDomainkeyRoute();
+        break;
+      case 'bundles':
+        this.initBundlesRoute();
+        break;
+      default:
+        throw errorWithResponse(404);
     }
+  }
+
+  initOrgsRoute() {
+    const [_, org, subroute, domain] = this.segments;
+    this.org = org;
+    this.subroute = subroute;
+    this.domain = domain;
+    if (subroute === 'key' && domain) {
+      throw errorWithResponse(404);
+    }
+  }
+
+  initDomainkeyRoute() {
+    const [_, domain, ...rest] = this.segments;
+    this.domain = domain;
+    if (rest.length) {
+      throw errorWithResponse(404);
+    }
+  }
+
+  initBundlesRoute() {
+    const [_, domain, year, month, day, hour] = this.segments;
+    this.domain = domain;
+    if (year) {
+      this.year = parseInt(year, 10);
+    }
+    if (month) {
+      this.month = parseInt(month, 10);
+    }
+    if (day) {
+      this.day = parseInt(day, 10);
+    }
+    if (hour) {
+      this.hour = parseInt(hour, 10);
+    }
+
+    if (Number.isNaN(this.year)
+  || Number.isNaN(this.month)
+  || Number.isNaN(this.day)
+  || Number.isNaN(this.hour)) {
+      throw errorWithResponse(404);
+    }
+  }
+
+  /**
+   * @param {UniversalContext} ctx
+   */
+  static fromContext(ctx) {
+    if (!ctx.attributes.pathInfo) {
+      ctx.attributes.pathInfo = new PathInfo(ctx.pathInfo.suffix);
+    }
+    return ctx.attributes.pathInfo;
   }
 
   toString() {

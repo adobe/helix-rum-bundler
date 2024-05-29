@@ -60,26 +60,6 @@ export async function assertAuthorized(ctx, domain) {
 }
 
 /**
- * parse request path
- * throw some x-error response for invalid path 404s for easier debugging
- * @param {string} path
- * @returns {PathInfo}
- * @throws {ErrorWithResponse} if path is invalid
- */
-export function parsePath(path) {
-  if (!path) {
-    throw errorWithResponse(404, 'invalid path');
-  }
-
-  try {
-    return new PathInfo(path);
-  /* c8 ignore next 3 */
-  } catch {
-    throw errorWithResponse(404, 'invalid path');
-  }
-}
-
-/**
  * fetches aggrate file for the given path, if it exists
  * returns null if not found
  * @param {UniversalContext} ctx
@@ -314,28 +294,28 @@ export function getTTL(path) {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  const path = parsePath(ctx.pathInfo.suffix);
-  await assertAuthorized(ctx, path.domain);
+  const info = PathInfo.fromContext(ctx);
+  await assertAuthorized(ctx, info.domain);
 
   let data;
   let isAggregate;
-  if (typeof path.day !== 'number') {
-    ({ data, isAggregate } = await fetchMonthly(ctx, path));
-  } else if (typeof path.hour !== 'number') {
-    ({ data, isAggregate } = await fetchDaily(ctx, path));
+  if (typeof info.day !== 'number') {
+    ({ data, isAggregate } = await fetchMonthly(ctx, info));
+  } else if (typeof info.hour !== 'number') {
+    ({ data, isAggregate } = await fetchDaily(ctx, info));
   } else {
     // never store hourly aggregates, so pretend it already is one
     isAggregate = true;
-    data = await fetchHourly(ctx, path);
+    data = await fetchHourly(ctx, info);
   }
   if (!data) {
     return new Response('Not found', { status: 404 });
   }
 
   const str = JSON.stringify(data);
-  const ttl = getTTL(path);
+  const ttl = getTTL(info);
   if (!isAggregate) {
-    await storeAggregate(ctx, path, str, ttl * 1000);
+    await storeAggregate(ctx, info, str, ttl * 1000);
   }
 
   return compressBody(
@@ -345,7 +325,7 @@ export default async function handleRequest(req, ctx) {
     {
       // public cache is fine, the domainkey can be cached and is included as cache key
       'cache-control': `public, max-age=${ttl}`,
-      'surrogate-key': path.surrogateKeys.join(' '),
+      'surrogate-key': info.surrogateKeys.join(' '),
     },
   );
 }

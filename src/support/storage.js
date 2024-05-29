@@ -488,6 +488,9 @@ export class HelixStorage {
   /** @type {string} */
   bundleBucketName = 'helix-rum-bundles';
 
+  /** @type {string} */
+  usersBucketName = 'helix-rum-users';
+
   /**
    * Create an instance
    *
@@ -499,6 +502,7 @@ export class HelixStorage {
    *  log?: Console;
    *  logBucket?: string;
    *  bundleBucket?: string;
+   * usersBucket?: string;
    *  connectionTimeout?: number;
    *  socketTimeout?: number;
    * }} [opts] options
@@ -513,6 +517,7 @@ export class HelixStorage {
       logBucket,
       bundleBucket,
       sessionToken,
+      usersBucket,
       log = console,
     } = opts;
 
@@ -523,6 +528,10 @@ export class HelixStorage {
     if (bundleBucket) {
       log.debug('Using bundle bucket', bundleBucket);
       this.bundleBucketName = bundleBucket;
+    }
+    if (usersBucket) {
+      log.debug('Using users bucket', usersBucket);
+      this.usersBucketName = usersBucket;
     }
 
     if (region && accessKeyId && secretAccessKey) {
@@ -567,6 +576,10 @@ export class HelixStorage {
 
   get bundleBucket() {
     return this.bucket(this.bundleBucketName);
+  }
+
+  get usersBucket() {
+    return this.bucket(this.usersBucketName);
   }
 
   /**

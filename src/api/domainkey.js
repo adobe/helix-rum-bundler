@@ -18,19 +18,19 @@ import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
 import { purgeSurrogateKey } from '../support/cache.js';
 import { setDomainKey, fetchDomainKey } from '../support/domains.js';
+import { assertSuperuserAuthorized } from '../support/authorization.js';
 
 /**
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  */
 function assertAuthorized(req, ctx) {
-  // TODO: use admin auth, for now just restrict access to a super user key
-  if (!ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
-  }
-  const key = req.headers.get('authorization')?.slice(7); // bearer
-  if (key !== ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(403, 'invalid auth');
+  // eslint-disable-next-line no-useless-catch
+  try {
+    assertSuperuserAuthorized(req, ctx);
+  } catch (e) {
+    // TODO: check orgkey authorization
+    throw e;
   }
 }
 

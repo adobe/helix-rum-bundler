@@ -14,6 +14,10 @@
 
 import assert from 'assert';
 import nock from 'nock';
+import { gunzip as gunzipc } from 'zlib';
+import { promisify } from 'util';
+
+const gunzip = promisify(gunzipc);
 
 /**
  * @typedef {ReturnType<Nock>} Nocker
@@ -43,6 +47,14 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
     ...(overrides.data ?? {}),
   },
 });
+
+/**
+ * @param {string} str
+ * @returns {Promise<string>}
+ */
+export async function ungzip(str) {
+  return (await gunzip(Buffer.from(str, 'hex'))).toString();
+}
 
 /**
  *
