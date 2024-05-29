@@ -25,6 +25,7 @@ const gunzip = promisify(gunzipc);
 
 const DEFAULT_DOMAIN_KEY = 'domainkey';
 
+/** @returns {UniversalContext} */
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {

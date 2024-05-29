@@ -28,12 +28,7 @@ import { assertAuthorizedForDomain } from '../support/authorization.js';
  */
 async function updateDomainKey(ctx, domain, domainkey) {
   await setDomainKey(ctx, domain, domainkey);
-  return new Response('', {
-    status: 204,
-    headers: {
-      'content-type': 'application/json',
-    },
-  });
+  return new Response('', { status: 204 });
 }
 
 /**

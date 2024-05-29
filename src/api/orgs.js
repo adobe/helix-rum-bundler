@@ -13,11 +13,15 @@
 import { Response } from '@adobe/fetch';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
-import { assertSuperuserAuthorized } from '../support/authorization.js';
+import { assertSuperuserAuthorized, assertOrgAdminAuthorized } from '../support/authorization.js';
 import {
-  doesOrgExist, getOrgkey, getDomainOrgkeyMap, storeDomainOrgkeyMap,
+  doesOrgExist,
+  retrieveOrgkey,
+  getDomainOrgkeyMap,
+  storeDomainOrgkeyMap,
   storeOrg,
-  getOrg,
+  retrieveOrg,
+  storeOrgkey,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -56,6 +60,7 @@ async function removeOrgkeyFromDomains(ctx, domains, org) {
     domains.map(async (domain) => {
       try {
         const orgkeyMap = await getDomainOrgkeyMap(ctx, domain);
+        /* c8 ignore next 3 */
         if (!orgkeyMap[org]) {
           return;
         }
@@ -90,9 +95,8 @@ async function createOrg(req, ctx) {
   }
 
   const orgkey = crypto.randomUUID().toUpperCase();
-  const { usersBucket } = HelixStorage.fromContext(ctx);
   await Promise.all([
-    usersBucket.put(`/orgs/${id}/.orgkey`, orgkey, 'text/plain'),
+    storeOrgkey(ctx, id, orgkey),
     storeOrg(ctx, id, { domains }),
     addOrgkeyToDomains(ctx, domains, id, orgkey),
   ]);
@@ -128,6 +132,48 @@ async function listOrgs(req, ctx) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} info
  */
+async function getOrg(req, ctx, info) {
+  const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+  return new Response(JSON.stringify(org), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function getOrgkey(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org: id } = info;
+  const orgkey = await retrieveOrgkey(ctx, id);
+  if (!orgkey) {
+    return new Response('', { status: 404 });
+  }
+
+  return new Response(JSON.stringify({ orgkey }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
 async function updateOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
@@ -138,12 +184,12 @@ async function updateOrg(req, ctx, info) {
     throw errorWithResponse(400, 'invalid domains');
   }
 
-  const org = await getOrg(ctx, id);
+  const org = await retrieveOrg(ctx, id);
   if (!org) {
     return new Response('', { status: 404 });
   }
 
-  const orgkey = await getOrgkey(ctx, id);
+  const orgkey = await retrieveOrgkey(ctx, id);
   if (!orgkey) {
     ctx.log.warn(`orgkey not defined for org ${id}`);
     throw errorWithResponse(400, 'orgkey not defined');
@@ -182,7 +228,7 @@ async function removeDomainFromOrg(req, ctx, info) {
     return new Response('', { status: 404 });
   }
 
-  const org = await getOrg(ctx, id);
+  const org = await retrieveOrg(ctx, id);
   if (!org) {
     return new Response('', { status: 404 });
   }
@@ -206,6 +252,71 @@ async function removeDomainFromOrg(req, ctx, info) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {string} orgId
+ * @param {string} orgkey
+ * @param {string[]} domains
+ */
+// eslint-disable-next-line no-underscore-dangle
+async function _setOrgkey(ctx, orgId, orgkey, domains) {
+  await Promise.all([
+    storeOrgkey(ctx, orgId, orgkey),
+    addOrgkeyToDomains(ctx, domains, orgId, orgkey),
+  ]);
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function rotateOrgkey(req, ctx, info) {
+  const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const { domains } = org;
+  const orgkey = crypto.randomUUID().toUpperCase();
+  await _setOrgkey(ctx, id, orgkey, domains);
+
+  return new Response(JSON.stringify({ orgkey }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function setOrgkey(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { orgkey } = ctx.data;
+  if (!orgkey || typeof orgkey !== 'string') {
+    throw errorWithResponse(400, 'invalid orgkey');
+  }
+
+  const { org: id } = info;
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const { domains } = org;
+  await _setOrgkey(ctx, id, orgkey, domains);
+
+  return new Response('', { status: 204 });
+}
+
+/**
  * Handle /orgs route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -215,14 +326,27 @@ export default async function handleRequest(req, ctx) {
   const info = PathInfo.fromContext(ctx);
   if (req.method === 'POST') {
     if (info.org) {
+      if (info.subroute === 'key') {
+        return rotateOrgkey(req, ctx, info);
+      }
       return updateOrg(req, ctx, info);
     }
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
+    if (info.org) {
+      if (info.subroute === 'key') {
+        return getOrgkey(req, ctx, info);
+      }
+      return getOrg(req, ctx, info);
+    }
     return listOrgs(req, ctx);
   } else if (req.method === 'DELETE') {
     if (info.subroute === 'domains') {
       return removeDomainFromOrg(req, ctx, info);
+    }
+  } else if (req.method === 'PUT') {
+    if (info.subroute === 'key') {
+      return setOrgkey(req, ctx, info);
     }
   }
   return new Response('method not allowed', { status: 405 });
