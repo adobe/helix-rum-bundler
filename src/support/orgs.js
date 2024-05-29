@@ -48,13 +48,39 @@ export async function getDomainOrgkeyMap(ctx, domain) {
  * @param {string} org
  * @returns {Promise<string|null>}
  */
-export async function fetchOrgkey(ctx, org) {
+export async function getOrgkey(ctx, org) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
   const buf = await usersBucket.get(`/orgs/${org}/.orgkey`);
   if (!buf) {
     return null;
   }
   return new TextDecoder('utf8').decode(buf);
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {string} org
+ * @returns {Promise<{domains: string[]} | null>}
+ */
+export async function getOrg(ctx, org) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  const data = await usersBucket.get(`/orgs/${org}/org.json`);
+  if (!data) {
+    return null;
+  }
+
+  return JSON.parse(new TextDecoder('utf8').decode(data));
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {string} org
+ * @param {{ domains: string[] }} data
+ * @returns {Promise<void>}
+ */
+export async function storeOrg(ctx, org, data) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  await usersBucket.put(`/orgs/${org}/org.json`, JSON.stringify(data), 'application/json');
 }
 
 /**

@@ -17,7 +17,9 @@ import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
 import { assertSuperuserAuthorized } from '../support/authorization.js';
 import {
-  doesOrgExist, fetchOrgkey, getDomainOrgkeyMap, storeDomainOrgkeyMap,
+  doesOrgExist, getOrgkey, getDomainOrgkeyMap, storeDomainOrgkeyMap,
+  storeOrg,
+  getOrg,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -68,7 +70,7 @@ async function createOrg(req, ctx) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
   await Promise.all([
     usersBucket.put(`/orgs/${id}/.orgkey`, orgkey, 'text/plain'),
-    usersBucket.put(`/orgs/${id}/org.json`, JSON.stringify({ domains }), 'application/json'),
+    storeOrg(ctx, id, { domains }),
     addOrgkeyToDomains(ctx, domains, id, orgkey),
   ]);
 
@@ -103,23 +105,45 @@ async function listOrgs(req, ctx) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} info
  */
-async function addDomainsToOrg(req, ctx, info) {
+async function updateOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
-  const { org } = info;
+  const { org: id } = info;
   const { domains = [] } = ctx.data;
 
   if (!Array.isArray(domains) || domains.find((d) => typeof d !== 'string')) {
     throw errorWithResponse(400, 'invalid domains');
   }
 
-  const orgkey = await fetchOrgkey(ctx, org);
+  const org = await getOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const orgkey = await getOrgkey(ctx, id);
   if (!orgkey) {
+    ctx.log.warn(`orgkey not defined for org ${id}`);
     throw errorWithResponse(400, 'orgkey not defined');
   }
 
-  await addOrgkeyToDomains(ctx, domains, org, orgkey);
-  return new Response('', { status: 204 });
+  const newDomains = [];
+  const existing = new Set(org.domains);
+  domains.forEach((domain) => {
+    if (!existing.has(domain)) {
+      newDomains.push(domain);
+    }
+  });
+  org.domains = [...existing, ...newDomains];
+  await Promise.all([
+    storeOrg(ctx, id, org),
+    addOrgkeyToDomains(ctx, newDomains, id, orgkey),
+  ]);
+  return new Response(JSON.stringify(org), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
 }
 
 /**
@@ -132,7 +156,7 @@ export default async function handleRequest(req, ctx) {
   if (req.method === 'POST') {
     const info = PathInfo.fromContext(ctx);
     if (info.org) {
-      return addDomainsToOrg(req, ctx, info);
+      return updateOrg(req, ctx, info);
     }
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
