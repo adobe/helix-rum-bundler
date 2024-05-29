@@ -392,4 +392,28 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(bodies.orgkey, 'MY-NEW-ORGKEY');
     });
   });
+
+  describe('GET /orgs/:id/key', () => {
+    it('returns 404 for non-existent orgkey', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/.orgkey?x-id=GetObject')
+        .reply(404);
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns orgkey', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/.orgkey?x-id=GetObject')
+        .reply(200, 'THE-KEY');
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const { orgkey } = await resp.json();
+      assert.strictEqual(orgkey, 'THE-KEY');
+    });
+  });
 });

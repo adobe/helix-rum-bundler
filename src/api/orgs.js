@@ -16,11 +16,12 @@ import { errorWithResponse } from '../support/util.js';
 import { assertSuperuserAuthorized, assertOrgAdminAuthorized } from '../support/authorization.js';
 import {
   doesOrgExist,
-  getOrgkey,
+  retrieveOrgkey,
   getDomainOrgkeyMap,
   storeDomainOrgkeyMap,
   storeOrg,
   retrieveOrg,
+  storeOrgkey,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -94,9 +95,8 @@ async function createOrg(req, ctx) {
   }
 
   const orgkey = crypto.randomUUID().toUpperCase();
-  const { usersBucket } = HelixStorage.fromContext(ctx);
   await Promise.all([
-    usersBucket.put(`/orgs/${id}/.orgkey`, orgkey, 'text/plain'),
+    storeOrgkey(ctx, id, orgkey),
     storeOrg(ctx, id, { domains }),
     addOrgkeyToDomains(ctx, domains, id, orgkey),
   ]);
@@ -152,6 +152,28 @@ async function getOrg(req, ctx, info) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} info
  */
+async function getOrgkey(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org: id } = info;
+  const orgkey = await retrieveOrgkey(ctx, id);
+  if (!orgkey) {
+    return new Response('', { status: 404 });
+  }
+
+  return new Response(JSON.stringify({ orgkey }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
 async function updateOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
@@ -167,7 +189,7 @@ async function updateOrg(req, ctx, info) {
     return new Response('', { status: 404 });
   }
 
-  const orgkey = await getOrgkey(ctx, id);
+  const orgkey = await retrieveOrgkey(ctx, id);
   if (!orgkey) {
     ctx.log.warn(`orgkey not defined for org ${id}`);
     throw errorWithResponse(400, 'orgkey not defined');
@@ -237,9 +259,8 @@ async function removeDomainFromOrg(req, ctx, info) {
  */
 // eslint-disable-next-line no-underscore-dangle
 async function _setOrgkey(ctx, orgId, orgkey, domains) {
-  const { usersBucket } = HelixStorage.fromContext(ctx);
   await Promise.all([
-    usersBucket.put(`/orgs/${orgId}/.orgkey`, orgkey, 'text/plain'),
+    storeOrgkey(ctx, orgId, orgkey),
     addOrgkeyToDomains(ctx, domains, orgId, orgkey),
   ]);
 }
@@ -313,6 +334,9 @@ export default async function handleRequest(req, ctx) {
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
     if (info.org) {
+      if (info.subroute === 'key') {
+        return getOrgkey(req, ctx, info);
+      }
       return getOrg(req, ctx, info);
     }
     return listOrgs(req, ctx);
