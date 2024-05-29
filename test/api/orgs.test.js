@@ -283,4 +283,37 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(bodies.orgkeys, '{"other":"OTHER-ORG-KEY"}');
     });
   });
+
+  describe('GET /orgs/:id', () => {
+    it('rejects unauthorized', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/.orgkey?x-id=GetObject')
+        .reply(200, 'ORG-KEY');
+      const req = REQUEST({ method: 'GET', token: 'invalid' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' } });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 403);
+    });
+
+    it('returns 404 for non-existent org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['foo.example', 'www.adobe.com'] }));
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const data = await resp.json();
+      assert.deepStrictEqual(data, { domains: ['foo.example', 'www.adobe.com'] });
+    });
+  });
 });

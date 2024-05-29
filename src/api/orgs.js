@@ -13,11 +13,14 @@
 import { Response } from '@adobe/fetch';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
-import { assertSuperuserAuthorized } from '../support/authorization.js';
+import { assertSuperuserAuthorized, assertOrgAdminAuthorized } from '../support/authorization.js';
 import {
-  doesOrgExist, getOrgkey, getDomainOrgkeyMap, storeDomainOrgkeyMap,
+  doesOrgExist,
+  getOrgkey,
+  getDomainOrgkeyMap,
+  storeDomainOrgkeyMap,
   storeOrg,
-  getOrg,
+  retrieveOrg,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -56,6 +59,7 @@ async function removeOrgkeyFromDomains(ctx, domains, org) {
     domains.map(async (domain) => {
       try {
         const orgkeyMap = await getDomainOrgkeyMap(ctx, domain);
+        /* c8 ignore next 3 */
         if (!orgkeyMap[org]) {
           return;
         }
@@ -128,6 +132,26 @@ async function listOrgs(req, ctx) {
  * @param {UniversalContext} ctx
  * @param {PathInfo} info
  */
+async function getOrg(req, ctx, info) {
+  const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+  return new Response(JSON.stringify(org), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
 async function updateOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
@@ -138,7 +162,7 @@ async function updateOrg(req, ctx, info) {
     throw errorWithResponse(400, 'invalid domains');
   }
 
-  const org = await getOrg(ctx, id);
+  const org = await retrieveOrg(ctx, id);
   if (!org) {
     return new Response('', { status: 404 });
   }
@@ -182,7 +206,7 @@ async function removeDomainFromOrg(req, ctx, info) {
     return new Response('', { status: 404 });
   }
 
-  const org = await getOrg(ctx, id);
+  const org = await retrieveOrg(ctx, id);
   if (!org) {
     return new Response('', { status: 404 });
   }
@@ -219,6 +243,9 @@ export default async function handleRequest(req, ctx) {
     }
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
+    if (info.org) {
+      return getOrg(req, ctx, info);
+    }
     return listOrgs(req, ctx);
   } else if (req.method === 'DELETE') {
     if (info.subroute === 'domains') {

@@ -60,7 +60,7 @@ export async function getOrgkey(ctx, org) {
  * @param {string} org
  * @returns {Promise<{domains: string[]} | null>}
  */
-export async function getOrg(ctx, org) {
+export async function retrieveOrg(ctx, org) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
   const data = await usersBucket.get(`/orgs/${org}/org.json`);
   if (!data) {
