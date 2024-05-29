@@ -10,8 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
-
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
 import handleRequest from '../../src/api/index.js';

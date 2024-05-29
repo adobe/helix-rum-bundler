@@ -10,8 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
-
 import { DEFAULT_CONTEXT, assertRejectsWithResponse } from '../util.js';
 import { assertSuperuserAuthorized } from '../../src/support/authorization.js';
 

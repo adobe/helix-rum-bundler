@@ -10,8 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-/* eslint-env mocha */
-
 import assert from 'assert';
 import { assertAuthorized, getTTL } from '../../src/api/bundles.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
