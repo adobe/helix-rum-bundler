@@ -1,3 +1,12 @@
+## [1.3.1](https://github.com/adobe/helix-rum-bundler/compare/v1.3.0...v1.3.1) (2024-05-29)
+
+
+### Bug Fixes
+
+* get org ([b7cd1d3](https://github.com/adobe/helix-rum-bundler/commit/b7cd1d354b87d4877f6319971678320bc33b2556))
+* get orgkey ([b32c4f4](https://github.com/adobe/helix-rum-bundler/commit/b32c4f42cfe073cddb7ad8f2833e861daee38b44))
+* set/rotate orgkeys ([f514d66](https://github.com/adobe/helix-rum-bundler/commit/f514d667a5460ceaae23cdbb018fc6d6af8ca598))
+
 # [1.3.0](https://github.com/adobe/helix-rum-bundler/compare/v1.2.4...v1.3.0) (2024-05-29)
 
 
