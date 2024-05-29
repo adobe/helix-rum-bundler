@@ -14,6 +14,10 @@
 
 import assert from 'assert';
 import nock from 'nock';
+import { gunzip as gunzipc } from 'zlib';
+import { promisify } from 'util';
+
+const gunzip = promisify(gunzipc);
 
 /**
  * @typedef {ReturnType<Nock>} Nocker
@@ -24,10 +28,12 @@ const DEFAULT_DOMAIN_KEY = 'domainkey';
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
   log: console,
   env: {
+    CDN_ENDPOINT: 'https://endpoint.example',
     BATCH_LIMIT: '100',
     CONCURRENCY_LIMIT: '4',
     TMP_SUPERUSER_API_KEY: 'superkey',
     BUNDLER_PROCESS_ALL: 'true',
+    FASTLY_SERVICE_ID: 'fake-service',
     BUNDLER_DURATION_LIMIT: String(9 * 60 * 1000),
     ...(overrides.env ?? {}),
   },
@@ -43,6 +49,14 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
     ...(overrides.data ?? {}),
   },
 });
+
+/**
+ * @param {string} str
+ * @returns {Promise<string>}
+ */
+export async function ungzip(str) {
+  return (await gunzip(Buffer.from(str, 'hex'))).toString();
+}
 
 /**
  *
@@ -146,6 +160,10 @@ export function Nock() {
 
   nocker.putAggregate = (year, month, date, domain = 'example.com') => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
     .put(`/${domain}/${year}${month ? `/${month}` : ''}${date ? `/${date}` : ''}/aggregate.json?x-id=PutObject`)
+    .reply(200);
+
+  nocker.purgeFastly = (key) => nocker('https://api.fastly.com')
+    .post(`/service/fake-service/purge/${key}`)
     .reply(200);
 
   return nocker;

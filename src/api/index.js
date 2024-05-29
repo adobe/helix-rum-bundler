@@ -15,11 +15,14 @@
 import { Response } from '@adobe/fetch';
 import domainkey from './domainkey.js';
 import bundles from './bundles.js';
+import orgs from './orgs.js';
 import { errorWithResponse } from '../support/util.js';
+import { PathInfo } from '../support/PathInfo.js';
 
 const handlers = {
   domainkey,
   bundles,
+  orgs,
 };
 
 /**
@@ -29,8 +32,9 @@ const handlers = {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  const route = ctx.pathInfo.suffix.split('/')[1];
-  const handler = handlers[route];
+  const info = PathInfo.fromContext(ctx);
+  const handler = handlers[info.route];
+  /* c8 ignore next 3 */
   if (!handler) {
     throw errorWithResponse(404, 'not found');
   }

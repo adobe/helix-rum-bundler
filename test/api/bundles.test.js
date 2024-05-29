@@ -13,7 +13,7 @@
 /* eslint-env mocha */
 
 import assert from 'assert';
-import { assertAuthorized, parsePath, getTTL } from '../../src/api/bundles.js';
+import { assertAuthorized, getTTL } from '../../src/api/bundles.js';
 import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
 
 describe('api/bundles Tests', () => {
@@ -43,73 +43,6 @@ describe('api/bundles Tests', () => {
         ctx,
         'example.com',
       ));
-    });
-  });
-
-  describe('parsePath()', () => {
-    it('should throw 404 response on invalid paths', async () => {
-      await assertRejectsWithResponse(async () => parsePath(''), 404, 'invalid path');
-      await assertRejectsWithResponse(async () => parsePath('/bundles/domain/notanumber'), 404, 'invalid path');
-    });
-
-    it('parses paths', () => {
-      // with hour
-      let parsed = parsePath('/bundles/domain/2024/01/01/0.json');
-      assert.strictEqual(parsed.toString(), '/domain/2024/1/1/0');
-      assert.deepStrictEqual({ ...parsed, toString: undefined }, {
-        route: 'bundles',
-        domain: 'domain',
-        year: 2024,
-        month: 1,
-        day: 1,
-        hour: 0,
-        toString: undefined,
-      });
-
-      const parsedNoJson = parsePath('/bundles/domain/2024/01/01/0');
-      assert.deepStrictEqual(
-        { ...parsed, toString: undefined },
-        { ...parsedNoJson, toString: undefined },
-      );
-
-      // with day
-      parsed = parsePath('/bundles/domain/2024/3/4.json');
-      assert.strictEqual(parsed.toString(), '/domain/2024/3/4');
-      assert.deepStrictEqual({ ...parsed, toString: undefined }, {
-        route: 'bundles',
-        domain: 'domain',
-        year: 2024,
-        month: 3,
-        day: 4,
-        hour: undefined,
-        toString: undefined,
-      });
-
-      // with month
-      parsed = parsePath('/bundles/domain/2024/12.json');
-      assert.strictEqual(parsed.toString(), '/domain/2024/12');
-      assert.deepStrictEqual({ ...parsed, toString: undefined }, {
-        route: 'bundles',
-        domain: 'domain',
-        year: 2024,
-        month: 12,
-        day: undefined,
-        hour: undefined,
-        toString: undefined,
-      });
-
-      // with year
-      parsed = parsePath('/bundles/domain/2024.json');
-      assert.strictEqual(parsed.toString(), '/domain/2024');
-      assert.deepStrictEqual({ ...parsed, toString: undefined }, {
-        route: 'bundles',
-        domain: 'domain',
-        year: 2024,
-        month: undefined,
-        day: undefined,
-        hour: undefined,
-        toString: undefined,
-      });
     });
   });
 

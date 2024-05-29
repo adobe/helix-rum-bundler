@@ -18,21 +18,7 @@ import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
 import { purgeSurrogateKey } from '../support/cache.js';
 import { setDomainKey, fetchDomainKey } from '../support/domains.js';
-
-/**
- * @param {RRequest} req
- * @param {UniversalContext} ctx
- */
-function assertAuthorized(req, ctx) {
-  // TODO: use admin auth, for now just restrict access to a super user key
-  if (!ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
-  }
-  const key = req.headers.get('authorization')?.slice(7); // bearer
-  if (key !== ctx.env.TMP_SUPERUSER_API_KEY) {
-    throw errorWithResponse(403, 'invalid auth');
-  }
-}
+import { assertAuthorizedForDomain } from '../support/authorization.js';
 
 /**
  * Update domainkey for domain in storage & runquery.
@@ -112,9 +98,9 @@ async function removeDomainKey(ctx, domain) {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  assertAuthorized(req, ctx);
-
   const { domain } = new PathInfo(ctx.pathInfo.suffix);
+  await assertAuthorizedForDomain(req, ctx, domain);
+
   if (req.method === 'POST') {
     return rotateDomainKey(ctx, domain);
   } else if (req.method === 'GET') {
