@@ -228,4 +228,61 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(bodies.orgkeys2, '{"existing":"EXISTING-ORG-KEY","adobe":"ORG-KEY"}');
     });
   });
+
+  describe('DELETE /orgs/:id/domains/:domain', () => {
+    it('returns 404 for missing domain', async () => {
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/domains/' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns 404 for missing org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/domains/www.adobe.com' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns 200, halts early for no change', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['foo.example'] }));
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/domains/www.adobe.com' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+    });
+
+    it('removes domain from org', async () => {
+      const bodies = { org: undefined, orgkeys: undefined };
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['foo.example', 'www.adobe.com', 'other.bar'] }))
+        .put('/orgs/adobe/org.json?x-id=PutObject', async (b) => {
+          bodies.org = await ungzip(b);
+          return true;
+        })
+        .reply(200)
+        .get('/domains/www.adobe.com/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ adobe: 'ORG-KEY', other: 'OTHER-ORG-KEY' }))
+        .put('/domains/www.adobe.com/.orgkeys.json?x-id=PutObject', async (b) => {
+          bodies.orgkeys = await ungzip(b);
+          return true;
+        })
+        .reply(200, JSON.stringify({ adobe: 'ORG-KEY', other: 'OTHER-ORG-KEY' }));
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/domains/www.adobe.com' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.strictEqual(bodies.org, '{"domains":["foo.example","other.bar"]}');
+      assert.strictEqual(bodies.orgkeys, '{"other":"OTHER-ORG-KEY"}');
+    });
+  });
 });

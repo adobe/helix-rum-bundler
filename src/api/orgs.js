@@ -47,6 +47,31 @@ async function addOrgkeyToDomains(ctx, domains, org, orgkey) {
 }
 
 /**
+ * Removes orgkey entry for domains from their orgkeyDomainMap
+ *
+ * @param {UniversalContext} ctx
+ * @param {string[]} domains
+ * @param {string} org
+ */
+async function removeOrgkeyFromDomains(ctx, domains, org) {
+  await Promise.allSettled(
+    domains.map(async (domain) => {
+      try {
+        const orgkeyMap = await getDomainOrgkeyMap(ctx, domain);
+        if (!orgkeyMap[org]) {
+          return;
+        }
+        delete orgkeyMap[org];
+        await storeDomainOrgkeyMap(ctx, domain, orgkeyMap);
+        /* c8 ignore next 3 */
+      } catch (e) {
+        ctx.log.error(`failed to add orgkey to domain '${domain}'`, e);
+      }
+    }),
+  );
+}
+
+/**
  * Create new org
  *
  * @param {RRequest} req
@@ -147,20 +172,60 @@ async function updateOrg(req, ctx, info) {
 }
 
 /**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function removeDomainFromOrg(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org: id, domain } = info;
+  if (!domain) {
+    return new Response('', { status: 404 });
+  }
+
+  const org = await getOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const newDomains = org.domains.filter((d) => d !== domain);
+  if (newDomains.length === org.domains.length) {
+    return new Response('', { status: 200 });
+  }
+
+  org.domains = newDomains;
+  await Promise.all([
+    storeOrg(ctx, id, org),
+    removeOrgkeyFromDomains(ctx, [domain], id),
+  ]);
+  return new Response(JSON.stringify(org), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
  * Handle /orgs route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
+  const info = PathInfo.fromContext(ctx);
   if (req.method === 'POST') {
-    const info = PathInfo.fromContext(ctx);
     if (info.org) {
       return updateOrg(req, ctx, info);
     }
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
     return listOrgs(req, ctx);
+  } else if (req.method === 'DELETE') {
+    if (info.subroute === 'domains') {
+      return removeDomainFromOrg(req, ctx, info);
+    }
   }
   return new Response('method not allowed', { status: 405 });
 }
