@@ -14,6 +14,9 @@
 
 import assert from 'assert';
 import { Request } from '@adobe/fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import handleRequest from '../../src/api/orgs.js';
 import {
   DEFAULT_CONTEXT,
@@ -21,6 +24,9 @@ import {
   assertRejectsWithResponse,
   ungzip,
 } from '../util.js';
+
+// eslint-disable-next-line no-underscore-dangle
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const REQUEST = ({ method, token = 'superkey' }) => new Request('https://localhost/', {
   method,
@@ -41,6 +47,13 @@ describe('api/orgs Tests', () => {
   afterEach(() => {
     nock.done();
     crypto.randomUUID = ogUUID;
+  });
+
+  it('rejects unhandle method', async () => {
+    const req = REQUEST({ method: 'FOO' });
+    const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs' } });
+    const resp = await handleRequest(req, ctx);
+    assert.deepEqual(resp.status, 405);
   });
 
   describe('createOrg()', () => {
@@ -128,6 +141,22 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(await ungzip(bodies.org), '{"domains":["example.com"]}');
       assert.strictEqual(await ungzip(bodies.orgkey), 'TEST-UUID');
       assert.strictEqual(await ungzip(bodies.domainOrgkeyMap), '{"foo":"TEST-UUID"}');
+    });
+  });
+
+  describe('listOrgs()', () => {
+    it('returns orgs', async () => {
+      const listBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-orgs.xml'), 'utf-8');
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/?delimiter=%2F&list-type=2&prefix=orgs%2F')
+        .reply(200, listBody);
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const { orgs } = await resp.json();
+      assert.deepStrictEqual(orgs, ['adobe', 'foo', 'bar']);
     });
   });
 });

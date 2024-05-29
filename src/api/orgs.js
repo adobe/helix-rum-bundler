@@ -33,6 +33,7 @@ async function addOrgkeyToDomains(ctx, domains, org, orgkey) {
         const orgkeyMap = await getDomainOrgkeyMap(ctx, domain);
         orgkeyMap[org] = orgkey;
         await storeDomainOrgkeyMap(ctx, domain, orgkeyMap);
+        /* c8 ignore next 3 */
       } catch (e) {
         ctx.log.error(`failed to add orgkey to domain '${domain}'`, e);
       }
@@ -84,7 +85,8 @@ async function listOrgs(req, ctx) {
   assertSuperuserAuthorized(req, ctx);
 
   const { usersBucket } = HelixStorage.fromContext(ctx);
-  const orgs = (await usersBucket.listFolders('orgs/')).map((o) => o.replace('orgs/', '').slice(0, -1));
+  const folders = await usersBucket.listFolders('orgs/');
+  const orgs = folders.map((o) => o.replace('orgs/', '').slice(0, -1));
   return new Response(JSON.stringify({ orgs }), {
     status: 200,
     headers: {
