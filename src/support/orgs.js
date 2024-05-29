@@ -42,6 +42,22 @@ export async function getDomainOrgkeyMap(ctx, domain) {
 }
 
 /**
+ * Get orgkey for org
+ *
+ * @param {UniversalContext} ctx
+ * @param {string} org
+ * @returns {Promise<string|null>}
+ */
+export async function fetchOrgkey(ctx, org) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  const buf = await usersBucket.get(`/orgs/${org}/.orgkey`);
+  if (!buf) {
+    return null;
+  }
+  return new TextDecoder('utf8').decode(buf);
+}
+
+/**
  * Store domain-orgkey map
  *
  * @param {UniversalContext} ctx

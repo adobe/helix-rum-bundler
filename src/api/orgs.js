@@ -16,7 +16,10 @@ import { Response } from '@adobe/fetch';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
 import { assertSuperuserAuthorized } from '../support/authorization.js';
-import { doesOrgExist, getDomainOrgkeyMap, storeDomainOrgkeyMap } from '../support/orgs.js';
+import {
+  doesOrgExist, fetchOrgkey, getDomainOrgkeyMap, storeDomainOrgkeyMap,
+} from '../support/orgs.js';
+import { PathInfo } from '../support/PathInfo.js';
 
 /**
  * Sets { [org]: [orgkey] } in `{usersbucket}/domains/{domain}/.orgkeys.json`
@@ -96,6 +99,30 @@ async function listOrgs(req, ctx) {
 }
 
 /**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function addDomainsToOrg(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org } = info;
+  const { domains = [] } = ctx.data;
+
+  if (!Array.isArray(domains) || domains.find((d) => typeof d !== 'string')) {
+    throw errorWithResponse(400, 'invalid domains');
+  }
+
+  const orgkey = await fetchOrgkey(ctx, org);
+  if (!orgkey) {
+    throw errorWithResponse(400, 'orgkey not defined');
+  }
+
+  await addOrgkeyToDomains(ctx, domains, org, orgkey);
+  return new Response('', { status: 204 });
+}
+
+/**
  * Handle /orgs route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -103,6 +130,10 @@ async function listOrgs(req, ctx) {
  */
 export default async function handleRequest(req, ctx) {
   if (req.method === 'POST') {
+    const info = PathInfo.fromContext(ctx);
+    if (info.org) {
+      return addDomainsToOrg(req, ctx, info);
+    }
     return createOrg(req, ctx);
   } else if (req.method === 'GET') {
     return listOrgs(req, ctx);

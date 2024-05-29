@@ -22,7 +22,7 @@ export class PathInfo {
   /** @type {string} */
   domain;
 
-  /** @type {string|undefined} */
+  /** @type {string} */
   org;
 
   /** @type {number} */
