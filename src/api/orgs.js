@@ -11,8 +11,11 @@
  */
 
 import { Response } from '@adobe/fetch';
+import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from '../support/storage.js';
-import { errorWithResponse } from '../support/util.js';
+import {
+  calculateDownsample, compressBody, errorWithResponse, getFetch,
+} from '../support/util.js';
 import { assertSuperuserAuthorized, assertOrgAdminAuthorized } from '../support/authorization.js';
 import {
   doesOrgExist,
@@ -24,6 +27,13 @@ import {
   storeOrgkey,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
+import {
+  MAX_EVENTS,
+  fetchAggregate,
+  getTTL,
+  storeAggregate,
+} from './bundles.js';
+import { fetchDomainKey } from '../support/domains.js';
 
 /**
  * Sets { [org]: [orgkey] } in `{usersbucket}/domains/{domain}/.orgkeys.json`
@@ -317,6 +327,109 @@ async function setOrgkey(req, ctx, info) {
 }
 
 /**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function getOrgBundles(req, ctx, info) {
+  const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const { domains } = org;
+  if (!domains.length) {
+    return new Response(JSON.stringify({ rumBundles: [] }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }
+
+  const orgPath = new PathInfo(`/bundles/${id}:all/${info.segments.slice(3).join('/')}`);
+  const aggregate = await fetchAggregate(ctx, orgPath);
+  const ttl = getTTL(orgPath);
+  if (aggregate) {
+    return compressBody(
+      ctx,
+      req,
+      JSON.stringify(aggregate),
+      {
+        'cache-control': `public, max-age=${ttl}`,
+        'surrogate-key': info.surrogateKeys.join(' '),
+      },
+    );
+  }
+
+  // for each domain in org, fetch it's bundles from the CDN
+  // filter to only include `top` and `cwv-*` events
+  // downsample if needed
+  // store aggregate
+
+  /** @type {RUMBundle[]} */
+  let rumBundles = [];
+  let totalEvents = 0;
+  const { date } = orgPath;
+  const fetch = getFetch(ctx);
+  await processQueue(
+    domains,
+    async (domain) => {
+      const domainkey = await fetchDomainKey(ctx, domain);
+      const url = `${ctx.env.CDN_ENDPOINT}/bundles/${domain}/${date}?domainkey=${domainkey}`;
+      // fetch from the CDN so that it caches the result
+      const resp = await fetch(url);
+      /** @type {any} */
+      let data;
+      if (resp.ok) {
+        data = await resp.json();
+      } else {
+        data = { rumBundles: [] };
+      }
+      rumBundles.push(...data.rumBundles.map((pbundle) => {
+        const bundle = pbundle;
+        // filter to only include `top` and `cwv-*` events
+        bundle.events = bundle.events.filter((e) => e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-'));
+        bundle.domain = domain;
+        totalEvents += bundle.events.length;
+        return bundle;
+      }));
+    },
+  );
+
+  const { reductionFactor, weightFactor } = calculateDownsample(
+    totalEvents,
+    orgPath.day ? MAX_EVENTS.daily : MAX_EVENTS.monthly,
+  );
+  if (reductionFactor > 0) {
+    rumBundles = rumBundles
+      .filter(() => (Math.random() > reductionFactor))
+      .map((b) => ({
+        ...b,
+        weight: b.weight * weightFactor,
+      }));
+  }
+
+  const str = JSON.stringify({ rumBundles });
+
+  // store aggregate
+  await storeAggregate(ctx, orgPath, str, ttl * 1000);
+
+  return compressBody(
+    ctx,
+    req,
+    str,
+    {
+      'cache-control': `public, max-age=${ttl}`,
+      'surrogate-key': info.surrogateKeys.join(' '),
+    },
+  );
+}
+
+/**
  * Handle /orgs route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -336,6 +449,9 @@ export default async function handleRequest(req, ctx) {
     if (info.org) {
       if (info.subroute === 'key') {
         return getOrgkey(req, ctx, info);
+      }
+      if (info.subroute === 'bundles') {
+        return getOrgBundles(req, ctx, info);
       }
       return getOrg(req, ctx, info);
     }

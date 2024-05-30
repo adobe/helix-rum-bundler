@@ -27,7 +27,7 @@ import { fetchDomainKey } from '../support/domains.js';
  *
  * 5k events ~= 650KB uncompressed
  */
-const MAX_EVENTS = {
+export const MAX_EVENTS = {
   daily: 5_000,
   monthly: 20_000,
 };
@@ -62,8 +62,9 @@ export async function assertAuthorized(ctx, domain) {
  * returns null if not found
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
+ * @returns {Promise<{rumBundles: RUMBundle[]} | null>}
  */
-async function fetchAggregate(ctx, path) {
+export async function fetchAggregate(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const key = `${path}/aggregate.json`;
@@ -85,7 +86,7 @@ async function fetchAggregate(ctx, path) {
  * @param {string} data
  * @param {number} ttl in ms
  */
-async function storeAggregate(ctx, path, data, ttl) {
+export async function storeAggregate(ctx, path, data, ttl) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const prefix = path.toString();
   const key = `${prefix}/aggregate.json`;
@@ -99,7 +100,7 @@ async function storeAggregate(ctx, path, data, ttl) {
  * @param {PathInfo} path
  * @returns {Promise<{ rumBundles: RUMBundle[] }>}
  */
-async function fetchHourly(ctx, path) {
+export async function fetchHourly(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const key = `${path}.json`;
@@ -137,7 +138,7 @@ async function fetchDaily(ctx, path) {
 
   const hourlyBundles = await Promise.allSettled(
     hours.map(async (hour) => {
-      const hpath = path.clone(undefined, undefined, undefined, hour);
+      const hpath = path.clone(undefined, undefined, undefined, undefined, hour);
       const data = await fetchHourly(ctx, hpath);
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);

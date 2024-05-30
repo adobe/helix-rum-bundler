@@ -115,6 +115,11 @@ export class PathInfo {
     return ctx.attributes.pathInfo;
   }
 
+  get date() {
+    const parts = [this.year, this.month, this.day, this.hour];
+    return parts.filter((p) => p !== undefined).join('/');
+  }
+
   toString() {
     const parts = ['', this.domain, this.year, this.month, this.day, this.hour];
     return parts.filter((p) => p !== undefined).join('/');
@@ -139,14 +144,15 @@ export class PathInfo {
 
   /**
    * make new PathInfo with optional overrides
+   * @param {string} [domain]
    * @param {number} [year]
    * @param {number} [month]
    * @param {number} [day]
    * @param {number} [hour]
    * @returns {PathInfo}
    */
-  clone(year, month, day, hour) {
-    const parts = ['', this.route, this.domain, year ?? this.year, month ?? this.month, day ?? this.day, hour ?? this.hour];
+  clone(domain, year, month, day, hour) {
+    const parts = ['', this.route, domain ?? this.domain, year ?? this.year, month ?? this.month, day ?? this.day, hour ?? this.hour];
     const newPath = parts.filter((p) => p !== undefined).join('/');
     return new PathInfo(newPath);
   }
