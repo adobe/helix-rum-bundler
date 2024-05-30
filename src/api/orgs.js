@@ -333,7 +333,7 @@ async function setOrgkey(req, ctx, info) {
  */
 async function getOrgBundles(req, ctx, info) {
   const { org: id } = info;
-  await assertOrgAdminAuthorized(req, ctx, id);
+  await assertOrgAdminAuthorized(req, ctx, id, ctx.data.domainkey);
 
   const org = await retrieveOrg(ctx, id);
   if (!org) {
