@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/adobe/helix-rum-bundler/compare/v1.3.1...v1.4.0) (2024-05-30)
+
+
+### Bug Fixes
+
+* use domainkey param for org bundles ([c752832](https://github.com/adobe/helix-rum-bundler/commit/c7528329a0270c284b6a7b8c2ced06ef134097f0))
+
+
+### Features
+
+* org bundles ([efa5694](https://github.com/adobe/helix-rum-bundler/commit/efa5694c711d3b7ba365cf8444b29e212f47b49d))
+
 ## [1.3.1](https://github.com/adobe/helix-rum-bundler/compare/v1.3.0...v1.3.1) (2024-05-29)
 
 
