@@ -38,8 +38,8 @@ export function assertSuperuserAuthorized(req, ctx) {
   if (!ctx.env.TMP_SUPERUSER_API_KEY) {
     throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
   }
-  const key = req.headers.get('authorization')?.slice(7); // bearer
-  if (key !== ctx.env.TMP_SUPERUSER_API_KEY) {
+  const actual = req.headers.get('authorization')?.slice(7); // bearer
+  if (actual !== ctx.env.TMP_SUPERUSER_API_KEY) {
     throw errorWithResponse(403, 'invalid auth');
   }
 }
@@ -51,12 +51,13 @@ export function assertSuperuserAuthorized(req, ctx) {
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @param {string} org
+ * @param {string} [key] if not provided, pulls from req header
  */
-export async function assertOrgAdminAuthorized(req, ctx, org) {
+export async function assertOrgAdminAuthorized(req, ctx, org, key) {
   try {
     assertSuperuserAuthorized(req, ctx);
   } catch (e) {
-    const actual = req.headers.get('authorization')?.slice(7); // bearer
+    const actual = key || req.headers.get('authorization')?.slice(7); // bearer
     if (!actual) {
       throw e;
     }

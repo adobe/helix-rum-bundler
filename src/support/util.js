@@ -27,7 +27,7 @@ class ErrorWithResponse extends Error {
 
 /**
  * @param {number} status status code
- * @param {string} xError public, returned as x-error header
+ * @param {string} [xError] public, returned as x-error header
  * @param {string} [message=''] private, logged and not returned to client
  * @returns {ErrorWithResponse}
  */
