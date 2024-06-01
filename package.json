@@ -60,7 +60,7 @@
     "@adobe/helix-shared-secrets": "2.2.6",
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.0.12",
-    "@aws-sdk/client-s3": "3.583.0",
+    "@aws-sdk/client-s3": "3.588.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.0.3"
   },
@@ -70,7 +70,7 @@
     "@adobe/helix-universal": "5.0.0",
     "@adobe/helix-universal-devserver": "1.1.31",
     "@adobe/semantic-release-coralogix": "1.1.28",
-    "@google-cloud/bigquery": "7.7.0",
+    "@google-cloud/bigquery": "7.7.1",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
@@ -87,7 +87,7 @@
     "mocha": "10.4.0",
     "mocha-multi-reporters": "1.5.1",
     "nock": "13.5.4",
-    "nodemon": "3.1.1",
+    "nodemon": "3.1.2",
     "semantic-release": "23.1.1",
     "typescript": "5.4.5"
   },
