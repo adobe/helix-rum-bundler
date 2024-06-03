@@ -424,7 +424,7 @@ async function getOrgBundles(req, ctx, info) {
     str,
     {
       'cache-control': `public, max-age=${ttl}`,
-      'surrogate-key': info.surrogateKeys.join(' '),
+      'surrogate-key': orgPath.surrogateKeys.join(' '),
     },
   );
 }
