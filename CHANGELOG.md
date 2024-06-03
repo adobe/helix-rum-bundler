@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/adobe/helix-rum-bundler/compare/v1.4.2...v1.4.3) (2024-06-03)
+
+
+### Bug Fixes
+
+* correct org bundle surrogate keys ([6bb9635](https://github.com/adobe/helix-rum-bundler/commit/6bb96359e0f3414cce2307d1843107daf0772edf))
+
 ## [1.4.2](https://github.com/adobe/helix-rum-bundler/compare/v1.4.1...v1.4.2) (2024-06-01)
 
 
