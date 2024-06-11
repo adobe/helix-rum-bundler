@@ -22,7 +22,9 @@ describe('Index Tests', () => {
 
     const resp = await main(new Request('https://localhost/'), {
       env: {},
-      attributes: {},
+      attributes: {
+        stats: {},
+      },
       log: console,
       pathInfo: { suffix: '/bundles/x' },
     });
@@ -43,7 +45,12 @@ describe('Index Tests', () => {
 
     const resp = await mmain(
       new Request('https://localhost/'),
-      { log: console, env: {}, invocation: { event: { source: 'aws.scheduler' } } },
+      {
+        log: console,
+        env: {},
+        attributes: { stats: {} },
+        invocation: { event: { source: 'aws.scheduler' } },
+      },
     );
     assert.strictEqual(resp.status, 200);
     assert.strictEqual(resp.headers.get('route'), 'bundle-rum');

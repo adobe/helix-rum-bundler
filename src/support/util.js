@@ -114,10 +114,11 @@ export const pruneUndefined = (obj) => {
  *  TFunc extends (...args: any[]) => Promise<boolean>
  * >(
  *  fn: TFunc,
+ *  ctx: UniversalContext,
  *  opts: TimeoutOpts
  * ) => (...args: Parameters<TFunc>) => Promise<void>}
  */
-export const timeout = (fn, opts) => {
+export const timeout = (fn, ctx, opts) => {
   const { limit } = opts;
 
   return async (...args) => {
@@ -141,6 +142,24 @@ export const timeout = (fn, opts) => {
     while (!done) {
       // eslint-disable-next-line no-await-in-loop
       done = await fn(...args);
+
+      const marks = performance.getEntriesByType('mark');
+      const starts = marks.filter((m) => m.name.startsWith('start'));
+      const measures = starts.reduce((acc, start) => {
+        const name = start.name.replace('start:', '');
+        const end = marks.find((m) => m.name.endsWith(name));
+        if (end) {
+          acc[name] = end.startTime - start.startTime;
+        }
+        return acc;
+      }, {});
+      ctx.log.info(JSON.stringify({
+        message: 'performance',
+        measures,
+        stats: ctx.attributes.stats,
+      }));
+      performance.clearMarks();
+      ctx.attributes.stats = {};
 
       const after = performance.now();
       const dur = after - before;

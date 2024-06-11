@@ -468,6 +468,33 @@ describe('bundler Tests', () => {
           },
         },
       });
+
+      // check that performance was measured and logged correctly
+      // .lock deleted message is last
+      const perfLog = ctx.log.calls.info[ctx.log.calls.info.length - 2];
+      assert.deepEqual(JSON.parse(perfLog), {
+        message: 'performance',
+        measures: {
+          bundling: 0,
+          'get-logs': 0,
+          'parse-logs': 0,
+          'sort-events': 0,
+          'create-keys': 0,
+          'import-events': 0,
+          'import-virtual': 0,
+          'move-logs': 0,
+        },
+        stats: {
+          rawEvents: 10,
+          logFiles: 1,
+          domains: 2,
+          newDomains: 1,
+          rawKeys: 4,
+          rawKeysVirtual: 0,
+          totalEventsVirtual: 0,
+          totalEvents: 10,
+        },
+      });
     });
   });
 });

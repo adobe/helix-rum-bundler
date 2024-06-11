@@ -127,13 +127,17 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
  * @param {boolean} [isVirtual=false]
  */
 export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
-  const { log } = ctx;
+  const { log, attributes: { stats } } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
 
+  const entries = Object.entries(rawEventMap);
+  stats[isVirtual ? 'rawKeysVirtual' : 'rawKeys'] = entries.length;
+  let totalEvents = 0;
   await processQueue(
-    Object.entries(rawEventMap),
+    entries,
     async ([key, { events, info }]) => {
       log.debug(`processing ${events.length} events to file ${key}`);
+      totalEvents += events.length;
       const {
         domain, year, month, day, hour,
       } = info;
@@ -179,6 +183,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
     },
     concurrency,
   );
+  stats[isVirtual ? 'totalEventsVirtual' : 'totalEvents'] = totalEvents;
 }
 
 /**
@@ -190,7 +195,13 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
  */
 export function getVirtualDestinations(event, info) {
   return VIRTUAL_DOMAIN_RULES
-    .filter((rule) => rule.test(event))
+    .filter((rule) => {
+      try {
+        return rule.test(event);
+      } catch {
+        return false;
+      }
+    })
     .map((rule) => rule.destination(event, info));
 }
 
@@ -292,12 +303,14 @@ export function sortRawEvents(rawEvents, log) {
  * @returns {Promise<boolean>} whether all files are processed
  */
 async function doBundling(ctx) {
-  const { log } = ctx;
+  performance.mark('start:bundling');
+  const { log, attributes: { stats } } = ctx;
   const { logBucket } = HelixStorage.fromContext(ctx);
   const concurrency = getEnvVar(ctx, 'CONCURRENCY', DEFAULT_CONCURRENCY_LIMIT, 'integer');
   const batchLimit = getEnvVar(ctx, 'BATCH_LIMIT', DEFAULT_BATCH_LIMIT, 'integer');
 
   // list files in log bucket
+  performance.mark('start:get-logs');
   const { objects, isTruncated } = await logBucket.list('raw/', { limit: batchLimit });
   log.debug(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
 
@@ -313,8 +326,10 @@ async function doBundling(ctx) {
     },
     concurrency,
   );
+  performance.mark('end:get-logs');
 
   // each file is line-delimited JSON objects of events
+  performance.mark('start:parse-logs');
   const rawEvents = files
     .filter((e) => !!e)
     .reduce((events, txt) => {
@@ -327,32 +342,47 @@ async function doBundling(ctx) {
       });
       return events;
     }, []);
+  performance.mark('end:parse-logs');
+  stats.rawEvents = rawEvents.length;
+  stats.logFiles = objects.length;
+
   log.info(`processing ${rawEvents.length} RUM events from ${objects.length} files`);
   if (rawEvents.length === 0) {
     return !isTruncated;
   }
 
+  performance.mark('start:sort-events');
   const { rawEventMap, virtualMap, domains } = sortRawEvents(rawEvents, log);
+  performance.mark('end:sort-events');
+  stats.domains = domains.length;
 
   // find all new domains, generate domainkeys for them
+  performance.mark('start:create-keys');
+  const newDomains = [];
   await processQueue(
     domains,
     async (domain) => {
       if (await isNewDomain(ctx, domain)) {
         log.info(`new domain identified: ${domain}`);
+        newDomains.push(domain);
         await setDomainKey(ctx, domain, undefined, false);
       }
     },
     concurrency,
   );
+  performance.mark('end:create-keys');
+  stats.newDomains = newDomains.length;
 
-  log.debug(`processing ${Object.keys(rawEventMap).length} bundle keys`);
+  // log.debug(`processing ${Object.keys(rawEventMap).length} bundle keys`);
+  performance.mark('start:import-events');
+  performance.mark('start:import-virtual');
   await Promise.all([
-    importEventsByKey(ctx, rawEventMap),
-    importEventsByKey(ctx, virtualMap, true),
+    importEventsByKey(ctx, rawEventMap).finally(() => performance.mark('end:import-events')),
+    importEventsByKey(ctx, virtualMap, true).finally(() => performance.mark('end:import-virtual')),
   ]);
 
   // move all events into processed folder
+  performance.mark('start:move-logs');
   await processQueue(
     objects,
     async ({ key }) => {
@@ -361,7 +391,9 @@ async function doBundling(ctx) {
     },
     concurrency,
   );
+  performance.mark('end:move-logs');
 
+  performance.mark('end:bundling');
   return !isTruncated;
 }
 
@@ -374,7 +406,7 @@ export default async function bundleRUM(ctx) {
   const { env: { BUNDLER_DURATION_LIMIT } } = ctx;
   const limit = parseInt(BUNDLER_DURATION_LIMIT || String(9 * 60 * 1000), 10);
 
-  const processor = timeout(doBundling, { limit });
+  const processor = timeout(doBundling, ctx, { limit });
 
   await lockOrThrow(ctx);
   try {
