@@ -51,10 +51,7 @@ export default [{
   // all top events (new impl), for viewing all domains' events
   // downsample by 100x
   domain: 'aem.live:all',
-  test: (e) => {
-    const val = fingerprintValue(e);
-    return (e.checkpoint === 'top' || /$cwv-/.test(e.checkpoint)) && val < 0.01;
-  },
+  test: (e) => ['top', 'TTFB', 'FID', 'LCP', 'CLS', 'INP'].includes(e.checkpoint) && fingerprintValue(e) < 0.01,
   destination(e, info) {
     return {
       key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
