@@ -1,3 +1,10 @@
+## [1.4.10](https://github.com/adobe/helix-rum-bundler/compare/v1.4.9...v1.4.10) (2024-06-11)
+
+
+### Bug Fixes
+
+* actually include cwv events ([6150317](https://github.com/adobe/helix-rum-bundler/commit/6150317ab0a11730b77204be60f8d234c0dc76bd))
+
 ## [1.4.9](https://github.com/adobe/helix-rum-bundler/compare/v1.4.8...v1.4.9) (2024-06-11)
 
 
