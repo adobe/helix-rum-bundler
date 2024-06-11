@@ -147,7 +147,7 @@ export const timeout = (fn, ctx, opts) => {
       const starts = marks.filter((m) => m.name.startsWith('start'));
       const measures = starts.reduce((acc, start) => {
         const name = start.name.replace('start:', '');
-        const end = marks.find((m) => m.name.endsWith(name));
+        const end = marks.find((m) => m.name === `end:${name}`);
         if (end) {
           acc[name] = end.startTime - start.startTime;
         }
