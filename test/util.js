@@ -25,9 +25,32 @@ const gunzip = promisify(gunzipc);
 
 const DEFAULT_DOMAIN_KEY = 'domainkey';
 
+class ConsoleProxy {
+  calls = {};
+
+  constructor() {
+    // eslint-disable-next-line no-constructor-return
+    return new Proxy(this, {
+      get: (target, prop) => {
+        if (prop === 'calls') {
+          return this.calls;
+        }
+
+        return (...args) => {
+          if (this.calls[prop] === undefined) {
+            this.calls[prop] = [];
+          }
+          this.calls[prop].push(args);
+          Reflect.apply(console[prop], target, args);
+        };
+      },
+    });
+  }
+}
+
 /** @returns {UniversalContext} */
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
-  log: console,
+  log: new ConsoleProxy(),
   env: {
     CDN_ENDPOINT: 'https://endpoint.example',
     BATCH_LIMIT: '100',
@@ -39,6 +62,7 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
     ...(overrides.env ?? {}),
   },
   attributes: {
+    stats: {},
     ...(overrides.attributes ?? {}),
   },
   pathInfo: {

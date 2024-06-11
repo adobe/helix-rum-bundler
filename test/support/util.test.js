@@ -14,7 +14,7 @@ import assert from 'assert';
 import {
   pruneUndefined, getEnvVar, yesterday, timeout, calculateDownsample, magnitude,
 } from '../../src/support/util.js';
-import { assertRejectsWithResponse, sleep } from '../util.js';
+import { DEFAULT_CONTEXT, assertRejectsWithResponse, sleep } from '../util.js';
 
 describe('util Tests', () => {
   describe('pruneUndefined()', () => {
@@ -81,7 +81,7 @@ describe('util Tests', () => {
         assert.deepStrictEqual(arg2, 'bar');
         return true;
       };
-      const wrapped = timeout(fn, { limit: 100, log: console });
+      const wrapped = timeout(fn, DEFAULT_CONTEXT(), { limit: 100, log: console });
       await assert.doesNotReject(wrapped('foo', 'bar'));
     });
 
@@ -92,7 +92,7 @@ describe('util Tests', () => {
         count += 1;
         return count > 10;
       };
-      const wrapped = timeout(fn, { limit: 50, log: console });
+      const wrapped = timeout(fn, DEFAULT_CONTEXT(), { limit: 50, log: console });
       await assertRejectsWithResponse(wrapped, 504, /^timeout after/);
     });
   });

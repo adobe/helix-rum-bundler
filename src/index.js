@@ -57,6 +57,7 @@ function shouldBundleRUM(req, ctx) {
  */
 async function run(request, context) {
   const { log } = context;
+  context.attributes.stats = {};
 
   let resp;
   try {
