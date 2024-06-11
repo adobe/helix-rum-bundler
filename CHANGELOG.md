@@ -1,3 +1,10 @@
+## [1.4.12](https://github.com/adobe/helix-rum-bundler/compare/v1.4.11...v1.4.12) (2024-06-11)
+
+
+### Bug Fixes
+
+* perf measurement bug ([11c574a](https://github.com/adobe/helix-rum-bundler/commit/11c574a5048263a374904ee618c6e0c92f667b6b))
+
 ## [1.4.11](https://github.com/adobe/helix-rum-bundler/compare/v1.4.10...v1.4.11) (2024-06-11)
 
 
