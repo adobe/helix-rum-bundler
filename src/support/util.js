@@ -259,6 +259,29 @@ export const calculateDownsample = (total, maximum) => {
 
 /**
  * @param {RawRUMEvent} event
+ * @returns {string|null}
+ */
+export const getCWVEventType = (event) => {
+  if (event.TTFB != null) {
+    return 'TTFB';
+  }
+  if (event.FID != null) {
+    return 'FID';
+  }
+  if (event.LCP != null) {
+    return 'LCP';
+  }
+  if (event.CLS != null) {
+    return 'CLS';
+  }
+  if (event.INP != null) {
+    return 'INP';
+  }
+  return null;
+};
+
+/**
+ * @param {RawRUMEvent} event
  */
 export const fingerprint = (event) => {
   const uid = `${event.id}--${event.url}`;

@@ -12,7 +12,7 @@
 
 import LRUCache from '../support/LRUCache.js';
 import { HelixStorage } from '../support/storage.js';
-import { pruneUndefined } from '../support/util.js';
+import { getCWVEventType, pruneUndefined } from '../support/util.js';
 
 /**
  * @param {RawRUMEvent} event
@@ -34,28 +34,6 @@ export const getBundleProperties = (event) => {
     domain: event.domain,
     events: [],
   };
-};
-
-/**
- * @param {RawRUMEvent} event
- */
-const getCWVEventType = (event) => {
-  if (event.TTFB != null) {
-    return 'TTFB';
-  }
-  if (event.FID != null) {
-    return 'FID';
-  }
-  if (event.LCP != null) {
-    return 'LCP';
-  }
-  if (event.CLS != null) {
-    return 'CLS';
-  }
-  if (event.INP != null) {
-    return 'INP';
-  }
-  return null;
 };
 
 /**

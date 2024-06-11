@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { fingerprintValue } from '../support/util.js';
+import { fingerprintValue, getCWVEventType } from '../support/util.js';
 
 export default [{
   domain: 'sidekick',
@@ -51,7 +51,7 @@ export default [{
   // all top events (new impl), for viewing all domains' events
   // downsample by 100x
   domain: 'aem.live:all',
-  test: (e) => ['top', 'TTFB', 'FID', 'LCP', 'CLS', 'INP'].includes(e.checkpoint) && fingerprintValue(e) < 0.01,
+  test: (e) => (e.checkpoint === 'top' || getCWVEventType(e) != null) && fingerprintValue(e) < 0.01,
   destination(e, info) {
     return {
       key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
