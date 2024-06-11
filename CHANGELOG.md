@@ -1,3 +1,10 @@
+## [1.4.8](https://github.com/adobe/helix-rum-bundler/compare/v1.4.7...v1.4.8) (2024-06-11)
+
+
+### Bug Fixes
+
+* add cwvs to aggregates ([6ce7309](https://github.com/adobe/helix-rum-bundler/commit/6ce730945a783af8acd59ce4658372644a194a53))
+
 ## [1.4.7](https://github.com/adobe/helix-rum-bundler/compare/v1.4.6...v1.4.7) (2024-06-09)
 
 
