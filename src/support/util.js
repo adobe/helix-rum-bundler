@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+import crypto from 'crypto';
 import { promisify } from 'util';
 import { gzip, brotliCompress } from 'zlib';
 import { keepAliveNoCache, Response } from '@adobe/fetch';
@@ -255,3 +256,17 @@ export const calculateDownsample = (total, maximum) => {
     weightFactor,
   };
 };
+
+/**
+ * @param {RawRUMEvent} event
+ */
+export const fingerprint = (event) => {
+  const uid = `${event.id}--${event.url}`;
+  return crypto.createHash('md5').update(uid).digest('hex');
+};
+
+/**
+ * @param {RawRUMEvent} event
+ * @returns {number} between 0 and 1, evenly distributed
+ */
+export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 16) / 3.402824e38;
