@@ -1,3 +1,10 @@
+## [1.4.9](https://github.com/adobe/helix-rum-bundler/compare/v1.4.8...v1.4.9) (2024-06-11)
+
+
+### Bug Fixes
+
+* faster virtual rule ([72f3c41](https://github.com/adobe/helix-rum-bundler/commit/72f3c41c5adaa2a48376f923d1989ea72fb5f8eb))
+
 ## [1.4.8](https://github.com/adobe/helix-rum-bundler/compare/v1.4.7...v1.4.8) (2024-06-11)
 
 
