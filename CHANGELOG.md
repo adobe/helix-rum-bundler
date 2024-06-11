@@ -1,3 +1,10 @@
+## [1.4.11](https://github.com/adobe/helix-rum-bundler/compare/v1.4.10...v1.4.11) (2024-06-11)
+
+
+### Bug Fixes
+
+* log performance ([6872b7c](https://github.com/adobe/helix-rum-bundler/commit/6872b7c3de8c9a5f0a23af101d913c1753e0a63b))
+
 ## [1.4.10](https://github.com/adobe/helix-rum-bundler/compare/v1.4.9...v1.4.10) (2024-06-11)
 
 
