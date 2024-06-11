@@ -471,19 +471,25 @@ describe('bundler Tests', () => {
 
       // check that performance was measured and logged correctly
       // .lock deleted message is last
-      const perfLog = ctx.log.calls.info[ctx.log.calls.info.length - 2];
-      assert.deepEqual(JSON.parse(perfLog), {
+      const perfLog = JSON.parse(ctx.log.calls.info[ctx.log.calls.info.length - 2]);
+      const { measures } = perfLog;
+      perfLog.measures = undefined;
+      Object.values(measures).forEach((m) => {
+        assert.strictEqual(typeof m, 'number');
+      });
+      assert.deepEqual(Object.keys(measures).sort(), [
+        'bundling',
+        'create-keys',
+        'get-logs',
+        'import-events',
+        'import-virtual',
+        'move-logs',
+        'parse-logs',
+        'sort-events',
+      ]);
+      assert.deepEqual(perfLog, {
         message: 'performance',
-        measures: {
-          bundling: 0,
-          'get-logs': 0,
-          'parse-logs': 0,
-          'sort-events': 0,
-          'create-keys': 0,
-          'import-events': 0,
-          'import-virtual': 0,
-          'move-logs': 0,
-        },
+        measures: undefined,
         stats: {
           rawEvents: 10,
           logFiles: 1,
