@@ -164,15 +164,15 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   stats[`totalEvents${isVirtual ? 'Virtual' : ''}`] = totalEvents;
   stats[`importGroupsCount${isVirtual ? 'Virtual' : ''}`] = groups.length;
   stats[`rawKeys${isVirtual ? 'Virtual' : ''}`] = entries.length;
-  const importGroupsKey = `importGroups${isVirtual ? 'Virtual' : ''}`;
-  stats[importGroupsKey] = [];
+  // const importGroupsKey = `importGroups${isVirtual ? 'Virtual' : ''}`;
+  // stats[importGroupsKey] = [];
 
   await processQueue(groups, async (group) => {
     /** @type {Set<{store: () => Promise<any>}>} */
     const toSave = new Set();
-    const groupStats = [group.length];
+    // const groupStats = [group.length];
 
-    const start = performance.now();
+    // const start = performance.now();
     await processQueue(
       group,
       async ([key, { events, info }]) => {
@@ -223,19 +223,19 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
       concurrency,
     );
 
-    const t1 = performance.now();
-    groupStats.push(Math.round(t1 - start));
+    // const t1 = performance.now();
+    // groupStats.push(Math.round(t1 - start));
 
     // save touched manifests and bundles
     await Promise.allSettled(
       [...toSave].map((s) => s.store()),
     );
 
-    const t2 = performance.now();
-    groupStats.push(Math.round(t2 - t1));
+    // const t2 = performance.now();
+    // groupStats.push(Math.round(t2 - t1));
 
     // @ts-ignore
-    stats[importGroupsKey].push(groupStats);
+    // stats[importGroupsKey].push(groupStats);
   }, concurrency);
 }
 
