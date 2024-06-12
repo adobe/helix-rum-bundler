@@ -1,3 +1,10 @@
+## [1.4.16](https://github.com/adobe/helix-rum-bundler/compare/v1.4.15...v1.4.16) (2024-06-12)
+
+
+### Bug Fixes
+
+* debug to info log ([1be702c](https://github.com/adobe/helix-rum-bundler/commit/1be702cdf41060f0ec0a6d67fa1e4ae83d5a6db1))
+
 ## [1.4.15](https://github.com/adobe/helix-rum-bundler/compare/v1.4.14...v1.4.15) (2024-06-12)
 
 
