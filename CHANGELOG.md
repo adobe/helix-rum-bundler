@@ -1,3 +1,10 @@
+## [1.4.14](https://github.com/adobe/helix-rum-bundler/compare/v1.4.13...v1.4.14) (2024-06-12)
+
+
+### Bug Fixes
+
+* remove rq connection ([dabedcc](https://github.com/adobe/helix-rum-bundler/commit/dabedccf03ff1ed2b72388cc87c2e0d378790dfc))
+
 ## [1.4.13](https://github.com/adobe/helix-rum-bundler/compare/v1.4.12...v1.4.13) (2024-06-12)
 
 
