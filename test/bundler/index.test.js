@@ -152,7 +152,7 @@ describe('bundler Tests', () => {
       await assertRejectsWithResponse(bundleRUM(ctx), 409);
     });
 
-    it.only('should bundle events', async () => {
+    it('should bundle events', async () => {
       const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
       const mockEventResponseBody = mockEventLogFile('example.com');
       const bodies = {
@@ -302,43 +302,6 @@ describe('bundler Tests', () => {
       // but only 1 request should be made since the persist is deferred by domain
       assert.deepEqual(apex.manifest.length, 1);
       assert.deepEqual(apex.bundle.length, 3);
-
-      // assert.deepStrictEqual(apex.manifest[0], {
-      //   sessions: {
-      //     '0--/even': {
-      //       hour: 0,
-      //     },
-      //     '1--/odd': {
-      //       hour: 0,
-      //     },
-      //     '2--/even': {
-      //       hour: 0,
-      //     },
-      //   },
-      // });
-
-      // assert.deepStrictEqual(apex.manifest[1], {
-      //   sessions: {
-      //     '0--/even': {
-      //       hour: 0,
-      //     },
-      //     '1--/odd': {
-      //       hour: 0,
-      //     },
-      //     '2--/even': {
-      //       hour: 0,
-      //     },
-      //     '3--/odd': {
-      //       hour: 1,
-      //     },
-      //     '4--/even': {
-      //       hour: 1,
-      //     },
-      //     '5--/odd': {
-      //       hour: 1,
-      //     },
-      //   },
-      // });
 
       assert.deepStrictEqual(apex.manifest[0], {
         sessions: {
