@@ -1,3 +1,10 @@
+## [1.4.17](https://github.com/adobe/helix-rum-bundler/compare/v1.4.16...v1.4.17) (2024-06-12)
+
+
+### Bug Fixes
+
+* correct list truncated ([30b38b0](https://github.com/adobe/helix-rum-bundler/commit/30b38b0d4d8f678c3d6a07d70065e73a9b61e858))
+
 ## [1.4.16](https://github.com/adobe/helix-rum-bundler/compare/v1.4.15...v1.4.16) (2024-06-12)
 
 
