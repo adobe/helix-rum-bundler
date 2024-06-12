@@ -130,10 +130,8 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
 export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const { log, attributes: { stats } } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
-
-  let totalEvents = 0;
   const entries = Object.entries(rawEventMap);
-  stats[isVirtual ? 'rawKeysVirtual' : 'rawKeys'] = entries.length;
+  let totalEvents = 0;
 
   /**
    * To avoid repeatedly saving the same manifest/bundle files,
@@ -164,12 +162,19 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const groups = Object.values(groupMap);
 
   stats[`totalEvents${isVirtual ? 'Virtual' : ''}`] = totalEvents;
-  stats[`importGroups${isVirtual ? 'Virtual' : ''}`] = groups.length;
+  stats[`importGroupsCount${isVirtual ? 'Virtual' : ''}`] = groups.length;
+  stats[`rawKeys${isVirtual ? 'Virtual' : ''}`] = entries.length;
+  const importGroupsKey = `importGroups${isVirtual ? 'Virtual' : ''}`;
+  stats[importGroupsKey] = [];
 
   await processQueue(groups, async (group) => {
     /** @type {Set<{store: () => Promise<any>}>} */
     const toSave = new Set();
+    const groupStats = {
+      size: group.length,
+    };
 
+    const start = performance.now();
     await processQueue(
       group,
       async ([key, { events, info }]) => {
@@ -220,10 +225,19 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
       concurrency,
     );
 
+    const t1 = performance.now();
+    groupStats.tProcess = Math.round(t1 - start);
+
     // save touched manifests and bundles
     await Promise.allSettled(
       [...toSave].map((s) => s.store()),
     );
+
+    const t2 = performance.now();
+    groupStats.tSave = Math.round(t2 - t1);
+
+    // @ts-ignore
+    stats[importGroupsKey].push(groupStats);
   }, concurrency);
 }
 

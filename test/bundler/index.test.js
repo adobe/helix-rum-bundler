@@ -442,10 +442,17 @@ describe('bundler Tests', () => {
       // check that performance was measured and logged correctly
       const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"metric":"bundler-performance"'));
       const perfLogObj = JSON.parse(perfLog);
-      const { measures } = perfLogObj;
+      const { measures, stats: { importGroups } } = perfLogObj;
       perfLogObj.measures = undefined;
+      perfLogObj.stats.importGroups = undefined;
       Object.values(measures).forEach((m) => {
         assert.strictEqual(typeof m, 'number');
+      });
+      assert.strictEqual(importGroups.length, 2);
+      importGroups.forEach((grp) => {
+        assert.strictEqual(typeof grp.tProcess, 'number');
+        assert.strictEqual(typeof grp.tSave, 'number');
+        assert.ok(grp.size === 3 || grp.size === 1);
       });
       assert.deepEqual(Object.keys(measures).sort(), [
         'bundling',
@@ -464,13 +471,15 @@ describe('bundler Tests', () => {
           rawEvents: 10,
           logFiles: 1,
           domains: 2,
-          importGroups: 2,
-          importGroupsVirtual: 0,
+          importGroupsCount: 2,
+          importGroupsCountVirtual: 0,
           newDomains: 1,
           rawKeys: 4,
           rawKeysVirtual: 0,
           totalEventsVirtual: 0,
           totalEvents: 10,
+          importGroups: undefined,
+          importGroupsVirtual: [],
         },
       });
     });
