@@ -170,9 +170,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   await processQueue(groups, async (group) => {
     /** @type {Set<{store: () => Promise<any>}>} */
     const toSave = new Set();
-    const groupStats = {
-      size: group.length,
-    };
+    const groupStats = [group.length];
 
     const start = performance.now();
     await processQueue(
@@ -226,7 +224,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
     );
 
     const t1 = performance.now();
-    groupStats.tProcess = Math.round(t1 - start);
+    groupStats.push(Math.round(t1 - start));
 
     // save touched manifests and bundles
     await Promise.allSettled(
@@ -234,7 +232,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
     );
 
     const t2 = performance.now();
-    groupStats.tSave = Math.round(t2 - t1);
+    groupStats.push(Math.round(t2 - t1));
 
     // @ts-ignore
     stats[importGroupsKey].push(groupStats);
