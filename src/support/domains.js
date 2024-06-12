@@ -10,22 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
-import { getFetch } from './util.js';
 import { purgeSurrogateKey } from './cache.js';
 import { HelixStorage } from './storage.js';
-
-/**
- * @param {{
- *  domain: string;
- *  domainkey: string;
- * }} param0
- * @returns {string}
- */
-const runQueryURL = ({
-  domain,
-  domainkey,
-}) => 'https://helix-pages.anywhere.run/helix-services/run-query@v3/rotate-domainkeys?'
-+ `url=${domain}&newkey=${domainkey}&note=rumbundler`;
 
 /**
  * Fetch domainkey for domain
@@ -57,24 +43,6 @@ export async function isNewDomain(ctx, domain) {
 }
 
 /**
- * @param {UniversalContext} ctx
- * @param {string} domain
- * @param {string} domainkey
- */
-export async function addRunQueryDomainkey(ctx, domain, domainkey) {
-  const fetch = getFetch(ctx);
-  const resp = await fetch(runQueryURL({ domain, domainkey }), {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${ctx.env.RUNQUERY_ROTATION_KEY}`,
-    },
-  });
-  if (!resp.ok) {
-    ctx.log.warn(`failed to add runquery domainkey for ${domain}: ${resp.status}`);
-  }
-}
-
-/**
  * Set domainkey in storage.
  * Assumes caller is authorized.
  *
@@ -93,11 +61,9 @@ export async function setDomainKey(ctx, domain, domainkey, purgeCache = true) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   await bundleBucket.put(`/${domain}/.domainkey`, domainkey, 'text/plain');
 
-  await Promise.allSettled([
-    // update runquery
-    addRunQueryDomainkey(ctx, domain, domainkey),
-    // purge cache
-    purgeCache ? purgeSurrogateKey(ctx, domain) : Promise.resolve(),
-  ]);
+  if (purgeCache) {
+    await purgeSurrogateKey(ctx, domain);
+  }
+
   return domainkey;
 }

@@ -229,11 +229,6 @@ describe('bundler Tests', () => {
           bodies.subdomain.bundle = body;
           return [200];
         });
-      // add domainkey to subdomain
-      nock('https://helix-pages.anywhere.run')
-        .post('/helix-services/run-query@v3/rotate-domainkeys')
-        .query('url=sub.example.com&newkey=TEST-NEW-KEY&note=rumbundler')
-        .reply(200);
 
       // apex
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
