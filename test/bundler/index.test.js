@@ -477,7 +477,7 @@ describe('bundler Tests', () => {
       });
 
       // check that performance was measured and logged correctly
-      const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"message":"performance"'));
+      const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"metric":"bundler-performance"'));
       const perfLogObj = JSON.parse(perfLog);
       const { measures } = perfLogObj;
       perfLogObj.measures = undefined;
@@ -495,7 +495,7 @@ describe('bundler Tests', () => {
         'sort-events',
       ]);
       assert.deepEqual(perfLogObj, {
-        message: 'performance',
+        metric: 'bundler-performance',
         measures: undefined,
         stats: {
           rawEvents: 10,
