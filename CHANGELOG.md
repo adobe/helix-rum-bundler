@@ -1,3 +1,10 @@
+## [1.4.19](https://github.com/adobe/helix-rum-bundler/compare/v1.4.18...v1.4.19) (2024-06-12)
+
+
+### Bug Fixes
+
+* more concise group stat logging ([3d6124a](https://github.com/adobe/helix-rum-bundler/commit/3d6124aa50aa693c08a8cfac256da72a3c68b2dd))
+
 ## [1.4.18](https://github.com/adobe/helix-rum-bundler/compare/v1.4.17...v1.4.18) (2024-06-12)
 
 
