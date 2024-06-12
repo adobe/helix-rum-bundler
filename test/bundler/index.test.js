@@ -185,7 +185,7 @@ describe('bundler Tests', () => {
         // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
-        .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+        .post('/?delete=')
         .reply(200)
         // unlock
         .delete('/.lock?x-id=DeleteObject')
@@ -250,7 +250,7 @@ describe('bundler Tests', () => {
         .reply(404)
         // store manifest
         .put('/example.com/1970/1/1/.manifest.json?x-id=PutObject')
-        .times(3)
+        // .times(3)
         .reply((_, body) => {
           bodies.apex.manifest.push(body);
           return [200];
@@ -299,48 +299,11 @@ describe('bundler Tests', () => {
       assert.strictEqual(subdomain.domainkey, (await gzip('TEST-NEW-KEY')).toString('hex'));
 
       // 3 manifest updates & 3 bundles for apex, since events were processed into 3 sessions
-      // assert.deepStrictEqual(subdomain.manifest[0], { sessions: { '0--/': { hour: 0 } } });
-      assert.deepEqual(apex.manifest.length, 3);
+      // but only 1 request should be made since the persist is deferred by domain
+      assert.deepEqual(apex.manifest.length, 1);
       assert.deepEqual(apex.bundle.length, 3);
 
       assert.deepStrictEqual(apex.manifest[0], {
-        sessions: {
-          '0--/even': {
-            hour: 0,
-          },
-          '1--/odd': {
-            hour: 0,
-          },
-          '2--/even': {
-            hour: 0,
-          },
-        },
-      });
-
-      assert.deepStrictEqual(apex.manifest[1], {
-        sessions: {
-          '0--/even': {
-            hour: 0,
-          },
-          '1--/odd': {
-            hour: 0,
-          },
-          '2--/even': {
-            hour: 0,
-          },
-          '3--/odd': {
-            hour: 1,
-          },
-          '4--/even': {
-            hour: 1,
-          },
-          '5--/odd': {
-            hour: 1,
-          },
-        },
-      });
-
-      assert.deepStrictEqual(apex.manifest[2], {
         sessions: {
           '0--/even': {
             hour: 0,
@@ -479,10 +442,17 @@ describe('bundler Tests', () => {
       // check that performance was measured and logged correctly
       const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"metric":"bundler-performance"'));
       const perfLogObj = JSON.parse(perfLog);
-      const { measures } = perfLogObj;
+      const { measures, stats: { importGroups } } = perfLogObj;
       perfLogObj.measures = undefined;
+      perfLogObj.stats.importGroups = undefined;
       Object.values(measures).forEach((m) => {
         assert.strictEqual(typeof m, 'number');
+      });
+      assert.strictEqual(importGroups.length, 2);
+      importGroups.forEach((grp) => {
+        assert.strictEqual(typeof grp.tProcess, 'number');
+        assert.strictEqual(typeof grp.tSave, 'number');
+        assert.ok(grp.size === 3 || grp.size === 1);
       });
       assert.deepEqual(Object.keys(measures).sort(), [
         'bundling',
@@ -502,11 +472,15 @@ describe('bundler Tests', () => {
           rawEvents: 10,
           logFiles: 1,
           domains: 2,
+          importGroupsCount: 2,
+          importGroupsCountVirtual: 0,
           newDomains: 1,
           rawKeys: 4,
           rawKeysVirtual: 0,
           totalEventsVirtual: 0,
           totalEvents: 10,
+          importGroups: undefined,
+          importGroupsVirtual: [],
         },
       });
     });

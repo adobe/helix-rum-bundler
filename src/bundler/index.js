@@ -130,61 +130,115 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
 export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const { log, attributes: { stats } } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
-
   const entries = Object.entries(rawEventMap);
-  stats[isVirtual ? 'rawKeysVirtual' : 'rawKeys'] = entries.length;
   let totalEvents = 0;
-  await processQueue(
-    entries,
-    async ([key, { events, info }]) => {
-      log.debug(`processing ${events.length} events to file ${key}`);
-      totalEvents += events.length;
-      const {
-        domain, year, month, day, hour,
-      } = info;
 
-      /**
-       * Sort events further by session ID, same ids get put into a single EventGroup.
-       * NOTE: session ID is different than Event ID: sessionID == `{event_id}--{event_url_path}`
-       * This leads to sessions with fewer collisions, since sessions are roughly unique per URL.
-       */
-      /** @type {Record<string, RawRUMEvent[]>} */
-      const eventsBySessionId = {};
-      events.forEach((event) => {
-        // if bundle is virtual, include the domain in the session ID
-        // since the events being sorted into this key may have different domains
-        const evUrl = new URL(event.url);
-        const sessionId = `${event.id}${isVirtual ? `--${evUrl.hostname}` : ''}--${evUrl.pathname}`;
-        if (!eventsBySessionId[sessionId]) {
-          eventsBySessionId[sessionId] = [];
+  /**
+   * To avoid repeatedly saving the same manifest/bundle files,
+   * first we group the key/events pairs by domain, and process
+   * each domain as a group. Then persist the touched manifests/bundles
+   * of the domain after processing its keys.
+   */
+
+  /**
+   * NOTE: for imports it's possible to exceed memory limits since all events
+   * will be on the same domain. Possibly need to create a limit and push to new
+   * groups once that limit is met, like `domain-{n}`.
+   *
+   * @type {Record<string, [string, {
+   *  events: RawRUMEvent[];
+   *  info: BundleInfo;
+   * }][]>}
+   */
+  const groupMap = entries.reduce((acc, [key, val]) => {
+    const { info, events } = val;
+    totalEvents += events.length;
+    if (!acc[info.domain]) {
+      acc[info.domain] = [];
+    }
+    acc[info.domain].push([key, val]);
+    return acc;
+  }, {});
+  const groups = Object.values(groupMap);
+
+  stats[`totalEvents${isVirtual ? 'Virtual' : ''}`] = totalEvents;
+  stats[`importGroupsCount${isVirtual ? 'Virtual' : ''}`] = groups.length;
+  stats[`rawKeys${isVirtual ? 'Virtual' : ''}`] = entries.length;
+  const importGroupsKey = `importGroups${isVirtual ? 'Virtual' : ''}`;
+  stats[importGroupsKey] = [];
+
+  await processQueue(groups, async (group) => {
+    /** @type {Set<{store: () => Promise<any>}>} */
+    const toSave = new Set();
+    const groupStats = {
+      size: group.length,
+    };
+
+    const start = performance.now();
+    await processQueue(
+      group,
+      async ([key, { events, info }]) => {
+        log.debug(`processing ${events.length} events to file ${key}`);
+        const {
+          domain, year, month, day, hour,
+        } = info;
+
+        /**
+         * Sort events further by session ID, same ids get put into a single EventGroup.
+         * NOTE: session ID is different than Event ID:
+         *  sessionID == `{event_id}[--{domain}]--{event_url_path}`
+         * This leads to sessions with fewer collisions, since sessions are roughly unique per URL.
+         */
+        /** @type {Record<string, RawRUMEvent[]>} */
+        const eventsBySessionId = {};
+        events.forEach((event) => {
+          // if bundle is virtual, include the domain in the session ID
+          // since the events being sorted into this key may have different domains
+          const evUrl = new URL(event.url);
+          const sessionId = `${event.id}${isVirtual ? `--${evUrl.hostname}` : ''}--${evUrl.pathname}`;
+          if (!eventsBySessionId[sessionId]) {
+            eventsBySessionId[sessionId] = [];
+          }
+          eventsBySessionId[sessionId].push(event);
+        });
+
+        // get this day's manifest & yesterday's manifest, if needed
+        const manifest = await Manifest.fromContext(ctx, domain, year, month, day);
+        const yManifest = hour < 23
+          ? await Manifest.fromContext(ctx, domain, ...yesterday(year, month, day))
+          : undefined;
+
+        const touchedBundles = await addEventsToBundle(
+          ctx,
+          info,
+          eventsBySessionId,
+          manifest,
+          yManifest,
+        );
+
+        toSave.add(manifest);
+        if (yManifest) {
+          toSave.add(yManifest);
         }
-        eventsBySessionId[sessionId].push(event);
-      });
+        touchedBundles.forEach((b) => toSave.add(b));
+      },
+      concurrency,
+    );
 
-      // get this day's manifest & yesterday's manifest, if needed
-      const manifest = await Manifest.fromContext(ctx, domain, year, month, day);
-      const yManifest = hour < 23
-        ? await Manifest.fromContext(ctx, domain, ...yesterday(year, month, day))
-        : undefined;
+    const t1 = performance.now();
+    groupStats.tProcess = Math.round(t1 - start);
 
-      const touchedBundles = await addEventsToBundle(
-        ctx,
-        info,
-        eventsBySessionId,
-        manifest,
-        yManifest,
-      );
+    // save touched manifests and bundles
+    await Promise.allSettled(
+      [...toSave].map((s) => s.store()),
+    );
 
-      // save touched manifests and bundles
-      await Promise.allSettled([
-        manifest.store(),
-        yManifest?.store(),
-        ...touchedBundles.map((b) => b.store()),
-      ]);
-    },
-    concurrency,
-  );
-  stats[isVirtual ? 'totalEventsVirtual' : 'totalEvents'] = totalEvents;
+    const t2 = performance.now();
+    groupStats.tSave = Math.round(t2 - t1);
+
+    // @ts-ignore
+    stats[importGroupsKey].push(groupStats);
+  }, concurrency);
 }
 
 /**
@@ -384,14 +438,16 @@ async function doBundling(ctx) {
 
   // move all events into processed folder
   performance.mark('start:move-logs');
+  const toRemove = [];
   await processQueue(
     objects,
     async ({ key }) => {
-      // log.debug(`moving ${key} to ${key.replace('raw/', 'processed/')}`);
-      await logBucket.move(key, key.replace('raw/', 'processed/'));
+      toRemove.push(key);
+      await logBucket.copy(key, key.replace('raw/', 'processed/'));
     },
     concurrency,
   );
+  await logBucket.remove(toRemove);
   performance.mark('end:move-logs');
 
   performance.mark('end:bundling');
