@@ -383,7 +383,7 @@ class Bucket {
    */
   async list(prefix, { limit } = { limit: Infinity }) {
     let ContinuationToken;
-    const truncated = false;
+    let truncated = false;
     const objects = [];
     do {
       // eslint-disable-next-line no-await-in-loop
@@ -404,6 +404,7 @@ class Bucket {
           path: `${key.substring(prefix.length)}`,
         });
         if (objects.length >= limit) {
+          truncated = true;
           break;
         }
       }
