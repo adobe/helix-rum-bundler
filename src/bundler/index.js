@@ -16,8 +16,9 @@ import { HelixStorage } from '../support/storage.js';
 import Manifest from './Manifest.js';
 import BundleGroup from './BundleGroup.js';
 import {
-  errorWithResponse, getEnvVar, timeout, yesterday,
+  errorWithResponse, getEnvVar, yesterday,
 } from '../support/util.js';
+import { loop } from '../support/loop.js';
 import { isNewDomain, setDomainKey } from '../support/domains.js';
 import VIRTUAL_DOMAIN_RULES from './virtual.js';
 
@@ -403,10 +404,11 @@ async function doBundling(ctx) {
  * @returns {Promise<RResponse>}
  */
 export default async function bundleRUM(ctx) {
+  ctx.attributes.start = ctx.attributes.start || new Date();
   const { env: { BUNDLER_DURATION_LIMIT } } = ctx;
   const limit = parseInt(BUNDLER_DURATION_LIMIT || String(9 * 60 * 1000), 10);
 
-  const processor = timeout(doBundling, ctx, { limit });
+  const processor = loop(doBundling, ctx, { limit });
 
   await lockOrThrow(ctx);
   try {

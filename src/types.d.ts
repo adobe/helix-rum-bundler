@@ -55,6 +55,7 @@ declare module '@adobe/helix-universal' {
         rumBundleGroups: LRUCache<BundleGroup | Promise<BundleGroup>>;
         pathInfo: PathInfo;
         stats: Record<string, unknown>;
+        start: Date;
         [key: string]: unknown;
       }
 
