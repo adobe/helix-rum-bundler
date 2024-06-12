@@ -202,8 +202,6 @@ export const mockDate = () => {
 
     constructor(...args) {
       // eslint-disable-next-line no-underscore-dangle
-      console.log('mock date constructor: ', Date._stubbed, args);
-      // eslint-disable-next-line no-underscore-dangle
       super(...(Date._stubbed.shift() || args));
     }
 

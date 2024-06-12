@@ -97,9 +97,6 @@ describe('api/domainkey Tests', () => {
 
   it('POST rotates domainkey', async () => {
     let body;
-    nock('https://helix-pages.anywhere.run')
-      .post('/helix-services/run-query@v3/rotate-domainkeys?url=example.com&newkey=TEST-UUID&note=rumbundler')
-      .reply(200);
 
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
       .put('/example.com/.domainkey?x-id=PutObject', (b) => {
@@ -123,9 +120,6 @@ describe('api/domainkey Tests', () => {
 
   it('PUT sets domainkey', async () => {
     let body;
-    nock('https://helix-pages.anywhere.run')
-      .post('/helix-services/run-query@v3/rotate-domainkeys?url=example.com&newkey=NEW-DOMAINKEY&note=rumbundler')
-      .reply(200);
 
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
       .put('/example.com/.domainkey?x-id=PutObject', (b) => {
