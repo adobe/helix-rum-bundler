@@ -83,7 +83,7 @@ export const loop = (fn, ctx, opts) => {
         return acc;
       }, {});
       ctx.log.info(JSON.stringify({
-        message: 'performance',
+        metric: 'bundler-performance',
         measures,
         stats: ctx.attributes.stats,
       }));
