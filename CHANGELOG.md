@@ -1,3 +1,10 @@
+## [1.4.20](https://github.com/adobe/helix-rum-bundler/compare/v1.4.19...v1.4.20) (2024-06-12)
+
+
+### Bug Fixes
+
+* temp remove importgroup perf logs ([f02e5da](https://github.com/adobe/helix-rum-bundler/commit/f02e5daf22d315341572fff8ce5af52e25cc16f9))
+
 ## [1.4.19](https://github.com/adobe/helix-rum-bundler/compare/v1.4.18...v1.4.19) (2024-06-12)
 
 
