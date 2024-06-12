@@ -313,7 +313,7 @@ async function doBundling(ctx) {
   // list files in log bucket
   performance.mark('start:get-logs');
   const { objects, isTruncated } = await logBucket.list('raw/', { limit: batchLimit });
-  log.debug(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
+  log.info(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
 
   const files = await processQueue(
     objects.filter((o) => !!o.contentType),
