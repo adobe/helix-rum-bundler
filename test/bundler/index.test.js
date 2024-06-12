@@ -450,9 +450,9 @@ describe('bundler Tests', () => {
       });
       assert.strictEqual(importGroups.length, 2);
       importGroups.forEach((grp) => {
-        assert.strictEqual(typeof grp.tProcess, 'number');
-        assert.strictEqual(typeof grp.tSave, 'number');
-        assert.ok(grp.size === 3 || grp.size === 1);
+        assert.ok(grp[0] === 3 || grp[0] === 1); // size
+        assert.strictEqual(typeof grp[1], 'number'); // tProcess
+        assert.strictEqual(typeof grp[2], 'number'); // tSave
       });
       assert.deepEqual(Object.keys(measures).sort(), [
         'bundling',
