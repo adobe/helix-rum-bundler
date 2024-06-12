@@ -1,3 +1,10 @@
+## [1.4.15](https://github.com/adobe/helix-rum-bundler/compare/v1.4.14...v1.4.15) (2024-06-12)
+
+
+### Bug Fixes
+
+* metric json logs ([45d64d1](https://github.com/adobe/helix-rum-bundler/commit/45d64d144f3c74a6086c404ffcc3de676827d9db))
+
 ## [1.4.14](https://github.com/adobe/helix-rum-bundler/compare/v1.4.13...v1.4.14) (2024-06-12)
 
 
