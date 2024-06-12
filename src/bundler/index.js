@@ -438,14 +438,16 @@ async function doBundling(ctx) {
 
   // move all events into processed folder
   performance.mark('start:move-logs');
+  const toRemove = [];
   await processQueue(
     objects,
     async ({ key }) => {
-      // log.debug(`moving ${key} to ${key.replace('raw/', 'processed/')}`);
-      await logBucket.move(key, key.replace('raw/', 'processed/'));
+      toRemove.push(key);
+      await logBucket.copy(key, key.replace('raw/', 'processed/'));
     },
     concurrency,
   );
+  await logBucket.remove(toRemove);
   performance.mark('end:move-logs');
 
   performance.mark('end:bundling');

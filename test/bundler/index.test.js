@@ -185,7 +185,7 @@ describe('bundler Tests', () => {
         // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
-        .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+        .post('/?delete=')
         .reply(200)
         // unlock
         .delete('/.lock?x-id=DeleteObject')

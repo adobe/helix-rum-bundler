@@ -346,7 +346,7 @@ class Bucket {
       // delete on s3 and r2 (mirror) in parallel
       try {
         const result = await this.sendToS3andR2(DeleteObjectsCommand, input);
-        this.log.info(`${result.Deleted.length} objects deleted from bucket ${input.Bucket}.`);
+        this.log.info(`${result.Deleted?.length} objects deleted from bucket ${input.Bucket}.`);
         return result;
       } catch (e) {
         const msg = `removing ${input.Delete.length} objects from bucket ${input.Bucket} failed: ${e.message}`;

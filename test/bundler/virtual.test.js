@@ -47,48 +47,48 @@ describe('should bundle events to virtual destinations', () => {
     };
 
     nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-    // logs not locked
+      // logs not locked
       .head('/.lock')
       .reply(404)
-    // lock logs
+      // lock logs
       .put('/.lock?x-id=PutObject')
       .reply(200)
-    // list logs
+      // list logs
       .get('/?list-type=2&max-keys=100&prefix=raw%2F')
       .reply(200, logFileList)
-    // get log file contents
+      // get log file contents
       .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
       .reply(200, mockEventResponseBody)
-    // move log file to processed
+      // move log file to processed
       .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
       .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
-      .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+      .post('/?delete=')
       .reply(200)
-    // unlock
+      // unlock
       .delete('/.lock?x-id=DeleteObject')
       .reply(200);
 
     // domain bundling
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-    // check if domain exists (yes)
+      // check if domain exists (yes)
       .head('/test.example/.domainkey')
       .reply(200)
-    // get manifest
+      // get manifest
       .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
       .reply(404)
-    // get yesterday's manifest
+      // get yesterday's manifest
       .get('/test.example/1969/12/31/.manifest.json?x-id=GetObject')
       .reply(404)
-    // instantiate bundlegroup
+      // instantiate bundlegroup
       .get('/test.example/1970/1/1/0.json?x-id=GetObject')
       .reply(404)
-    // store manifest
+      // store manifest
       .put('/test.example/1970/1/1/.manifest.json?x-id=PutObject')
       .reply((_, body) => {
         bodies.apex.manifest = body;
         return [200];
       })
-    // store bundlegroup
+      // store bundlegroup
       .put('/test.example/1970/1/1/0.json?x-id=PutObject')
       .reply((_, body) => {
         bodies.apex.bundle = body;
@@ -97,22 +97,22 @@ describe('should bundle events to virtual destinations', () => {
 
     // virtual domain bundling
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-    // get manifest
+      // get manifest
       .get(`/${virtualDomain}/1970/1/1/.manifest.json?x-id=GetObject`)
       .reply(404)
-    // get yesterday's manifest
+      // get yesterday's manifest
       .get(`/${virtualDomain}/1969/12/31/.manifest.json?x-id=GetObject`)
       .reply(404)
-    // instantiate bundlegroup
+      // instantiate bundlegroup
       .get(`/${virtualDomain}/1970/1/1/0.json?x-id=GetObject`)
       .reply(404)
-    // store manifest
+      // store manifest
       .put(`/${virtualDomain}/1970/1/1/.manifest.json?x-id=PutObject`)
       .reply((_, body) => {
         bodies.virtual.manifest = body;
         return [200];
       })
-    // store bundlegroup
+      // store bundlegroup
       .put(`/${virtualDomain}/1970/1/1/0.json?x-id=PutObject`)
       .reply((_, body) => {
         bodies.virtual.bundle = body;
@@ -250,7 +250,7 @@ describe('should bundle events to virtual destinations', () => {
       // move log file to processed
       .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
       .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
-      .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+      .post('/?delete=')
       .reply(200)
       // unlock
       .delete('/.lock?x-id=DeleteObject')
