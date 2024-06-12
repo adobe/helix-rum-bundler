@@ -1,3 +1,11 @@
+## [1.4.18](https://github.com/adobe/helix-rum-bundler/compare/v1.4.17...v1.4.18) (2024-06-12)
+
+
+### Bug Fixes
+
+* defer bundle/manifest persistence by domain group ([f43e1cd](https://github.com/adobe/helix-rum-bundler/commit/f43e1cdc526e9347a317245e3c74c99e573567f7))
+* faster log moves ([610a28e](https://github.com/adobe/helix-rum-bundler/commit/610a28ea02a01e30f8db5cd055ac4306e180a8fa))
+
 ## [1.4.17](https://github.com/adobe/helix-rum-bundler/compare/v1.4.16...v1.4.17) (2024-06-12)
 
 
