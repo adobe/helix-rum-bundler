@@ -496,6 +496,7 @@ describe('bundler Tests', () => {
       ]);
       assert.deepEqual(perfLogObj, {
         metric: 'bundler-performance',
+        loop: 0,
         measures: undefined,
         stats: {
           rawEvents: 10,
