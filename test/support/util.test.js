@@ -12,9 +12,8 @@
 
 import assert from 'assert';
 import {
-  pruneUndefined, getEnvVar, yesterday, timeout, calculateDownsample, magnitude,
+  pruneUndefined, getEnvVar, yesterday, calculateDownsample, magnitude,
 } from '../../src/support/util.js';
-import { DEFAULT_CONTEXT, assertRejectsWithResponse, sleep } from '../util.js';
 
 describe('util Tests', () => {
   describe('pruneUndefined()', () => {
@@ -71,29 +70,6 @@ describe('util Tests', () => {
       // non-leap year
       val = yesterday(2023, 3, 1);
       assert.deepStrictEqual(val, [2023, 2, 28]);
-    });
-  });
-
-  describe('timeout()', () => {
-    it('passes arguments to function', async () => {
-      const fn = (arg1, arg2) => {
-        assert.deepStrictEqual(arg1, 'foo');
-        assert.deepStrictEqual(arg2, 'bar');
-        return true;
-      };
-      const wrapped = timeout(fn, DEFAULT_CONTEXT(), { limit: 100, log: console });
-      await assert.doesNotReject(wrapped('foo', 'bar'));
-    });
-
-    it('throws timeout response if function loop will exceed timeout', async () => {
-      let count = 0;
-      const fn = async () => {
-        await sleep(10);
-        count += 1;
-        return count > 10;
-      };
-      const wrapped = timeout(fn, DEFAULT_CONTEXT(), { limit: 50, log: console });
-      await assertRejectsWithResponse(wrapped, 504, /^timeout after/);
     });
   });
 

@@ -58,6 +58,7 @@ function shouldBundleRUM(req, ctx) {
 async function run(request, context) {
   const { log } = context;
   context.attributes.stats = {};
+  context.attributes.start = new Date();
 
   let resp;
   try {

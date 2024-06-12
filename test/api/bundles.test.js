@@ -12,7 +12,9 @@
 
 import assert from 'assert';
 import { assertAuthorized, getTTL } from '../../src/api/bundles.js';
-import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
+import {
+  DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
+} from '../util.js';
 
 describe('api/bundles Tests', () => {
   describe('assertAuthorized()', () => {
@@ -45,25 +47,11 @@ describe('api/bundles Tests', () => {
   });
 
   describe('getTTL()', () => {
-    const ogDate = Date;
     beforeEach(() => {
-      global.Date = class extends Date {
-        static _stubbed = [];
-
-        constructor(...args) {
-          // eslint-disable-next-line no-underscore-dangle
-          super(...(Date._stubbed.shift() || args));
-        }
-
-        static stub(...args) {
-          // eslint-disable-next-line no-underscore-dangle
-          Date._stubbed.push(args);
-          return Date;
-        }
-      };
+      mockDate();
     });
     afterEach(() => {
-      global.Date = ogDate;
+      global.Date.reset();
     });
 
     /**

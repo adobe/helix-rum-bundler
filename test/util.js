@@ -12,6 +12,7 @@
 
 /* eslint-disable import/no-extraneous-dependencies */
 
+// eslint-disable-next-line max-classes-per-file
 import assert from 'assert';
 import nock from 'nock';
 import { gunzip as gunzipc } from 'zlib';
@@ -193,3 +194,27 @@ export function Nock() {
 
   return nocker;
 }
+
+export const mockDate = () => {
+  const ogDate = Date;
+  global.Date = class extends Date {
+    static _stubbed = [];
+
+    constructor(...args) {
+      // eslint-disable-next-line no-underscore-dangle
+      console.log('mock date constructor: ', Date._stubbed, args);
+      // eslint-disable-next-line no-underscore-dangle
+      super(...(Date._stubbed.shift() || args));
+    }
+
+    static stub(...args) {
+      // eslint-disable-next-line no-underscore-dangle
+      Date._stubbed.push(args);
+      return Date;
+    }
+  };
+  global.Date.reset = () => {
+    global.Date = ogDate;
+  };
+  return global.Date;
+};

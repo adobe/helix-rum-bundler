@@ -17,7 +17,9 @@ import fs from 'fs/promises';
 import zlib from 'zlib';
 import { promisify } from 'util';
 import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
-import { DEFAULT_CONTEXT, Nock, assertRejectsWithResponse } from '../util.js';
+import {
+  DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
+} from '../util.js';
 
 const gzip = promisify(zlib.gzip);
 
@@ -128,10 +130,12 @@ describe('bundler Tests', () => {
       nock = new Nock().env();
       ogUUID = crypto.randomUUID;
       crypto.randomUUID = () => 'test-new-key';
+      mockDate();
     });
     afterEach(() => {
       crypto.randomUUID = ogUUID;
       nock.done();
+      global.Date.reset();
     });
 
     it('throws 409 if logs are locked', async () => {
@@ -162,6 +166,8 @@ describe('bundler Tests', () => {
           bundle: [],
         },
       };
+      // used in perf logs
+      Date.stub(2024, 0, 1);
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
         // logs not locked
@@ -183,6 +189,12 @@ describe('bundler Tests', () => {
         .reply(200)
         // unlock
         .delete('/.lock?x-id=DeleteObject')
+        .reply(200)
+        // get bundler logs
+        .get('/bundler/2024/1/1.json?x-id=GetObject')
+        .reply(404)
+        // write bundler logs
+        .put('/bundler/2024/1/1.json?x-id=PutObject')
         .reply(200);
 
       // subdomain
@@ -267,7 +279,7 @@ describe('bundler Tests', () => {
           return [200];
         });
 
-      const ctx = DEFAULT_CONTEXT();
+      const ctx = DEFAULT_CONTEXT({ env: { WRITE_PERF_LOGS: 'true' } });
       await bundleRUM(ctx);
 
       const { subdomain, apex } = bodies;
@@ -470,10 +482,10 @@ describe('bundler Tests', () => {
       });
 
       // check that performance was measured and logged correctly
-      // .lock deleted message is last
-      const perfLog = JSON.parse(ctx.log.calls.info[ctx.log.calls.info.length - 2]);
-      const { measures } = perfLog;
-      perfLog.measures = undefined;
+      const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"message":"performance"'));
+      const perfLogObj = JSON.parse(perfLog);
+      const { measures } = perfLogObj;
+      perfLogObj.measures = undefined;
       Object.values(measures).forEach((m) => {
         assert.strictEqual(typeof m, 'number');
       });
@@ -487,7 +499,7 @@ describe('bundler Tests', () => {
         'parse-logs',
         'sort-events',
       ]);
-      assert.deepEqual(perfLog, {
+      assert.deepEqual(perfLogObj, {
         message: 'performance',
         measures: undefined,
         stats: {
