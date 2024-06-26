@@ -35,6 +35,20 @@ describe('api/bundles Tests', () => {
       await assertRejectsWithResponse(async () => assertAuthorized(ctx, 'example.com'), 403, 'invalid domainkey param');
     });
 
+    it('should throw 401 response on missing domainkey files', async () => {
+      nock.domainKey('example.com', null);
+
+      const ctx = DEFAULT_CONTEXT({ data: { domainkey: 'anything' } });
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx, 'example.com'), 401, 'domainkey not set');
+    });
+
+    it('should throw 401 response on revoked domainkeys', async () => {
+      nock.domainKey('example.com', 'revoked');
+
+      const ctx = DEFAULT_CONTEXT({ data: { domainkey: 'anything' } });
+      await assertRejectsWithResponse(async () => assertAuthorized(ctx, 'example.com'), 401, 'domainkey revoked');
+    });
+
     it('allows domainkey param', async () => {
       nock.domainKey('example.com', 'foo');
       const ctx = DEFAULT_CONTEXT({ data: { domainkey: 'foo' } });
