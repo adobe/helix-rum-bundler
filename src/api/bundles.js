@@ -44,12 +44,20 @@ export async function assertAuthorized(ctx, domain) {
 
   const expected = await fetchDomainKey(ctx, domain);
   if (!expected) {
-    // missing or empty means no auth
-    // but missing domainkey should not occur
+    // empty means no auth
     if (expected === null) {
+      // but missing should be treated as revoked until the key is set
+      // don't blindly set the domainkey here, since clients could be requesting
+      // a domain that does not have any events. We should ignore those.
       ctx.log.warn(`missing domainkey for ${domain}`);
+      throw errorWithResponse(401, 'domainkey not set');
     }
     return;
+  }
+
+  // value of `revoked` means the domainkey has been revoked and never served
+  if (expected === 'revoked') {
+    throw errorWithResponse(401, 'domainkey revoked');
   }
 
   if (actual !== expected) {
