@@ -51,6 +51,17 @@ describe('api/domainkey Tests', () => {
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 403);
     });
 
+    it('returns 404 for revoked key', async () => {
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/example.com/.domainkey?x-id=GetObject')
+        .reply(200, 'revoked');
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/domainkey/example.com' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
     it('allows valid superuser', async () => {
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/.domainkey?x-id=GetObject')

@@ -60,6 +60,14 @@ async function getDomainKey(ctx, domain) {
   if (domainkey === null) {
     return new Response('not found', { status: 404 });
   }
+
+  if (domainkey === 'revoked') {
+    return new Response('not found', {
+      status: 404,
+      headers: { 'x-error': 'revoked' },
+    });
+  }
+
   return new Response(JSON.stringify({ domainkey }), {
     headers: {
       'content-type': 'application/json',

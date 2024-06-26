@@ -178,7 +178,7 @@ export function Nock() {
 
   nocker.domainKey = (domain = 'example.com', key = DEFAULT_DOMAIN_KEY) => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
     .get(`/${domain}/.domainkey?x-id=GetObject`)
-    .reply(key !== undefined ? 200 : 404, key);
+    .reply(key !== null ? 200 : 404, key || undefined);
 
   nocker.getAggregate = (year, month, date, data, domain = 'example.com') => nocker('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
     .get(`/${domain}/${year}${month ? `/${month}` : ''}${date ? `/${date}` : ''}/aggregate.json?x-id=GetObject`)
