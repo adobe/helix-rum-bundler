@@ -1,3 +1,10 @@
+## [1.4.23](https://github.com/adobe/helix-rum-bundler/compare/v1.4.22...v1.4.23) (2024-06-26)
+
+
+### Bug Fixes
+
+* allow revoking domainkeys ([e275154](https://github.com/adobe/helix-rum-bundler/commit/e27515481f8724cdf10ffd894f34e2e6e33e6b29))
+
 ## [1.4.22](https://github.com/adobe/helix-rum-bundler/compare/v1.4.21...v1.4.22) (2024-06-22)
 
 
