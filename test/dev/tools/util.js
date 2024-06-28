@@ -19,6 +19,7 @@ import { HelixStorage } from '../../../src/support/storage.js';
 
 /** @type {(overrides?: Partial<UniversalContext>) => UniversalContext} */
 export const contextLike = (overrides = {}) => ({
+  ...overrides,
   // @ts-ignore
   log: overrides.log ?? console,
   // @ts-ignore
