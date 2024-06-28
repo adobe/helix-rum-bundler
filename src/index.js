@@ -62,8 +62,8 @@ async function run(request, context) {
 
   let resp;
   try {
+    log.debug('context: ', context);
     if (shouldBundleRUM(request, context)) {
-      log.debug('context: ', context);
       resp = await bundleRUM(context);
     } else {
       resp = await handleRequest(request, context);
