@@ -51,6 +51,7 @@ class ConsoleProxy {
 
 /** @returns {UniversalContext} */
 export const DEFAULT_CONTEXT = (overrides = {}) => ({
+  ...overrides,
   log: new ConsoleProxy(),
   env: {
     CDN_ENDPOINT: 'https://endpoint.example',

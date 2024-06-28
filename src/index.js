@@ -20,7 +20,7 @@ import handleRequest from './api/index.js';
 
 /**
  * Perform bundling process if any:
- * 1. invoked by scheduler event
+ * 1. invoked by scheduler event & task is `bundle-rum-*`
  * 2. bundle param set & running locally
  * 3. bundle param set & x-bundler-authorization is allowed
  * @param {RRequest} req
