@@ -49,7 +49,7 @@ describe('Index Tests', () => {
         log: console,
         env: {},
         attributes: { stats: {} },
-        invocation: { event: { source: 'aws.scheduler' } },
+        invocation: { event: { source: 'aws.scheduler', task: 'bundle-rum-aws' } },
       },
     );
     assert.strictEqual(resp.status, 200);

@@ -399,7 +399,7 @@ async function doBundling(ctx) {
       lines.forEach((line) => {
         try {
           let event = JSON.parse(line);
-          if (ctx.invocation.event?.task === 'bundle-rum-cloudflare') {
+          if (ctx.invocation?.event?.task === 'bundle-rum-cloudflare') {
             event = adaptCloudflareEvent(ctx, event);
           }
           if (event) {

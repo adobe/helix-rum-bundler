@@ -461,7 +461,7 @@ export class HelixStorage {
 
       // set log bucket name if bundling from other rum source than aws
       let logBucket;
-      const { task } = context.invocation.event || {};
+      const { task } = context.invocation?.event || {};
       if (task === 'bundle-rum-cloudflare') {
         logBucket = 'helix-rum-logs-cloudflare';
       }
