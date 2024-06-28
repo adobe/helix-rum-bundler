@@ -338,6 +338,28 @@ export function sortRawEvents(rawEvents, log) {
 }
 
 /**
+ * convert cloudflare logging format into rum event
+ * @param {UniversalContext} ctx
+ * @param {{
+ *  ScriptName: string;
+ *  Logs: {
+ *    Level: string;
+ *    Message: string[];
+ *    TimestampMs: number;
+ *  }[];
+ * }} ev
+ */
+function adaptCloudflareEvent(ctx, ev) {
+  // the log ordering may change, so find the first message that looks like a JSON string
+  const msg = ev.Logs.find((log) => log.Message[0].startsWith('{\\"'))?.Message[0];
+  if (!msg) {
+    ctx.log.warn('no JSON message found in cloudflare event');
+    return null;
+  }
+  return JSON.parse(msg);
+}
+
+/**
  * Process RUM event files into bundles
  * @param {UniversalContext} ctx
  * @returns {Promise<boolean>} whether all files are processed
@@ -376,8 +398,13 @@ async function doBundling(ctx) {
       const lines = txt.split('\n');
       lines.forEach((line) => {
         try {
-          // @ts-ignore
-          events.push(JSON.parse(line));
+          let event = JSON.parse(line);
+          if (ctx.invocation.event?.task === 'bundle-rum-cloudflare') {
+            event = adaptCloudflareEvent(ctx, event);
+          }
+          if (event) {
+            events.push(event);
+          }
         } catch { /* invalid, ignored */ }
       });
       return events;

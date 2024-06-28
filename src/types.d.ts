@@ -1,5 +1,5 @@
 import { Request, Response, keepAliveNoCache } from '@adobe/fetch';
-import { Helix } from '@adobe/helix-universal';
+import { Helix, InvocationInfo } from '@adobe/helix-universal';
 import BundleGroup from './BundleGroup';
 import Manifest from './Manifest';
 import LRUCache from './LRUCache';
@@ -8,6 +8,13 @@ import { PathInfo } from './support/PathInfo';
 declare module '@adobe/helix-universal' {
   export namespace Helix {
     export interface UniversalContext {
+      invocation: InvocationInfo & {
+        event?: {
+          source?: 'aws.scheduler';
+          task?: 'bundle-rum-aws' | 'bundle-rum-cloudflare' | 'process-logs';
+        }
+      }
+
       env: {
         /** 
          * concurrency for bundling steps that call s3 client operations

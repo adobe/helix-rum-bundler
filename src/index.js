@@ -29,11 +29,16 @@ import handleRequest from './api/index.js';
  */
 function shouldBundleRUM(req, ctx) {
   const { log } = ctx;
-  const invokedByEvent = ctx.invocation?.event?.source === 'aws.scheduler';
+  const event = ctx.invocation?.event;
+  const invokedByEvent = event?.source === 'aws.scheduler';
 
   if (invokedByEvent) {
-    log.debug('invoked by scheduler, performing bundling');
-    return true;
+    if (event.task.startsWith('bundle-rum-')) {
+      const rumSrc = event.task.split('-').pop();
+      log.info(`invoked by scheduler, performing bundling of ${rumSrc} events`);
+      return true;
+    }
+    return false;
   }
   if (!ctx.data.bundle) {
     return false;
@@ -41,6 +46,9 @@ function shouldBundleRUM(req, ctx) {
 
   const isDevMode = ctx.runtime?.name === 'simulate';
   if (isDevMode) {
+    // simulate task if needed
+    // @ts-ignore
+    ctx.invocation.event = event || { task: `bundle-rum-${ctx.data.source || 'aws'}` };
     return true;
   }
 
@@ -62,7 +70,6 @@ async function run(request, context) {
 
   let resp;
   try {
-    log.debug('context: ', context);
     if (shouldBundleRUM(request, context)) {
       resp = await bundleRUM(context);
     } else {
