@@ -286,7 +286,10 @@ describe('bundler Tests', () => {
           return [200];
         });
 
-      const ctx = DEFAULT_CONTEXT({ env: { WRITE_PERF_LOGS: 'true' } });
+      const ctx = DEFAULT_CONTEXT({
+        invocation: { event: { task: 'bundle-rum-aws' } },
+        env: { WRITE_PERF_LOGS: 'true' },
+      });
       await bundleRUM(ctx);
 
       const { subdomain, apex } = bodies;
@@ -479,6 +482,7 @@ describe('bundler Tests', () => {
       ]);
       assert.deepEqual(perfLogObj, {
         metric: 'bundler-performance',
+        task: 'bundle-rum-aws',
         loop: 0,
         measures: undefined,
         stats: {
@@ -816,6 +820,7 @@ describe('bundler Tests', () => {
       ]);
       assert.deepEqual(perfLogObj, {
         metric: 'bundler-performance',
+        task: 'bundle-rum-cloudflare',
         loop: 0,
         measures: undefined,
         stats: {
