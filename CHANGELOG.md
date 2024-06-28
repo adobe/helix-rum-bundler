@@ -1,3 +1,11 @@
+## [1.4.24](https://github.com/adobe/helix-rum-bundler/compare/v1.4.23...v1.4.24) (2024-06-28)
+
+
+### Bug Fixes
+
+* temp log context ([72080b8](https://github.com/adobe/helix-rum-bundler/commit/72080b850e73c458b3277e8a3c8f95a81dc145d4))
+* temp log context ([edf5035](https://github.com/adobe/helix-rum-bundler/commit/edf50351e950fdfd2bbcf657d7f20cbe07d11146))
+
 ## [1.4.23](https://github.com/adobe/helix-rum-bundler/compare/v1.4.22...v1.4.23) (2024-06-26)
 
 
