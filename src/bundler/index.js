@@ -31,6 +31,7 @@ import VIRTUAL_DOMAIN_RULES from './virtual.js';
 
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
+const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
 
 /**
  * Lock the log bucket to prevent concurrent bundling.
@@ -266,11 +267,16 @@ export function sortRawEvents(rawEvents, log) {
   const domains = new Set();
 
   rawEvents.forEach((pevent) => {
+    if (!pevent.url) {
+      log.info('ignoring event with invalid data (missing url)');
+      return;
+    }
+    if (pevent.url.length > 2048) {
+      log.info('ignoring event with invalid url (too long)');
+      return;
+    }
     if (pevent.url.startsWith('/')) {
       log.info('ignoring event with invalid url (absolute path): ', pevent.url, pevent.id);
-      return;
-    } else if (pevent.url.includes('..')) {
-      log.info('ignoring event with invalid url (relative): ', pevent.url, pevent.id);
       return;
     }
 
@@ -290,6 +296,10 @@ export function sortRawEvents(rawEvents, log) {
     try {
       if (!url.hostname.includes('.')) {
         log.info('ignoring event with invalid url (no tld): ', event.url, event.id);
+        return;
+      }
+      if (url.host.includes('..')) {
+        log.info('ignoring event with invalid domain (relative): ', event.url, event.id);
         return;
       }
       const date = new Date(event.time);
@@ -349,14 +359,26 @@ export function sortRawEvents(rawEvents, log) {
  *  }[];
  * }} ev
  */
-function adaptCloudflareEvent(ctx, ev) {
+export function adaptCloudflareEvent(ctx, ev) {
   // the log ordering may change, so find the first message that looks like a JSON string
   const msg = ev.Logs.find(({ Message }) => Message[0].startsWith('{"'))?.Message[0];
   if (!msg) {
     ctx.log.warn('no JSON message found in cloudflare event');
     return null;
   }
-  return JSON.parse(msg);
+  let parsed;
+  try {
+    parsed = JSON.parse(msg);
+    // check that the cloudflare event has all required properties
+    if (parsed.url == null || parsed.time == null || parsed.id == null) {
+      ctx.log.warn('missing required properties in cloudflare event');
+      return null;
+    }
+  } catch (e) {
+    ctx.log.warn('failed to parse cloudflare event JSON');
+    return null;
+  }
+  return parsed;
 }
 
 /**
@@ -374,6 +396,7 @@ async function doBundling(ctx) {
   // list files in log bucket
   performance.mark('start:get-logs');
   const { objects, isTruncated } = await logBucket.list('raw/', { limit: batchLimit });
+  /* c8 ignore next */
   log.info(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
 
   const files = await processQueue(
@@ -473,8 +496,7 @@ async function doBundling(ctx) {
  */
 export default async function bundleRUM(ctx) {
   ctx.attributes.start = ctx.attributes.start || new Date();
-  const { env: { BUNDLER_DURATION_LIMIT } } = ctx;
-  const limit = parseInt(BUNDLER_DURATION_LIMIT || String(9 * 60 * 1000), 10);
+  const limit = getEnvVar(ctx, 'BUNDLER_DURATION_LIMIT', DEFAULT_DURATION_LIMIT, 'integer');
 
   const processor = loop(doBundling, ctx, { limit });
 

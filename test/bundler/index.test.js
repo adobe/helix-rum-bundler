@@ -16,7 +16,7 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import zlib from 'zlib';
 import { promisify } from 'util';
-import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
+import bundleRUM, { adaptCloudflareEvent, sortRawEvents } from '../../src/bundler/index.js';
 import {
   DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
 } from '../util.js';
@@ -65,18 +65,36 @@ describe('bundler Tests', () => {
   describe('sortRawEvents()', () => {
     const log = console;
 
+    it('ignores events missing urls', () => {
+      const sorted = sortRawEvents([{ url: undefined, id: 'a' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
+    it('ignores events with urls longer than 2048 characters', () => {
+      const sorted = sortRawEvents([{ url: `https://example.com/${new Array(1024).fill('ab').join('/')}` }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
     it('ignores urls without host', () => {
       const sorted = sortRawEvents([{ url: '/some/absolute/path' }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
     it('ignores urls with relative patterns', () => {
-      const sorted = sortRawEvents([{ url: 'https://test.example/../foo' }], log);
+      let sorted = sortRawEvents([{ url: '../foo' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+
+      sorted = sortRawEvents([{ url: './foo' }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
     it('ignores urls with no TLD', () => {
       const sorted = sortRawEvents([{ url: 'https://foo' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
+    it('ignores urls with relative hosts', () => {
+      const sorted = sortRawEvents([{ url: 'https://..' }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
@@ -131,6 +149,23 @@ describe('bundler Tests', () => {
           hour: 1,
         },
       });
+    });
+  });
+
+  describe('adaptCloudflareEvent()', () => {
+    it('ignores missing JSON message', () => {
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['not json'] }] });
+      assert.deepStrictEqual(adapted, null);
+    });
+
+    it('ignores events without required properties', () => {
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"id":null}'] }] });
+      assert.deepStrictEqual(adapted, null);
+    });
+
+    it('ignores broken JSON message', () => {
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"key":"value"'] }] });
+      assert.deepStrictEqual(adapted, null);
     });
   });
 

@@ -55,4 +55,50 @@ describe('Index Tests', () => {
     assert.strictEqual(resp.status, 200);
     assert.strictEqual(resp.headers.get('route'), 'bundle-rum');
   });
+
+  it('performs bundling when invoked by scheduler (cloudflare task)', async () => {
+    const { main: mmain } = await esmock('../src/index.js', {
+      '../src/bundler/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
+      },
+      '../src/api/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
+      },
+    });
+
+    const resp = await mmain(
+      new Request('https://localhost/'),
+      {
+        log: console,
+        env: {},
+        attributes: { stats: {} },
+        invocation: { event: { source: 'aws.scheduler', task: 'bundle-rum-cloudflare' } },
+      },
+    );
+    assert.strictEqual(resp.status, 200);
+    assert.strictEqual(resp.headers.get('route'), 'bundle-rum');
+  });
+
+  it('can be invoked by scheduler with other task types', async () => {
+    const { main: mmain } = await esmock('../src/index.js', {
+      '../src/bundler/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
+      },
+      '../src/api/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
+      },
+    });
+
+    const resp = await mmain(
+      new Request('https://localhost/'),
+      {
+        log: console,
+        env: {},
+        attributes: { stats: {} },
+        invocation: { event: { source: 'aws.scheduler', task: 'something-else' } },
+      },
+    );
+    assert.strictEqual(resp.status, 200);
+    assert.strictEqual(resp.headers.get('route'), 'handle-request');
+  });
 });

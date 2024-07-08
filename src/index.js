@@ -40,15 +40,16 @@ function shouldBundleRUM(req, ctx) {
     }
     return false;
   }
+
+  /* c8 ignore next 10 */
   if (!ctx.data.bundle) {
     return false;
   }
-
   const isDevMode = ctx.runtime?.name === 'simulate';
   if (isDevMode) {
     // simulate task if needed
     // @ts-ignore
-    ctx.invocation.event = event || { task: `bundle-rum-${ctx.data.source || 'aws'}` };
+    ctx.invocation.event.task = event?.task || `bundle-rum-${ctx.data.source || 'aws'}`;
     return true;
   }
 
