@@ -360,25 +360,25 @@ export function sortRawEvents(rawEvents, log) {
  * }} ev
  */
 export function adaptCloudflareEvent(ctx, ev) {
-  // the log ordering may change, so find the first message that looks like a JSON string
-  const msg = ev.Logs.find(({ Message }) => Message[0].startsWith('{"'))?.Message[0];
-  if (!msg) {
-    ctx.log.warn('no JSON message found in cloudflare event');
-    return null;
-  }
-  let parsed;
   try {
-    parsed = JSON.parse(msg);
-    // check that the cloudflare event has all required properties
-    if (parsed.url == null || parsed.time == null || parsed.id == null) {
-      ctx.log.warn('missing required properties in cloudflare event');
+    // the log ordering may change, so find the first message that looks like a JSON string
+    const msg = ev.Logs.find(({ Message }) => Message[0].startsWith('{"'))?.Message[0];
+    if (!msg) {
+      ctx.log.debug('no JSON message found in cloudflare event');
       return null;
     }
+
+    const parsed = JSON.parse(msg);
+    // check that the cloudflare event has all required properties
+    if (parsed.url == null || parsed.time == null || parsed.id == null) {
+      ctx.log.info('missing required properties in cloudflare event');
+      return null;
+    }
+    return parsed;
   } catch (e) {
     ctx.log.warn('failed to parse cloudflare event JSON');
     return null;
   }
-  return parsed;
 }
 
 /**
