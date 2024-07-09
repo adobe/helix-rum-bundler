@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/adobe/helix-rum-bundler/compare/v1.4.26...v1.5.0) (2024-07-09)
+
+
+### Bug Fixes
+
+* allow localhost ([cbd132e](https://github.com/adobe/helix-rum-bundler/commit/cbd132e775585de2ee305b256bc405024e919107))
+* log task with performance stats ([cc0e807](https://github.com/adobe/helix-rum-bundler/commit/cc0e80719421700d8b611434052d9366bf2fb16c))
+
+
+### Features
+
+* handle cloudflare bundling ([674b19e](https://github.com/adobe/helix-rum-bundler/commit/674b19e7c906d2b5cf1795b635c3a832f7fcb5c8))
+
 ## [1.4.26](https://github.com/adobe/helix-rum-bundler/compare/v1.4.25...v1.4.26) (2024-07-06)
 
 
