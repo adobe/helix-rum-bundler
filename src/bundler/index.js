@@ -294,7 +294,7 @@ export function sortRawEvents(rawEvents, log) {
     }
 
     try {
-      if (!url.hostname.includes('.')) {
+      if (!url.hostname.includes('.') && url.hostname !== 'localhost') {
         log.info('ignoring event with invalid url (no tld): ', event.url, event.id);
         return;
       }

@@ -93,6 +93,60 @@ describe('bundler Tests', () => {
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
+    it('allows localhost', () => {
+      let sorted = sortRawEvents([{ url: 'http://localhost', id: 'a', time: 0 }], log);
+      assert.deepStrictEqual(sorted, {
+        domains: [
+          'localhost',
+        ],
+        rawEventMap: {
+          '/localhost/1970/1/1/0.json': {
+            events: [
+              {
+                id: 'a',
+                time: 0,
+                url: 'http://localhost/',
+              },
+            ],
+            info: {
+              day: 1,
+              domain: 'localhost',
+              hour: 0,
+              month: 1,
+              year: 1970,
+            },
+          },
+        },
+        virtualMap: {},
+      });
+
+      sorted = sortRawEvents([{ url: 'http://localhost:3000', id: 'b', time: 1 }], log);
+      assert.deepStrictEqual(sorted, {
+        domains: [
+          'localhost:3000',
+        ],
+        rawEventMap: {
+          '/localhost:3000/1970/1/1/0.json': {
+            events: [
+              {
+                id: 'b',
+                time: 1,
+                url: 'http://localhost:3000/',
+              },
+            ],
+            info: {
+              day: 1,
+              domain: 'localhost:3000',
+              hour: 0,
+              month: 1,
+              year: 1970,
+            },
+          },
+        },
+        virtualMap: {},
+      });
+    });
+
     it('ignores urls with relative hosts', () => {
       const sorted = sortRawEvents([{ url: 'https://..' }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
