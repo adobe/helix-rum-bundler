@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/adobe/helix-rum-bundler/compare/v1.5.0...v1.5.1) (2024-07-09)
+
+
+### Bug Fixes
+
+* reduce log levels for invalid cf events ([bc79bb3](https://github.com/adobe/helix-rum-bundler/commit/bc79bb3a207f00ef667002e5788ba1a177278f64))
+
 # [1.5.0](https://github.com/adobe/helix-rum-bundler/compare/v1.4.26...v1.5.0) (2024-07-09)
 
 
