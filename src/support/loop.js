@@ -82,14 +82,16 @@ export const loop = (fn, ctx, opts) => {
         }
         return acc;
       }, {});
+      const { task } = ctx.invocation?.event || {};
       ctx.log.info(JSON.stringify({
         metric: 'bundler-performance',
+        task,
         loop: state.times.length,
         measures,
         stats: ctx.attributes.stats,
       }));
       if ([true, 'true'].includes(ctx.env.WRITE_PERF_LOGS)) {
-        await writeLogs(ctx, { measures, stats: ctx.attributes.stats });
+        await writeLogs(ctx, { task, measures, stats: ctx.attributes.stats });
       }
       performance.clearMarks();
       ctx.attributes.stats = {};

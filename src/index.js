@@ -20,7 +20,7 @@ import handleRequest from './api/index.js';
 
 /**
  * Perform bundling process if any:
- * 1. invoked by scheduler event
+ * 1. invoked by scheduler event & task is `bundle-rum-*`
  * 2. bundle param set & running locally
  * 3. bundle param set & x-bundler-authorization is allowed
  * @param {RRequest} req
@@ -29,18 +29,27 @@ import handleRequest from './api/index.js';
  */
 function shouldBundleRUM(req, ctx) {
   const { log } = ctx;
-  const invokedByEvent = ctx.invocation?.event?.source === 'aws.scheduler';
+  const event = ctx.invocation?.event;
+  const invokedByEvent = event?.source === 'aws.scheduler';
 
   if (invokedByEvent) {
-    log.debug('invoked by scheduler, performing bundling');
-    return true;
-  }
-  if (!ctx.data.bundle) {
+    if (event.task.startsWith('bundle-rum-')) {
+      const rumSrc = event.task.split('-').pop();
+      log.info(`invoked by scheduler, performing bundling of ${rumSrc} events`);
+      return true;
+    }
     return false;
   }
 
+  /* c8 ignore next 10 */
+  if (!ctx.data.bundle) {
+    return false;
+  }
   const isDevMode = ctx.runtime?.name === 'simulate';
   if (isDevMode) {
+    // simulate task if needed
+    // @ts-ignore
+    ctx.invocation.event.task = event?.task || `bundle-rum-${ctx.data.source || 'aws'}`;
     return true;
   }
 
@@ -62,7 +71,6 @@ async function run(request, context) {
 
   let resp;
   try {
-    log.debug('context: ', context);
     if (shouldBundleRUM(request, context)) {
       resp = await bundleRUM(context);
     } else {
