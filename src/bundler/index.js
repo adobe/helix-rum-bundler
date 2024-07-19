@@ -271,6 +271,10 @@ export function sortRawEvents(rawEvents, log) {
       log.info('ignoring event with invalid data (missing url)');
       return;
     }
+    if (typeof pevent.url !== 'string') {
+      log.warn('ignoring event with invalid url (non-string): ', typeof pevent.url, pevent.id);
+      return;
+    }
     if (pevent.url.length > 2048) {
       log.info('ignoring event with invalid url (too long)');
       return;

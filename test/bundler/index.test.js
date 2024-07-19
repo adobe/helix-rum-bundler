@@ -70,6 +70,11 @@ describe('bundler Tests', () => {
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
+    it('ignores events with non-string urls', () => {
+      const sorted = sortRawEvents([{ url: ['h', 't', 't', 'p'], id: 'a' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
     it('ignores events with urls longer than 2048 characters', () => {
       const sorted = sortRawEvents([{ url: `https://example.com/${new Array(1024).fill('ab').join('/')}` }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
@@ -268,7 +273,7 @@ describe('bundler Tests', () => {
         },
       };
       // used in perf logs
-      Date.stub(2024, 0, 1);
+      Date.stub('2024-01-01T00:00:00Z');
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
         // logs not locked
@@ -606,7 +611,7 @@ describe('bundler Tests', () => {
         },
       };
       // used in perf logs
-      Date.stub(2024, 0, 1);
+      Date.stub('2024-01-01T00:00:00Z');
 
       nock('https://helix-rum-logs-cloudflare.s3.us-east-1.amazonaws.com')
         // logs not locked
