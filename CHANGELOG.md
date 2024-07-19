@@ -1,3 +1,11 @@
+## [1.5.3](https://github.com/adobe/helix-rum-bundler/compare/v1.5.2...v1.5.3) (2024-07-19)
+
+
+### Bug Fixes
+
+* **bundler:** guard against non-string urls ([8b9cd05](https://github.com/adobe/helix-rum-bundler/commit/8b9cd05b6fa52fe0a6ce276b35c6a8ad567e2e0c))
+* **bundler:** guard against non-string URLs, return early ([e0cf72f](https://github.com/adobe/helix-rum-bundler/commit/e0cf72f6a548e848116568f2dc3c680a4f8bb215))
+
 ## [1.5.2](https://github.com/adobe/helix-rum-bundler/compare/v1.5.1...v1.5.2) (2024-07-13)
 
 
