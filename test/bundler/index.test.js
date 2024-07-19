@@ -70,6 +70,11 @@ describe('bundler Tests', () => {
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
     });
 
+    it('ignores events with non-string urls', () => {
+      const sorted = sortRawEvents([{ url: ['h', 't', 't', 'p'], id: 'a' }], log);
+      assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
+    });
+
     it('ignores events with urls longer than 2048 characters', () => {
       const sorted = sortRawEvents([{ url: `https://example.com/${new Array(1024).fill('ab').join('/')}` }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
