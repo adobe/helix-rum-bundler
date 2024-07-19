@@ -273,7 +273,7 @@ describe('bundler Tests', () => {
         },
       };
       // used in perf logs
-      Date.stub(2024, 0, 1);
+      Date.stub('2024-01-01T00:00:00Z');
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
         // logs not locked
@@ -611,7 +611,7 @@ describe('bundler Tests', () => {
         },
       };
       // used in perf logs
-      Date.stub(2024, 0, 1);
+      Date.stub('2024-01-01T00:00:00Z');
 
       nock('https://helix-rum-logs-cloudflare.s3.us-east-1.amazonaws.com')
         // logs not locked
