@@ -1,3 +1,13 @@
+## [1.5.4](https://github.com/adobe/helix-rum-bundler/compare/v1.5.3...v1.5.4) (2024-07-20)
+
+
+### Bug Fixes
+
+* delete org api ([0d5e433](https://github.com/adobe/helix-rum-bundler/commit/0d5e4331ce27ec2e88ce998d7f049723de33c4e7))
+* **deps:** update external fixes ([#141](https://github.com/adobe/helix-rum-bundler/issues/141)) ([b3a913c](https://github.com/adobe/helix-rum-bundler/commit/b3a913c1040a64738a222a69b74af22a261b8c8d))
+* **deps:** upgrade husky ([#145](https://github.com/adobe/helix-rum-bundler/issues/145)) ([b81c42f](https://github.com/adobe/helix-rum-bundler/commit/b81c42f21361f281a21cfb124a18fe308ab7c13f))
+* make downsampling deterministic ([5e20eec](https://github.com/adobe/helix-rum-bundler/commit/5e20eecaee6a69eb46a37f48a95d65811a5b1a12))
+
 ## [1.5.3](https://github.com/adobe/helix-rum-bundler/compare/v1.5.2...v1.5.3) (2024-07-19)
 
 
