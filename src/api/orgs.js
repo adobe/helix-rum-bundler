@@ -25,6 +25,7 @@ import {
   storeOrg,
   retrieveOrg,
   storeOrgkey,
+  deleteOrg,
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 import {
@@ -262,6 +263,28 @@ async function removeDomainFromOrg(req, ctx, info) {
 }
 
 /**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function removeOrg(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org: id } = info;
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  await Promise.all([
+    deleteOrg(ctx, id),
+    removeOrgkeyFromDomains(ctx, org.domains, id),
+  ]);
+
+  return new Response('', { status: 204 });
+}
+
+/**
  * @param {UniversalContext} ctx
  * @param {string} orgId
  * @param {string} orgkey
@@ -459,6 +482,8 @@ export default async function handleRequest(req, ctx) {
   } else if (req.method === 'DELETE') {
     if (info.subroute === 'domains') {
       return removeDomainFromOrg(req, ctx, info);
+    } else if (info.org && !info.subroute) {
+      return removeOrg(req, ctx, info);
     }
   } else if (req.method === 'PUT') {
     if (info.subroute === 'key') {

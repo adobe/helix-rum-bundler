@@ -94,6 +94,16 @@ export async function storeOrg(ctx, org, data) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {string} org
+ * @returns {Promise<void>}
+ */
+export async function deleteOrg(ctx, org) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  await usersBucket.remove([`/orgs/${org}/org.json`, `/orgs/${org}/.orgkey`]);
+}
+
+/**
  * Store domain-orgkey map
  *
  * @param {UniversalContext} ctx

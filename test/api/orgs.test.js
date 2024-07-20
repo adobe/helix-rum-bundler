@@ -284,6 +284,49 @@ describe('api/orgs Tests', () => {
     });
   });
 
+  describe('DELETE /orgs/:id', () => {
+    it('returns 404 for missing org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('removes org from all domains, deletes orgkey and org.json', async () => {
+      let body;
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['foo.example', 'www.adobe.com', 'dont.exist'] }))
+        .post('/?delete=', async (b) => {
+          assert.ok(b.includes('orgs/adobe/org.json'), 'should delete org.json');
+          assert.ok(b.includes('orgs/adobe/.orgkey'), 'should delete orgkey');
+          return true;
+        })
+        .reply(200)
+        .get('/domains/foo.example/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ adobe: 'ORG-KEY', other: 'OTHER-ORG-KEY' }))
+        .get('/domains/www.adobe.com/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ foo: 'OTHER-ORG-KEY' }))
+        .get('/domains/dont.exist/.orgkeys.json?x-id=GetObject')
+        .reply(404)
+        .put('/domains/foo.example/.orgkeys.json?x-id=PutObject', async (b) => {
+          body = JSON.parse(await ungzip(b));
+          return true;
+        })
+        .reply(200);
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 204);
+      assert.deepStrictEqual(body, { other: 'OTHER-ORG-KEY' });
+    });
+  });
+
   describe('GET /orgs/:id', () => {
     it('rejects unauthorized', async () => {
       nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
