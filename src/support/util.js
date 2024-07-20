@@ -232,7 +232,7 @@ export const getCWVEventType = (event) => {
 };
 
 /**
- * @param {RawRUMEvent} event
+ * @param {{id: string; url: string;}} event
  */
 export const fingerprint = (event) => {
   const uid = `${event.id}--${event.url}`;
@@ -240,7 +240,7 @@ export const fingerprint = (event) => {
 };
 
 /**
- * @param {RawRUMEvent} event
+ * @param {{id: string; url: string;}} event
  * @returns {number} between 0 and 1, evenly distributed
  */
 export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 16) / 3.402824e38;
