@@ -12,7 +12,7 @@
 
 import { Response } from '@adobe/fetch';
 import {
-  calculateDownsample, compressBody, errorWithResponse, getFetch,
+  calculateDownsample, compressBody, errorWithResponse, fingerprintValue, getFetch,
 } from '../support/util.js';
 import { HelixStorage } from '../support/storage.js';
 import { PathInfo } from '../support/PathInfo.js';
@@ -169,7 +169,7 @@ async function fetchDaily(ctx, path) {
       }
       acc.push(
         ...curr.value.rumBundles
-          .filter(() => (reductionFactor > 0 ? Math.random() > reductionFactor : true))
+          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
           .map((b) => ({
             ...b,
             weight: b.weight * weightFactor,
@@ -210,9 +210,10 @@ async function fetchMonthly(ctx, path) {
     days.map(async (day) => {
       // fetch from the CDN so that it caches the result
       const resp = await fetch(`${urlBase}/${day}?domainkey=${ctx.data.domainkey}`);
-      /** @type {any} */
+      /** @type {{rumBundles: RUMBundle[]}} */
       let data;
       if (resp.ok) {
+        // @ts-ignore
         data = await resp.json();
       } else {
         data = { rumBundles: [] };
@@ -236,7 +237,7 @@ async function fetchMonthly(ctx, path) {
       }
       acc.push(
         ...curr.value.rumBundles
-          .filter(() => (reductionFactor > 0 ? Math.random() > reductionFactor : true))
+          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
           .map((b) => ({
             ...b,
             weight: b.weight * weightFactor,
