@@ -1,3 +1,10 @@
+## [1.5.5](https://github.com/adobe/helix-rum-bundler/compare/v1.5.4...v1.5.5) (2024-07-22)
+
+
+### Bug Fixes
+
+* make fingerprintvalue include weight ([#147](https://github.com/adobe/helix-rum-bundler/issues/147)) ([6e6665b](https://github.com/adobe/helix-rum-bundler/commit/6e6665baf20e8ad9744e96485f81490f1a405eb6))
+
 ## [1.5.4](https://github.com/adobe/helix-rum-bundler/compare/v1.5.3...v1.5.4) (2024-07-20)
 
 
