@@ -232,15 +232,15 @@ export const getCWVEventType = (event) => {
 };
 
 /**
- * @param {{id: string; url: string;}} event
+ * @param {{id: string; url: string; weight: number;}} event
  */
 export const fingerprint = (event) => {
-  const uid = `${event.id}--${event.url}`;
+  const uid = `${event.id}--${event.url}--${event.weight || 0}`;
   return crypto.createHash('md5').update(uid).digest('hex');
 };
 
 /**
- * @param {{id: string; url: string;}} event
+ * @param {{id: string; url: string; weight: number;}} event
  * @returns {number} between 0 and 1, evenly distributed
  */
 export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 16) / 3.402824e38;
