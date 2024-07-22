@@ -133,7 +133,7 @@ export async function assertAuthorized(ctx, domain) {
 export async function fetchAggregate(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const key = `${path}/${getAggregateFilename(ctx)}.json`;
+  const key = `${path}/${getAggregateFilename(ctx)}`;
   const buf = await bundleBucket.get(key);
   if (!buf) {
     return null;
@@ -155,7 +155,7 @@ export async function fetchAggregate(ctx, path) {
 export async function storeAggregate(ctx, path, data, ttl) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const prefix = path.toString();
-  const key = `${prefix}/${getAggregateFilename(ctx)}.json`;
+  const key = `${prefix}/${getAggregateFilename(ctx)}`;
   const expiration = new Date(Date.now() + ttl);
   ctx.log.info(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
   await bundleBucket.put(key, data, 'application/json', expiration);
@@ -263,11 +263,12 @@ async function fetchMonthly(ctx, path) {
   let totalBundles = 0;
 
   const fetch = getFetch(ctx);
+  const variant = getVariant(ctx);
   const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
   const dailyBundles = await Promise.allSettled(
     days.map(async (day) => {
       // fetch from the CDN so that it caches the result
-      const resp = await fetch(`${urlBase}/${day}?domainkey=${ctx.data.domainkey}`);
+      const resp = await fetch(`${urlBase}/${day}?domainkey=${ctx.data.domainkey}${variant ? `&variant=${variant}` : ''}`);
       /** @type {{rumBundles: RUMBundle[]}} */
       let data;
       if (resp.ok) {
