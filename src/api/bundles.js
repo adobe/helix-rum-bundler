@@ -33,6 +33,64 @@ export const MAX_EVENTS = {
 };
 
 /**
+ * Optional variant parameter to return different aggregation types.
+ * Variants not in this object are ignored.
+ */
+const VARIANTS = {
+  /**
+   * cwv biased
+   */
+  cwv: true,
+};
+
+/**
+ * @param {UniversalContext} ctx
+ * @returns {string|undefined}
+ */
+function getVariant(ctx) {
+  return VARIANTS[ctx.data?.variant] ? ctx.data.variant : undefined;
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @returns {string}
+ */
+function getAggregateFilename(ctx) {
+  const variant = getVariant(ctx);
+  return `aggregate${variant ? `-${variant}` : ''}.json`;
+}
+
+/**
+ *
+ * @param {UniversalContext} ctx
+ * @param {RUMBundle[]} bundles
+ * @param {number} [reductionFactor]
+ * @param {number} [weightFactor]
+ * @returns {RUMBundle[]}
+ */
+function downsampleBundles(ctx, bundles, reductionFactor = 0, weightFactor = 1) {
+  if (!reductionFactor || reductionFactor <= 0) {
+    return bundles;
+  }
+
+  const variant = getVariant(ctx);
+  return bundles.reduce((col, b) => {
+    if (fingerprintValue(b) > reductionFactor) {
+      col.push({
+        ...b,
+        weight: b.weight * weightFactor,
+      });
+    } else if (variant === 'cwv') {
+      // dont change the weights of bundles that have cwv but should be excluded by downsample
+      if (b.events.find((e) => e.checkpoint.startsWith('cwv-'))) {
+        col.push(b);
+      }
+    }
+    return col;
+  }, []);
+}
+
+/**
  * Check domainkey authorization
  * @param {UniversalContext} ctx
  * @param {string} domain
@@ -75,7 +133,7 @@ export async function assertAuthorized(ctx, domain) {
 export async function fetchAggregate(ctx, path) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const key = `${path}/aggregate.json`;
+  const key = `${path}/${getAggregateFilename(ctx)}.json`;
   const buf = await bundleBucket.get(key);
   if (!buf) {
     return null;
@@ -97,7 +155,7 @@ export async function fetchAggregate(ctx, path) {
 export async function storeAggregate(ctx, path, data, ttl) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const prefix = path.toString();
-  const key = `${prefix}/aggregate.json`;
+  const key = `${prefix}/${getAggregateFilename(ctx)}.json`;
   const expiration = new Date(Date.now() + ttl);
   ctx.log.info(`storing aggregate for ${prefix} until ${expiration.toISOString()}`);
   await bundleBucket.put(key, data, 'application/json', expiration);
@@ -168,12 +226,12 @@ async function fetchDaily(ctx, path) {
         return acc;
       }
       acc.push(
-        ...curr.value.rumBundles
-          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
-          .map((b) => ({
-            ...b,
-            weight: b.weight * weightFactor,
-          })),
+        ...downsampleBundles(
+          ctx,
+          curr.value.rumBundles,
+          reductionFactor,
+          weightFactor,
+        ),
       );
       return acc;
     },
@@ -236,12 +294,12 @@ async function fetchMonthly(ctx, path) {
         return acc;
       }
       acc.push(
-        ...curr.value.rumBundles
-          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
-          .map((b) => ({
-            ...b,
-            weight: b.weight * weightFactor,
-          })),
+        ...downsampleBundles(
+          ctx,
+          curr.value.rumBundles,
+          reductionFactor,
+          weightFactor,
+        ),
       );
       return acc;
     },
