@@ -1,3 +1,10 @@
+## [1.5.8](https://github.com/adobe/helix-rum-bundler/compare/v1.5.7...v1.5.8) (2024-07-30)
+
+
+### Bug Fixes
+
+* use manifest year, date ([#154](https://github.com/adobe/helix-rum-bundler/issues/154)) ([412f0a7](https://github.com/adobe/helix-rum-bundler/commit/412f0a71a924c09332849b113c1d1745d095e7f4))
+
 ## [1.5.7](https://github.com/adobe/helix-rum-bundler/compare/v1.5.6...v1.5.7) (2024-07-30)
 
 
