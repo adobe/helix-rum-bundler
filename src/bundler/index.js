@@ -100,8 +100,8 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
           const group = await BundleGroup.fromContext(
             ctx,
             domain,
-            year,
-            month,
+            sessionManifest?.year ?? year,
+            sessionManifest?.month ?? month,
             sessionManifest?.day ?? day,
             session ? session.hour : hour,
           );

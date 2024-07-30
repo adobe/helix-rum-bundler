@@ -37,17 +37,31 @@ export default class Manifest {
   /**
    * @type {number}
    */
+  year;
+
+  /**
+   * @type {number}
+   */
+  month;
+
+  /**
+   * @type {number}
+   */
   day;
 
   /**
    * @param {UniversalContext} ctx
    * @param {string} key
+   * @param {number} year
+   * @param {number} month
    * @param {number} day
    * @param {ManifestData} [data]
    */
-  constructor(ctx, key, day, data) {
+  constructor(ctx, key, year, month, day, data) {
     this.ctx = ctx;
     this.key = key;
+    this.year = year;
+    this.month = month;
     this.day = day;
     this.sessions = data?.sessions || {};
   }
@@ -130,7 +144,7 @@ export default class Manifest {
       } catch (e) {
         log.error('failed to get manifest', e);
       }
-      const manifest = new Manifest(ctx, key, day, data);
+      const manifest = new Manifest(ctx, key, year, month, day, data);
       ctx.attributes.rumManifests.set(key, manifest);
       return manifest;
     })();
