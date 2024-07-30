@@ -1,3 +1,10 @@
+## [1.5.7](https://github.com/adobe/helix-rum-bundler/compare/v1.5.6...v1.5.7) (2024-07-30)
+
+
+### Bug Fixes
+
+* add debugging for date differences ([#153](https://github.com/adobe/helix-rum-bundler/issues/153)) ([426b1d3](https://github.com/adobe/helix-rum-bundler/commit/426b1d3a65a21ead5ac5c33e341eaff54a10f5b2))
+
 ## [1.5.6](https://github.com/adobe/helix-rum-bundler/compare/v1.5.5...v1.5.6) (2024-07-27)
 
 
