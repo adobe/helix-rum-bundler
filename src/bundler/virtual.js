@@ -63,6 +63,7 @@ export default [{
         ...e,
         weight: e.weight * 100,
         domain: info.domain,
+        hostType: (typeof e.host === 'string' && e.host.endsWith('.adobeaemcloud.net')) ? 'aemcs' : 'helix',
       },
     };
   },
