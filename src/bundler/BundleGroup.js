@@ -33,6 +33,7 @@ export const getBundleProperties = (event) => {
     weight: event.weight,
     domain: event.domain,
     events: [],
+    ...(event.hostType ? { hostType: event.hostType } : {}),
   };
 };
 
