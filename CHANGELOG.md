@@ -1,3 +1,10 @@
+## [1.5.9](https://github.com/adobe/helix-rum-bundler/compare/v1.5.8...v1.5.9) (2024-07-31)
+
+
+### Bug Fixes
+
+* add hostType property to bundles for all aggregate ([#156](https://github.com/adobe/helix-rum-bundler/issues/156)) ([19d8a6e](https://github.com/adobe/helix-rum-bundler/commit/19d8a6e6d29dd4afbe4d1b7e68db8365bf588ee6))
+
 ## [1.5.8](https://github.com/adobe/helix-rum-bundler/compare/v1.5.7...v1.5.8) (2024-07-30)
 
 
