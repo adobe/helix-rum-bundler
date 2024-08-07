@@ -1,3 +1,10 @@
+## [1.5.11](https://github.com/adobe/helix-rum-bundler/compare/v1.5.10...v1.5.11) (2024-08-07)
+
+
+### Bug Fixes
+
+* round timeDelta ([#162](https://github.com/adobe/helix-rum-bundler/issues/162)) ([3e92fd5](https://github.com/adobe/helix-rum-bundler/commit/3e92fd549276506a04ac6340ea9559799046d5aa))
+
 ## [1.5.10](https://github.com/adobe/helix-rum-bundler/compare/v1.5.9...v1.5.10) (2024-08-03)
 
 
