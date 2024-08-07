@@ -43,7 +43,7 @@ export const getBundleProperties = (event) => {
  * @returns {RUMEvent}
  */
 export const getEventProperties = (event, bundle) => {
-  const timeDelta = typeof event.time === 'undefined' ? undefined : event.time - Number(new Date(bundle.timeSlot));
+  const timeDelta = typeof event.time === 'undefined' ? undefined : Math.round(event.time - Number(new Date(bundle.timeSlot)));
   // custom handling cases for specific event types
   if (event.checkpoint === 'cwv') {
     const type = getCWVEventType(event);
