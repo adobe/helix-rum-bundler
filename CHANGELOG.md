@@ -1,3 +1,10 @@
+## [1.5.12](https://github.com/adobe/helix-rum-bundler/compare/v1.5.11...v1.5.12) (2024-08-08)
+
+
+### Bug Fixes
+
+* remove hostType from event ([#163](https://github.com/adobe/helix-rum-bundler/issues/163)) ([69c583d](https://github.com/adobe/helix-rum-bundler/commit/69c583d9c77cd4e1233edf354eee0a9f109542ef))
+
 ## [1.5.11](https://github.com/adobe/helix-rum-bundler/compare/v1.5.10...v1.5.11) (2024-08-07)
 
 
