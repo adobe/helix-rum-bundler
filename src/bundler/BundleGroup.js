@@ -64,6 +64,7 @@ export const getEventProperties = (event, bundle) => {
   return pruneUndefined({
     ...event,
     timeDelta,
+    hostType: undefined,
     domain: undefined,
     time: undefined,
     id: undefined,
