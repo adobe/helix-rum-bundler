@@ -375,7 +375,12 @@ export function sortRawEvents(rawEvents, log) {
 export function adaptCloudflareEvent(ctx, ev) {
   try {
     // the log ordering may change, so find the first message that looks like a JSON string
-    const msg = ev.Logs.find(({ Message }) => Message[0].startsWith('{"'))?.Message[0];
+    const msg = ev.Logs.find(
+      ({ Message: [txt] }) => txt.startsWith('{"')
+        && txt.includes('checkpoint')
+        && !txt.includes('<<<Logpush: message truncated>>>'),
+    )?.Message[0];
+
     if (!msg) {
       ctx.log.debug('no JSON message found in cloudflare event');
       return null;
