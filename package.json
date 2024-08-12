@@ -82,7 +82,7 @@
     "fs-extra": "11.2.0",
     "googleapis": "140.0.1",
     "husky": "9.1.4",
-    "junit-report-builder": "4.0.1",
+    "junit-report-builder": "5.0.0",
     "lint-staged": "15.2.8",
     "mocha": "10.7.3",
     "mocha-multi-reporters": "1.5.1",
