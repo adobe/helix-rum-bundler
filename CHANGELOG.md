@@ -1,3 +1,10 @@
+## [1.5.14](https://github.com/adobe/helix-rum-bundler/compare/v1.5.13...v1.5.14) (2024-08-12)
+
+
+### Bug Fixes
+
+* ignore truncated logpush messages ([#165](https://github.com/adobe/helix-rum-bundler/issues/165)) ([17c4609](https://github.com/adobe/helix-rum-bundler/commit/17c4609bd2fc6b33495eda7c6d8baa1f5da9549d))
+
 ## [1.5.13](https://github.com/adobe/helix-rum-bundler/compare/v1.5.12...v1.5.13) (2024-08-10)
 
 
