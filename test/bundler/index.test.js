@@ -218,12 +218,22 @@ describe('bundler Tests', () => {
     });
 
     it('ignores events without required properties', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"id":null}'] }] });
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo","id":null}'] }] });
       assert.deepStrictEqual(adapted, null);
     });
 
     it('ignores broken JSON message', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"key":"value"'] }] });
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo"'] }] });
+      assert.deepStrictEqual(adapted, null);
+    });
+
+    it('ignores JSON message missing checkpoint', () => {
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"id":"bar"}'] }] });
+      assert.deepStrictEqual(adapted, null);
+    });
+
+    it('ignores truncated JSON message', () => {
+      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo","id":"bar","target":"someth<<<Logpush: message truncated>>>ing"}'] }] });
       assert.deepStrictEqual(adapted, null);
     });
   });
