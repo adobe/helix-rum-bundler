@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/adobe/helix-rum-bundler/compare/v1.5.14...v1.6.0) (2024-08-16)
+
+
+### Features
+
+* add list domains api ([78b1457](https://github.com/adobe/helix-rum-bundler/commit/78b1457d0b1780cbe98ea6d54f01c8a06d33da1d))
+
 ## [1.5.14](https://github.com/adobe/helix-rum-bundler/compare/v1.5.13...v1.5.14) (2024-08-12)
 
 
