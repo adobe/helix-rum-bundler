@@ -187,4 +187,16 @@ declare global {
      */
     event: RawRUMEvent;
   }
+
+  export interface Links {
+    self?: string;
+    next?: string;
+    [key: string]: string;
+  }
+
+  export interface Pagination {
+    start?: string;
+    next?: string;
+    limit: number;
+  }
 }

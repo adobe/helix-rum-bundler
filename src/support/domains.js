@@ -30,6 +30,32 @@ export async function fetchDomainKey(ctx, domain) {
 }
 
 /**
+ * Fetch list of domains
+ *
+ * @param {UniversalContext} ctx
+ * @param {string} [start]
+ * @param {number|string} [plimit]
+ * @returns {Promise<{domains:string[]; pagination:Pagination; links:Links; }>}
+ */
+export async function listDomains(ctx, start, plimit) {
+  let limit = plimit && typeof plimit === 'string' ? parseInt(plimit, 10) : plimit;
+  limit = typeof plimit === 'number' && plimit > 0 ? plimit : 1000;
+  const { bundleBucket } = HelixStorage.fromContext(ctx);
+  const { folders, next } = await bundleBucket.listFolders('', { start, limit });
+  return {
+    domains: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d)),
+    pagination: {
+      start,
+      limit,
+      next,
+    },
+    links: {
+      next: next ? `${ctx.env.CDN_ENDPOINT}/domains?start=${next}&limit=${limit}` : undefined,
+    },
+  };
+}
+
+/**
  * Check whether domain exists in storage yet
  *
  * @param {UniversalContext} ctx
