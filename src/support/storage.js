@@ -441,7 +441,7 @@ class Bucket {
     } while (ContinuationToken && folders.length < limit);
     return {
       folders,
-      next: ContinuationToken,
+      next: ContinuationToken || undefined,
     };
   }
 }

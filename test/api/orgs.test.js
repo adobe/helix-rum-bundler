@@ -146,7 +146,7 @@ describe('api/orgs Tests', () => {
     it('returns orgs', async () => {
       const listBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-orgs.xml'), 'utf-8');
       nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
-        .get('/?delimiter=%2F&list-type=2&prefix=orgs%2F')
+        .get('/?delimiter=%2F&list-type=2&max-keys=1000&prefix=orgs%2F')
         .reply(200, listBody);
 
       const req = REQUEST({ method: 'GET' });

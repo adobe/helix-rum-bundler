@@ -39,7 +39,7 @@ export async function fetchDomainKey(ctx, domain) {
  */
 export async function listDomains(ctx, start, plimit) {
   let limit = plimit && typeof plimit === 'string' ? parseInt(plimit, 10) : plimit;
-  limit = typeof plimit === 'number' && plimit > 0 ? plimit : 1000;
+  limit = typeof limit === 'number' && limit > 0 ? limit : 1000;
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const { folders, next } = await bundleBucket.listFolders('', { start, limit });
   return {
