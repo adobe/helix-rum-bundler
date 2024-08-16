@@ -128,9 +128,9 @@ async function listOrgs(req, ctx) {
   assertSuperuserAuthorized(req, ctx);
 
   const { usersBucket } = HelixStorage.fromContext(ctx);
-  const folders = await usersBucket.listFolders('orgs/');
+  const { folders, ...rest } = await usersBucket.listFolders('orgs/');
   const orgs = folders.map((o) => o.replace('orgs/', '').slice(0, -1));
-  return new Response(JSON.stringify({ orgs }), {
+  return new Response(JSON.stringify({ orgs, ...rest }), {
     status: 200,
     headers: {
       'content-type': 'application/json',

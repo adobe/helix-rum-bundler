@@ -11,43 +11,34 @@
  */
 
 import { Response } from '@adobe/fetch';
-import domainkey from './domainkey.js';
-import bundles from './bundles.js';
-import orgs from './orgs.js';
-import domains from './domains.js';
-import { errorWithResponse } from '../support/util.js';
 import { PathInfo } from '../support/PathInfo.js';
-
-const handlers = {
-  domains,
-  domainkey,
-  bundles,
-  orgs,
-};
+import { assertSuperuserAuthorized } from '../support/authorization.js';
+import { listDomains } from '../support/domains.js';
 
 /**
- * Respond to HTTP request
+ * Get list of domains.
+ *
+ * @param {UniversalContext} ctx
+ */
+async function getDomains(ctx) {
+  const { limit, start } = ctx.data;
+  const data = await listDomains(ctx, start, limit);
+  return new Response(JSON.stringify(data), { status: 200 });
+}
+
+/**
+ * Handle /domains route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  const info = PathInfo.fromContext(ctx);
-  const handler = handlers[info.route];
-  /* c8 ignore next 3 */
-  if (!handler) {
-    throw errorWithResponse(404, 'not found');
-  }
-  if (req.method === 'OPTIONS') {
-    return new Response('', {
-      status: 204,
-      headers: {
-        'access-control-allow-methods': 'GET, POST, PUT, OPTIONS, DELETE',
-        'access-control-allow-headers': 'Authorization, content-type',
-        'access-control-max-age': '86400',
-      },
-    });
-  }
+  // eslint-disable-next-line no-new
+  new PathInfo(ctx.pathInfo.suffix);
+  assertSuperuserAuthorized(req, ctx);
 
-  return handler(req, ctx);
+  if (req.method === 'GET') {
+    return getDomains(ctx);
+  }
+  return new Response('method not allowed', { status: 405 });
 }

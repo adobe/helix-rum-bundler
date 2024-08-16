@@ -418,10 +418,12 @@ class Bucket {
   /**
    * List folders, return array of folder names
    * @param {string} prefix
-   * @returns {Promise<string[]>}
+   * @param {{ limit?: number; start?: string; }} [options]
+   * @returns {Promise<{ next?: string; folders: string[] }>}
    */
-  async listFolders(prefix) {
-    let ContinuationToken;
+  async listFolders(prefix, { limit, start } = { }) {
+    limit = limit || Infinity;
+    let ContinuationToken = start;
     const folders = [];
     do {
       // eslint-disable-next-line no-await-in-loop
@@ -430,13 +432,17 @@ class Bucket {
         ContinuationToken,
         Prefix: prefix,
         Delimiter: '/',
+        MaxKeys: limit === Infinity ? 1000 : limit,
       }));
       ContinuationToken = result.IsTruncated ? result.NextContinuationToken : '';
       (result.CommonPrefixes || []).forEach(({ Prefix }) => {
         folders.push(Prefix);
       });
-    } while (ContinuationToken);
-    return folders;
+    } while (ContinuationToken && folders.length < limit);
+    return {
+      folders,
+      next: ContinuationToken || undefined,
+    };
   }
 }
 

@@ -58,6 +58,9 @@ export class PathInfo {
       case 'bundles':
         this.initBundlesRoute();
         break;
+      case 'domains':
+        this.initDomainsRoute();
+        break;
       default:
         throw errorWithResponse(404);
     }
@@ -101,6 +104,13 @@ export class PathInfo {
   || Number.isNaN(this.month)
   || Number.isNaN(this.day)
   || Number.isNaN(this.hour)) {
+      throw errorWithResponse(404);
+    }
+  }
+
+  initDomainsRoute() {
+    const [_, next] = this.segments;
+    if (next) {
       throw errorWithResponse(404);
     }
   }

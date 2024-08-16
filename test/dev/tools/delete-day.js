@@ -29,7 +29,7 @@ import { contextLike, parseDate } from './util.js';
   const ctx = contextLike();
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const prefixes = (await bundleBucket.listFolders('')).filter((p) => !ignored[p.slice(0, -1)]);
+  const prefixes = (await bundleBucket.listFolders('')).folders.filter((p) => !ignored[p.slice(0, -1)]);
   const { year, month, day } = parseDate(process.env.DATE);
   console.debug(`removing year=${year} month=${month} day=${day} from ${prefixes.length} domains`);
   const folders = prefixes.map((pre) => `${pre}${year}/${month}/${day}/`);
