@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/adobe/helix-rum-bundler/compare/v1.6.0...v1.6.1) (2024-08-17)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#170](https://github.com/adobe/helix-rum-bundler/issues/170)) ([d20c64f](https://github.com/adobe/helix-rum-bundler/commit/d20c64f7d14c4cd6742cf1e35dd2a36ccbe00674))
+
 # [1.6.0](https://github.com/adobe/helix-rum-bundler/compare/v1.5.14...v1.6.0) (2024-08-16)
 
 
