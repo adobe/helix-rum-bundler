@@ -50,7 +50,7 @@ export async function listDomains(ctx, start, plimit) {
       next,
     },
     links: {
-      next: next ? `${ctx.env.CDN_ENDPOINT}/domains?start=${next}&limit=${limit}` : undefined,
+      next: next ? `${ctx.env.CDN_ENDPOINT}/domains?start=${encodeURIComponent(next)}&limit=${limit}` : undefined,
     },
   };
 }
