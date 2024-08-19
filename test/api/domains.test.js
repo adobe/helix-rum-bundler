@@ -80,7 +80,7 @@ describe('api/domains Tests', () => {
         next: 'abc=',
       },
       links: {
-        next: 'https://endpoint.example/domains?start=abc=&limit=3',
+        next: 'https://endpoint.example/domains?start=abc%3D&limit=3',
       },
     });
   });
