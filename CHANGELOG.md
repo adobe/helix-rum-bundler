@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/adobe/helix-rum-bundler/compare/v1.6.1...v1.6.2) (2024-08-19)
+
+
+### Bug Fixes
+
+* encode start token ([7f2a079](https://github.com/adobe/helix-rum-bundler/commit/7f2a0795b2f4951cb90c8b88154d1583c013930a))
+
 ## [1.6.1](https://github.com/adobe/helix-rum-bundler/compare/v1.6.0...v1.6.1) (2024-08-17)
 
 
