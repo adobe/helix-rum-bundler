@@ -397,13 +397,18 @@ async function getOrgBundles(req, ctx, info) {
   // downsample if needed
   // store aggregate
 
+  // filter out domains that are non-prod
+  const filtered = new Set(domains.filter((domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain)));
+  // include the org aggregate bundle
+  filtered.add(`${id}.aem.live`);
+
   /** @type {RUMBundle[]} */
   let rumBundles = [];
   let totalEvents = 0;
   const { date } = orgPath;
   const fetch = getFetch(ctx);
   await processQueue(
-    domains,
+    [...filtered],
     async (domain) => {
       const domainkey = await fetchDomainKey(ctx, domain);
       const url = `${ctx.env.CDN_ENDPOINT}/bundles/${domain}/${date}?domainkey=${domainkey}`;
