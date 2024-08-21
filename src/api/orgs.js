@@ -36,6 +36,8 @@ import {
 } from './bundles.js';
 import { fetchDomainKey } from '../support/domains.js';
 
+const FILE_WRITE_CONCURRENCY = 100;
+
 /**
  * Sets { [org]: [orgkey] } in `{usersbucket}/domains/{domain}/.orgkeys.json`
  *
@@ -45,8 +47,9 @@ import { fetchDomainKey } from '../support/domains.js';
  * @param {string} orgkey
  */
 async function addOrgkeyToDomains(ctx, domains, org, orgkey) {
-  await Promise.allSettled(
-    domains.map(async (domain) => {
+  await processQueue(
+    [...domains],
+    async (domain) => {
       try {
         const orgkeyMap = await getDomainOrgkeyMap(ctx, domain);
         orgkeyMap[org] = orgkey;
@@ -55,7 +58,8 @@ async function addOrgkeyToDomains(ctx, domains, org, orgkey) {
       } catch (e) {
         ctx.log.error(`failed to add orgkey to domain '${domain}'`, e);
       }
-    }),
+    },
+    FILE_WRITE_CONCURRENCY,
   );
 }
 
