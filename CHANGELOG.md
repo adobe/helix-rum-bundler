@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/adobe/helix-rum-bundler/compare/v1.6.5...v1.6.6) (2024-08-21)
+
+
+### Bug Fixes
+
+* exclude hlx urls from org bundles ([a1023ea](https://github.com/adobe/helix-rum-bundler/commit/a1023eace4408bd611c8ddae2e92f61ff1b03e6d))
+
 ## [1.6.5](https://github.com/adobe/helix-rum-bundler/compare/v1.6.4...v1.6.5) (2024-08-21)
 
 
