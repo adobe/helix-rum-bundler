@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/adobe/helix-rum-bundler/compare/v1.6.2...v1.6.3) (2024-08-21)
+
+
+### Bug Fixes
+
+* limit concurrency on add domains ([994df80](https://github.com/adobe/helix-rum-bundler/commit/994df80a5eaae9f020a6d571d670995e81c27411))
+
 ## [1.6.2](https://github.com/adobe/helix-rum-bundler/compare/v1.6.1...v1.6.2) (2024-08-19)
 
 
