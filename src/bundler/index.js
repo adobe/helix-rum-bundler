@@ -32,6 +32,12 @@ import VIRTUAL_DOMAIN_RULES from './virtual.js';
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
+const KNOWN_VIRTUAL_DOMAINS = VIRTUAL_DOMAIN_RULES.reduce((acc, rule) => {
+  if (rule.domain) {
+    acc[rule.domain] = true;
+  }
+  return acc;
+}, {});
 
 /**
  * Lock the log bucket to prevent concurrent bundling.
@@ -356,6 +362,9 @@ export function sortRawEvents(rawEvents, log) {
           virtualMap[vkey] = { events: [], info };
         }
         virtualMap[vkey].events.push(vevent || event);
+        if (!KNOWN_VIRTUAL_DOMAINS[info.domain]) {
+          domains.add(info.domain);
+        }
       });
     } catch (e) {
       log.warn('failed to sort raw event: ', e.message, event.url);

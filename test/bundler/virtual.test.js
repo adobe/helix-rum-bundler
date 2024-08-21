@@ -778,6 +778,8 @@ describe('should bundle events to virtual destinations', () => {
 
     // virtual domain bundling
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+      .head('/adobe.aem.live/.domainkey')
+      .reply(200)
       // get manifest (org)
       .get('/adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
       .reply(404)
