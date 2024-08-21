@@ -1,3 +1,12 @@
+## [1.6.4](https://github.com/adobe/helix-rum-bundler/compare/v1.6.3...v1.6.4) (2024-08-21)
+
+
+### Bug Fixes
+
+* hlxsites org subdomain suffix, add test ([35ff5f4](https://github.com/adobe/helix-rum-bundler/commit/35ff5f49cf82aed662530a5221d8094b89a92675))
+* only aggregate org virtuals, remove namespacing ([edb1415](https://github.com/adobe/helix-rum-bundler/commit/edb141543d7f6c8741dd96634c89dd2e922dc7bf))
+* org virtual, all test ([17bb689](https://github.com/adobe/helix-rum-bundler/commit/17bb68946b55c69bb456062c4c1e6396af9a62bd))
+
 ## [1.6.3](https://github.com/adobe/helix-rum-bundler/compare/v1.6.2...v1.6.3) (2024-08-21)
 
 
