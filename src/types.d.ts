@@ -174,7 +174,7 @@ declare global {
 
   export interface VirtualDestination {
     /**
-     * Virtual bundle file ke
+     * Virtual bundle file key
      */
     key: string;
     /**

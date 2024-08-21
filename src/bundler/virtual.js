@@ -101,4 +101,48 @@ export default [{
       },
     };
   },
+}, {
+  // collapse (hlx|aem).(live|page) into org/sites
+  /**
+   * @param {RawRUMEvent} e
+   * @returns {boolean}
+   */
+  test: (e) => /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(e.domain),
+  /**
+   * @param {RawRUMEvent} e
+   * @param {BundleInfo} info
+   * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }[]}
+   */
+  destination(e, info) {
+    const res = /(?<ref>[a-zA-Z0-9-]+)--(?<site>[a-zA-Z0-9-]+)--(?<org>[a-zA-Z0-9-]+).(hlx|aem)\.(page|live)/.exec(e.domain);
+    const { site, org } = res.groups;
+    const siteDomain = `${site}--${org}.aem.live`;
+    const orgDomain = `${org}.aem.live`;
+    return [
+      // site
+      {
+        key: `/${siteDomain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+        info: {
+          ...info,
+          domain: siteDomain,
+        },
+        event: {
+          ...e,
+          domain: info.domain,
+        },
+      },
+      // org
+      {
+        key: `/${orgDomain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+        info: {
+          ...info,
+          domain: orgDomain,
+        },
+        event: {
+          ...e,
+          domain: info.domain,
+        },
+      },
+    ];
+  },
 }];

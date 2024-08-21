@@ -243,7 +243,19 @@ export function getVirtualDestinations(event, info) {
         return false;
       }
     })
-    .map((rule) => rule.destination(event, info));
+    .reduce((acc, rule) => {
+      try {
+        const dest = rule.destination(event, info);
+        if (Array.isArray(dest)) {
+          return acc.concat(dest);
+        } else {
+          acc.push(dest);
+        }
+      } catch (e) {
+        console.error('failed to get virtual destination: ', e);
+      }
+      return acc;
+    }, []);
 }
 
 /**

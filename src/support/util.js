@@ -236,6 +236,7 @@ export const getCWVEventType = (event) => {
  */
 export const fingerprint = (event) => {
   const uid = `${event.id}--${event.url}--${event.weight || 0}`;
+  console.log('uid: ', uid);
   return crypto.createHash('md5').update(uid).digest('hex');
 };
 
