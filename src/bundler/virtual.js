@@ -102,7 +102,7 @@ export default [{
     };
   },
 }, {
-  // collapse (hlx|aem).(live|page) into org/sites
+  // collapse (hlx|aem).(live|page) into orgs
   /**
    * @param {RawRUMEvent} _
    * @param {BundleInfo} info
@@ -112,38 +112,22 @@ export default [{
   /**
    * @param {RawRUMEvent} e
    * @param {BundleInfo} info
-   * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }[]}
+   * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }}
    */
   destination(e, info) {
     const res = /(?<ref>[a-zA-Z0-9-]+)--(?<site>[a-zA-Z0-9-]+)--(?<org>[a-zA-Z0-9-]+).(hlx|aem)\.(page|live)/.exec(info.domain);
-    const { site, org } = res.groups;
-    const siteDomain = `${site}--${org}.aem.live`;
-    const orgDomain = `${org}--hlxsites.aem.live`;
-    return [
-      // site
-      {
-        key: `/${siteDomain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-        info: {
-          ...info,
-          domain: siteDomain,
-        },
-        event: {
-          ...e,
-          domain: info.domain,
-        },
+    const { org } = res.groups;
+    const domain = `${org}.aem.live`;
+    return {
+      key: `/${domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain,
       },
-      // org
-      {
-        key: `/${orgDomain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-        info: {
-          ...info,
-          domain: orgDomain,
-        },
-        event: {
-          ...e,
-          domain: info.domain,
-        },
+      event: {
+        ...e,
+        domain: info.domain,
       },
-    ];
+    };
   },
 }];

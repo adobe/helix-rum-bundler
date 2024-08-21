@@ -247,11 +247,7 @@ export function getVirtualDestinations(event, info, log) {
     .reduce((acc, rule) => {
       try {
         const dest = rule.destination(event, info);
-        if (Array.isArray(dest)) {
-          return acc.concat(dest);
-        } else {
-          acc.push(dest);
-        }
+        acc.push(dest);
       } catch (e) {
         log.error('failed to get virtual destination: ', e);
       }

@@ -629,7 +629,7 @@ describe('should bundle events to virtual destinations', () => {
     });
   });
 
-  it('(hlx|aem).(page|live) should be bundled to org/site virtual', async () => {
+  it('(hlx|aem).(page|live) should be bundled to org virtual', async () => {
     Math.random = () => 1; // always skip the random all bundle
     const logFileList = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
     const mockEventResponseBody = makeEventFile({
@@ -662,10 +662,7 @@ describe('should bundle events to virtual destinations', () => {
       hlxlive: {},
       aempage: {},
       aemlive: {},
-      virtual: {
-        site: {},
-        org: {},
-      },
+      virtual: {},
     };
 
     nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
@@ -782,49 +779,24 @@ describe('should bundle events to virtual destinations', () => {
     // virtual domain bundling
     nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
       // get manifest (org)
-      .get('/adobe--hlxsites.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
+      .get('/adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
       .reply(404)
-      // get manifest (site)
-      .get('/helix-website--adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
-      .reply(404)
-
       // instantiate bundlegroup (org)
-      .get('/adobe--hlxsites.aem.live/1970/1/1/0.json?x-id=GetObject')
+      .get('/adobe.aem.live/1970/1/1/0.json?x-id=GetObject')
       .reply(404)
-      // instantiate bundlegroup (site)
-      .get('/helix-website--adobe.aem.live/1970/1/1/0.json?x-id=GetObject')
-      .reply(404)
-
       // get yesterday's manifest (org)
-      .get('/adobe--hlxsites.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
+      .get('/adobe.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
       .reply(404)
-      // get yeterday's manifest (site)
-      .get('/helix-website--adobe.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
-      .reply(404)
-
       // store manifest (org)
-      .put('/adobe--hlxsites.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
+      .put('/adobe.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
       .reply((_, body) => {
-        bodies.virtual.org.manifest = body;
+        bodies.virtual.manifest = body;
         return [200];
       })
-      // store manifest (site)
-      .put('/helix-website--adobe.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
-      .reply((_, body) => {
-        bodies.virtual.site.manifest = body;
-        return [200];
-      })
-
       // store bundlegroup (org)
-      .put('/adobe--hlxsites.aem.live/1970/1/1/0.json?x-id=PutObject')
+      .put('/adobe.aem.live/1970/1/1/0.json?x-id=PutObject')
       .reply((_, body) => {
-        bodies.virtual.org.bundle = body;
-        return [200];
-      })
-      // store bundlegroup (site)
-      .put('/helix-website--adobe.aem.live/1970/1/1/0.json?x-id=PutObject')
-      .reply((_, body) => {
-        bodies.virtual.site.bundle = body;
+        bodies.virtual.bundle = body;
         return [200];
       });
     const ctx = DEFAULT_CONTEXT();
@@ -931,23 +903,7 @@ describe('should bundle events to virtual destinations', () => {
     });
 
     // virtual manifests
-    assert.deepStrictEqual(bodies.virtual.org.manifest, {
-      sessions: {
-        'hlxpage--main--helix-website--adobe.hlx.page--/1': {
-          hour: 0,
-        },
-        'hlxlive--foo--helix-website--adobe.hlx.live--/2': {
-          hour: 0,
-        },
-        'aempage--bar--helix-website--adobe.aem.page--/3': {
-          hour: 0,
-        },
-        'aemlive--qux--helix-website--adobe.aem.live--/4': {
-          hour: 0,
-        },
-      },
-    });
-    assert.deepStrictEqual(bodies.virtual.site.manifest, {
+    assert.deepStrictEqual(bodies.virtual.manifest, {
       sessions: {
         'hlxpage--main--helix-website--adobe.hlx.page--/1': {
           hour: 0,
@@ -965,67 +921,7 @@ describe('should bundle events to virtual destinations', () => {
     });
 
     // virtual bundles
-    assert.deepStrictEqual(bodies.virtual.org.bundle, {
-      bundles: {
-        'hlxpage--main--helix-website--adobe.hlx.page--/1': {
-          id: 'hlxpage',
-          time: '1970-01-01T00:00:01.337Z',
-          timeSlot: '1970-01-01T00:00:00.000Z',
-          url: 'https://main--helix-website--adobe.hlx.page/1',
-          weight: 100,
-          domain: 'main--helix-website--adobe.hlx.page',
-          events: [
-            {
-              checkpoint: 'top',
-              timeDelta: 1337,
-            },
-          ],
-        },
-        'hlxlive--foo--helix-website--adobe.hlx.live--/2': {
-          id: 'hlxlive',
-          time: '1970-01-01T00:00:01.338Z',
-          timeSlot: '1970-01-01T00:00:00.000Z',
-          url: 'https://foo--helix-website--adobe.hlx.live/2',
-          weight: 100,
-          domain: 'foo--helix-website--adobe.hlx.live',
-          events: [
-            {
-              checkpoint: 'top',
-              timeDelta: 1338,
-            },
-          ],
-        },
-        'aempage--bar--helix-website--adobe.aem.page--/3': {
-          id: 'aempage',
-          time: '1970-01-01T00:00:01.339Z',
-          timeSlot: '1970-01-01T00:00:00.000Z',
-          url: 'https://bar--helix-website--adobe.aem.page/3',
-          weight: 100,
-          domain: 'bar--helix-website--adobe.aem.page',
-          events: [
-            {
-              checkpoint: 'top',
-              timeDelta: 1339,
-            },
-          ],
-        },
-        'aemlive--qux--helix-website--adobe.aem.live--/4': {
-          id: 'aemlive',
-          time: '1970-01-01T00:00:01.310Z',
-          timeSlot: '1970-01-01T00:00:00.000Z',
-          url: 'https://qux--helix-website--adobe.aem.live/4',
-          weight: 100,
-          domain: 'qux--helix-website--adobe.aem.live',
-          events: [
-            {
-              checkpoint: 'top',
-              timeDelta: 1310,
-            },
-          ],
-        },
-      },
-    });
-    assert.deepStrictEqual(bodies.virtual.site.bundle, {
+    assert.deepStrictEqual(bodies.virtual.bundle, {
       bundles: {
         'hlxpage--main--helix-website--adobe.hlx.page--/1': {
           id: 'hlxpage',
