@@ -101,4 +101,33 @@ export default [{
       },
     };
   },
+}, {
+  // collapse (hlx|aem).(live|page) into orgs
+  /**
+   * @param {RawRUMEvent} _
+   * @param {BundleInfo} info
+   * @returns {boolean}
+   */
+  test: (_, info) => /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain),
+  /**
+   * @param {RawRUMEvent} e
+   * @param {BundleInfo} info
+   * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }}
+   */
+  destination(e, info) {
+    const res = /(?<ref>[a-zA-Z0-9-]+)--(?<site>[a-zA-Z0-9-]+)--(?<org>[a-zA-Z0-9-]+).(hlx|aem)\.(page|live)/.exec(info.domain);
+    const { org } = res.groups;
+    const domain = `${org}.aem.live`;
+    return {
+      key: `/${domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain,
+      },
+      event: {
+        ...e,
+        domain: info.domain,
+      },
+    };
+  },
 }];
