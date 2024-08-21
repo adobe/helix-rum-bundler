@@ -104,20 +104,24 @@ export default [{
 }, {
   // collapse (hlx|aem).(live|page) into org/sites
   /**
-   * @param {RawRUMEvent} e
+   * @param {RawRUMEvent} _
+   * @param {BundleInfo} info
    * @returns {boolean}
    */
-  test: (e) => /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(e.domain),
+  test: (_, info) => {
+    console.log('testing ', info, /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain));
+    return /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain);
+  },
   /**
    * @param {RawRUMEvent} e
    * @param {BundleInfo} info
    * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }[]}
    */
   destination(e, info) {
-    const res = /(?<ref>[a-zA-Z0-9-]+)--(?<site>[a-zA-Z0-9-]+)--(?<org>[a-zA-Z0-9-]+).(hlx|aem)\.(page|live)/.exec(e.domain);
+    const res = /(?<ref>[a-zA-Z0-9-]+)--(?<site>[a-zA-Z0-9-]+)--(?<org>[a-zA-Z0-9-]+).(hlx|aem)\.(page|live)/.exec(info.domain);
     const { site, org } = res.groups;
     const siteDomain = `${site}--${org}.aem.live`;
-    const orgDomain = `${org}.aem.live`;
+    const orgDomain = `${org}--hlxsites.aem.live`;
     return [
       // site
       {

@@ -238,7 +238,7 @@ export function getVirtualDestinations(event, info) {
   return VIRTUAL_DOMAIN_RULES
     .filter((rule) => {
       try {
-        return rule.test(event);
+        return rule.test(event, info);
       } catch {
         return false;
       }
