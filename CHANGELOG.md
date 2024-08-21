@@ -1,3 +1,11 @@
+## [1.6.5](https://github.com/adobe/helix-rum-bundler/compare/v1.6.4...v1.6.5) (2024-08-21)
+
+
+### Bug Fixes
+
+* add virtual domains to new domain list ([7149017](https://github.com/adobe/helix-rum-bundler/commit/7149017ffafe56b4778b22ce9e3d61137dcc417b))
+* avoid unnecessary heads ([efa9328](https://github.com/adobe/helix-rum-bundler/commit/efa932866166416b7a70f70ff96b9e15baa34328))
+
 ## [1.6.4](https://github.com/adobe/helix-rum-bundler/compare/v1.6.3...v1.6.4) (2024-08-21)
 
 
