@@ -356,6 +356,7 @@ export function sortRawEvents(rawEvents, log) {
           virtualMap[vkey] = { events: [], info };
         }
         virtualMap[vkey].events.push(vevent || event);
+        domains.add(info.domain);
       });
     } catch (e) {
       log.warn('failed to sort raw event: ', e.message, event.url);
