@@ -108,10 +108,7 @@ export default [{
    * @param {BundleInfo} info
    * @returns {boolean}
    */
-  test: (_, info) => {
-    console.log('testing ', info, /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain));
-    return /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain);
-  },
+  test: (_, info) => /[a-zA-Z0-9-]+--[a-zA-Z0-9-]+--[a-zA-Z0-9-]+.(hlx|aem)\.(page|live)/.test(info.domain),
   /**
    * @param {RawRUMEvent} e
    * @param {BundleInfo} info

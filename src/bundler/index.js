@@ -232,9 +232,10 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
  *
  * @param {RawRUMEvent} event
  * @param {BundleInfo} info
+ * @param {UniversalContext['log'] | Console} log
  * @returns {VirtualDestination[]}
  */
-export function getVirtualDestinations(event, info) {
+export function getVirtualDestinations(event, info, log) {
   return VIRTUAL_DOMAIN_RULES
     .filter((rule) => {
       try {
@@ -252,7 +253,7 @@ export function getVirtualDestinations(event, info) {
           acc.push(dest);
         }
       } catch (e) {
-        console.error('failed to get virtual destination: ', e);
+        log.error('failed to get virtual destination: ', e);
       }
       return acc;
     }, []);
@@ -352,7 +353,7 @@ export function sortRawEvents(rawEvents, log) {
 
       const virtualDests = getVirtualDestinations(event, {
         domain, year, month, day, hour,
-      });
+      }, log);
       virtualDests.forEach((vd) => {
         const { key: vkey, info, event: vevent } = vd;
         if (!virtualMap[vkey]) {
