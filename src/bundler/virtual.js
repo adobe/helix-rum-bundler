@@ -130,4 +130,31 @@ export default [{
       },
     };
   },
+}, {
+  // collapse *.web.pfizer into aem.live org
+  domain: 'pfizer.aem.live',
+  /**
+   * @param {RawRUMEvent} _
+   * @param {BundleInfo} info
+   * @returns {boolean}
+   */
+  test: (_, info) => /[^.]+\.web\.pfizer/.test(info.domain),
+  /**
+   * @param {RawRUMEvent} e
+   * @param {BundleInfo} info
+   * @returns {{ key: string; info: BundleInfo; event: RawRUMEvent; }}
+   */
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        domain: info.domain,
+      },
+    };
+  },
 }];
