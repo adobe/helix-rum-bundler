@@ -1,3 +1,10 @@
+## [1.6.7](https://github.com/adobe/helix-rum-bundler/compare/v1.6.6...v1.6.7) (2024-08-21)
+
+
+### Bug Fixes
+
+* add pfizer org virtual rule ([391377e](https://github.com/adobe/helix-rum-bundler/commit/391377e50d9734c950b0b440bcb512cb7e2309f7))
+
 ## [1.6.6](https://github.com/adobe/helix-rum-bundler/compare/v1.6.5...v1.6.6) (2024-08-21)
 
 
