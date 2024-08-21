@@ -398,7 +398,9 @@ async function getOrgBundles(req, ctx, info) {
   // store aggregate
 
   // filter out domains that are non-prod
-  const filtered = new Set(domains.filter((domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain)));
+  const filtered = new Set(domains.filter(
+    (domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain) && !/[^.]+\.web\.pfizer/.test(domain),
+  ));
   // include the org aggregate bundle
   filtered.add(`${id}.aem.live`);
 
