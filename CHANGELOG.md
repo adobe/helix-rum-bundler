@@ -1,3 +1,10 @@
+## [1.6.11](https://github.com/adobe/helix-rum-bundler/compare/v1.6.10...v1.6.11) (2024-08-27)
+
+
+### Bug Fixes
+
+* use debug logs for chatty read/writes ([#187](https://github.com/adobe/helix-rum-bundler/issues/187)) ([e301e8d](https://github.com/adobe/helix-rum-bundler/commit/e301e8d4f90873f99e1267d617cb384373b49213))
+
 ## [1.6.10](https://github.com/adobe/helix-rum-bundler/compare/v1.6.9...v1.6.10) (2024-08-27)
 
 
