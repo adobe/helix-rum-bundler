@@ -9,3 +9,4 @@ logs
 test-results.xml
 *.env
 .backups
+test/dev/tools/.local
