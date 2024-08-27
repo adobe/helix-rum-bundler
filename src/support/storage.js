@@ -557,6 +557,7 @@ export class HelixStorage {
         requestHandler: new NodeHttpHandler({
           httpsAgent: new Agent({
             keepAlive: true,
+            maxSockets: 25,
           }),
           connectionTimeout,
           socketTimeout,
@@ -568,6 +569,7 @@ export class HelixStorage {
         requestHandler: new NodeHttpHandler({
           httpsAgent: new Agent({
             keepAlive: true,
+            maxSockets: 25,
           }),
           connectionTimeout,
           socketTimeout,
