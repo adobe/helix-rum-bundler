@@ -1,3 +1,10 @@
+## [1.6.9](https://github.com/adobe/helix-rum-bundler/compare/v1.6.8...v1.6.9) (2024-08-27)
+
+
+### Bug Fixes
+
+* close storage clients after use ([#183](https://github.com/adobe/helix-rum-bundler/issues/183)) ([7ce8ada](https://github.com/adobe/helix-rum-bundler/commit/7ce8ada3363fbcc99e127245e114bda5e61e6613))
+
 ## [1.6.8](https://github.com/adobe/helix-rum-bundler/compare/v1.6.7...v1.6.8) (2024-08-24)
 
 
