@@ -106,7 +106,7 @@ export default class Manifest {
       const data = JSON.stringify({ sessions: this.sessions });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       // this.ctx.log.debug(`storing manifest to ${this.key}/.manifest.json`);
-      await bundleBucket.put(`${this.key}/.manifest.json`, data, 'application/json');
+      await bundleBucket.put(`${this.key}/.manifest.json`, data, 'application/json', undefined, undefined, undefined, { quiet: true });
       this.dirty = false;
     }
   }
@@ -136,7 +136,7 @@ export default class Manifest {
       let data = { sessions: {} };
       try {
         const { bundleBucket } = HelixStorage.fromContext(ctx);
-        const buf = await bundleBucket.get(`${key}/.manifest.json`);
+        const buf = await bundleBucket.get(`${key}/.manifest.json`, undefined, { quiet: true });
         if (buf) {
           const txt = new TextDecoder('utf8').decode(buf);
           data = JSON.parse(txt);
