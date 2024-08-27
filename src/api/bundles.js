@@ -11,12 +11,19 @@
  */
 
 import { Response } from '@adobe/fetch';
+import processQueue from '@adobe/helix-shared-process-queue';
 import {
-  calculateDownsample, compressBody, errorWithResponse, fingerprintValue, getFetch,
+  calculateDownsample,
+  compressBody,
+  errorWithResponse,
+  fingerprintValue,
+  getFetch,
 } from '../support/util.js';
 import { HelixStorage } from '../support/storage.js';
 import { PathInfo } from '../support/PathInfo.js';
 import { fetchDomainKey } from '../support/domains.js';
+
+const FANOUT_CONCURRENCY_LIMIT = 15;
 
 /**
  * Estimated maximum number events in daily/monthly aggregate responses.
@@ -144,15 +151,17 @@ async function fetchDaily(ctx, path) {
   let totalEvents = 0;
   let totalBundles = 0;
 
-  const hourlyBundles = await Promise.allSettled(
-    hours.map(async (hour) => {
+  const hourlyBundles = await processQueue(
+    hours,
+    async (hour) => {
       const hpath = path.clone(undefined, undefined, undefined, undefined, hour);
       const data = await fetchHourly(ctx, hpath);
       totalBundles += data.rumBundles.length;
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
       return data;
-    }),
+    },
+    FANOUT_CONCURRENCY_LIMIT,
   );
   log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
@@ -164,11 +173,8 @@ async function fetchDaily(ctx, path) {
   const rumBundles = [];
   hourlyBundles.reduce(
     (acc, curr) => {
-      if (curr.status === 'rejected') {
-        return acc;
-      }
       acc.push(
-        ...curr.value.rumBundles
+        ...curr.rumBundles
           .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
           .map((b) => ({
             ...b,
@@ -206,8 +212,9 @@ async function fetchMonthly(ctx, path) {
 
   const fetch = getFetch(ctx);
   const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
-  const dailyBundles = await Promise.allSettled(
-    days.map(async (day) => {
+  const dailyBundles = await processQueue(
+    days,
+    async (day) => {
       // fetch from the CDN so that it caches the result
       const resp = await fetch(`${urlBase}/${day}?domainkey=${ctx.data.domainkey}`);
       /** @type {{rumBundles: RUMBundle[]}} */
@@ -222,7 +229,8 @@ async function fetchMonthly(ctx, path) {
       totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
 
       return data;
-    }),
+    },
+    FANOUT_CONCURRENCY_LIMIT,
   );
   log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
 
@@ -232,11 +240,8 @@ async function fetchMonthly(ctx, path) {
   const rumBundles = [];
   dailyBundles.reduce(
     (acc, curr) => {
-      if (curr.status === 'rejected') {
-        return acc;
-      }
       acc.push(
-        ...curr.value.rumBundles
+        ...curr.rumBundles
           .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
           .map((b) => ({
             ...b,
