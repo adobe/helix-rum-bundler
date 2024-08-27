@@ -129,7 +129,7 @@ export default class BundleGroup {
       const data = JSON.stringify({ bundles: this.bundles });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       // this.ctx.log.debug(`storing bundles to ${this.key}.json`);
-      await bundleBucket.put(`${this.key}.json`, data, 'application/json');
+      await bundleBucket.put(`${this.key}.json`, data, 'application/json', undefined, undefined, undefined, { quiet: true });
       this.dirty = false;
     }
   }
@@ -161,7 +161,7 @@ export default class BundleGroup {
       let data = { bundles: {} };
       try {
         const { bundleBucket } = HelixStorage.fromContext(ctx);
-        const buf = await bundleBucket.get(`${key}.json`);
+        const buf = await bundleBucket.get(`${key}.json`, undefined, { quiet: true });
         if (buf) {
           const txt = new TextDecoder('utf8').decode(buf);
           data = JSON.parse(txt);

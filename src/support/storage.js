@@ -129,7 +129,7 @@ class Bucket {
    * @returns object contents as a Buffer or null if no found.
    * @throws an error if the object could not be loaded due to an unexpected error.
    */
-  async get(key, meta = null) {
+  async get(key, meta = null, { quiet = false } = {}) {
     const { log } = this;
     const input = {
       Bucket: this.bucket,
@@ -138,7 +138,7 @@ class Bucket {
 
     try {
       const result = await this.client.send(new GetObjectCommand(input));
-      log.info(`object downloaded from: ${input.Bucket}/${input.Key}`);
+      log[quiet ? 'debug' : 'info'](`object downloaded from: ${input.Bucket}/${input.Key}`);
 
       if (new Date() > new Date(result.ExpiresString)) {
         log.debug(`object expired: ${input.Bucket}/${input.Key}`);
@@ -228,7 +228,7 @@ class Bucket {
    * @param {Response} res response to store
    * @returns result obtained from S3
    */
-  async store(key, res) {
+  async store(key, res, { quiet = false } = {}) {
     const { log } = this;
     const body = await res.buffer();
     const zipped = await gzip(body);
@@ -255,7 +255,7 @@ class Bucket {
 
     // write to s3 and r2 (mirror) in parallel
     await this.sendToS3andR2(PutObjectCommand, input);
-    log.info(`object uploaded to: ${input.Bucket}/${input.Key}`);
+    log[quiet ? 'debug' : 'info'](`object uploaded to: ${input.Bucket}/${input.Key}`);
   }
 
   /**
@@ -269,7 +269,7 @@ class Bucket {
    * @param {boolean} [compress = true]
    * @returns result obtained from S3
    */
-  async put(path, body, contentType = 'application/octet-stream', expiresOn = undefined, meta = {}, compress = true) {
+  async put(path, body, contentType = 'application/octet-stream', expiresOn = undefined, meta = {}, compress = true, { quiet = false } = {}) {
     const input = {
       Body: body,
       Bucket: this.bucket,
@@ -284,7 +284,7 @@ class Bucket {
     }
     // write to s3 and r2 (mirror) in parallel
     const res = await this.sendToS3andR2(PutObjectCommand, input);
-    this.log.info(`object uploaded to: ${input.Bucket}/${input.Key}`);
+    this.log[quiet ? 'debug' : 'info'](`object uploaded to: ${input.Bucket}/${input.Key}`);
     return res;
   }
 

@@ -56,7 +56,7 @@ export async function assertAuthorized(ctx, domain) {
       // but missing should be treated as revoked until the key is set
       // don't blindly set the domainkey here, since clients could be requesting
       // a domain that does not have any events. We should ignore those.
-      ctx.log.warn(`missing domainkey for ${domain}`);
+      ctx.log.info(`missing domainkey for ${domain}`);
       throw errorWithResponse(401, 'domainkey not set');
     }
     return;
