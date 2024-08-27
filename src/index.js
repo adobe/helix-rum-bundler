@@ -91,6 +91,11 @@ async function run(request, context) {
         },
       });
     }
+  } finally {
+    if (context.attributes.storage) {
+      context.attributes.storage.close();
+      delete context.attributes.storage;
+    }
   }
 
   return resp;
