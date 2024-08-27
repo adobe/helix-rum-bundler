@@ -1,3 +1,10 @@
+## [1.6.10](https://github.com/adobe/helix-rum-bundler/compare/v1.6.9...v1.6.10) (2024-08-27)
+
+
+### Bug Fixes
+
+* limit concurrency in apis ([#186](https://github.com/adobe/helix-rum-bundler/issues/186)) ([4ee738c](https://github.com/adobe/helix-rum-bundler/commit/4ee738ca9780e074745e9f839af64ee2087b7361))
+
 ## [1.6.9](https://github.com/adobe/helix-rum-bundler/compare/v1.6.8...v1.6.9) (2024-08-27)
 
 
