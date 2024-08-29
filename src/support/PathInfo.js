@@ -22,6 +22,9 @@ export class PathInfo {
   /** @type {string} */
   domain;
 
+  /** @type {string|undefined} */
+  helixorg;
+
   /** @type {string} */
   org;
 
@@ -67,11 +70,15 @@ export class PathInfo {
   }
 
   initOrgsRoute() {
-    const [_, org, subroute, domain] = this.segments;
+    const [_, org, subroute, subvalue] = this.segments;
     this.org = org;
     this.subroute = subroute;
-    this.domain = domain;
-    if (subroute === 'key' && domain) {
+    if (subroute === 'domains') {
+      this.domain = subvalue;
+    } else if (subroute === 'helixorgs') {
+      this.helixorg = subvalue;
+    }
+    if (subroute === 'key' && subvalue) {
       throw errorWithResponse(404);
     }
   }
