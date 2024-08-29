@@ -1,3 +1,10 @@
+## [1.6.12](https://github.com/adobe/helix-rum-bundler/compare/v1.6.11...v1.6.12) (2024-08-29)
+
+
+### Bug Fixes
+
+* add helixorg link ([#190](https://github.com/adobe/helix-rum-bundler/issues/190)) ([a2156f3](https://github.com/adobe/helix-rum-bundler/commit/a2156f39f067ff5333a49842a54603da8572ad23))
+
 ## [1.6.11](https://github.com/adobe/helix-rum-bundler/compare/v1.6.10...v1.6.11) (2024-08-27)
 
 
