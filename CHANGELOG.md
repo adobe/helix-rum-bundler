@@ -1,3 +1,10 @@
+## [1.6.13](https://github.com/adobe/helix-rum-bundler/compare/v1.6.12...v1.6.13) (2024-08-29)
+
+
+### Bug Fixes
+
+* exclude all aggregates from org aggregates ([7a5dbcf](https://github.com/adobe/helix-rum-bundler/commit/7a5dbcfd01cf49e9ece7fcf348f41ae7864b0725))
+
 ## [1.6.12](https://github.com/adobe/helix-rum-bundler/compare/v1.6.11...v1.6.12) (2024-08-29)
 
 
