@@ -247,7 +247,6 @@ async function removeHelixOrgFromOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
   const { org: id, helixorg } = info;
-  console.log('removeHelixOrgFromOrg', id, helixorg);
   if (!helixorg) {
     return new Response('', { status: 404 });
   }
@@ -409,7 +408,7 @@ async function getOrgBundles(req, ctx, info) {
     return new Response('', { status: 404 });
   }
 
-  const { domains } = org;
+  const { domains, helixOrgs = [] } = org;
   if (!domains.length) {
     return new Response(JSON.stringify({ rumBundles: [] }), {
       status: 200,
@@ -444,7 +443,9 @@ async function getOrgBundles(req, ctx, info) {
     (domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain) && !/[^.]+\.web\.pfizer/.test(domain),
   ));
   // include the org aggregate bundle
-  filtered.add(`${id}.aem.live`);
+  helixOrgs.forEach((helixOrg) => {
+    filtered.add(`${helixOrg}.aem.live`);
+  });
 
   /** @type {RUMBundle[]} */
   let rumBundles = [];
