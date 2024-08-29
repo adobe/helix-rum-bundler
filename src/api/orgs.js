@@ -440,7 +440,7 @@ async function getOrgBundles(req, ctx, info) {
 
   // filter out domains that are non-prod
   const filtered = new Set(domains.filter(
-    (domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain) && !/[^.]+\.web\.pfizer/.test(domain),
+    (domain) => !/[^.]+\.(hlx|aem)\.(page|live)/.test(domain) && !/[^.]+\.web\.pfizer/.test(domain) && !domain.endsWith(':all'),
   ));
   // include the org aggregate bundle
   helixOrgs.forEach((helixOrg) => {
