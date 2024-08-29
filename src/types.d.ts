@@ -188,6 +188,11 @@ declare global {
     event: RawRUMEvent;
   }
 
+  export interface OrgData {
+    domains: string[];
+    helixOrgs: string[];
+  }
+
   export interface Links {
     self?: string;
     next?: string;

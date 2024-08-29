@@ -98,12 +98,15 @@ async function removeOrgkeyFromDomains(ctx, domains, org) {
 async function createOrg(req, ctx) {
   assertSuperuserAuthorized(req, ctx);
 
-  const { id, domains = [] } = ctx.data;
+  const { id, domains = [], helixOrgs = [] } = ctx.data;
   if (typeof id !== 'string') {
     throw errorWithResponse(400, 'invalid id');
   }
   if (!Array.isArray(domains) || domains.find((d) => typeof d !== 'string')) {
     throw errorWithResponse(400, 'invalid domains');
+  }
+  if (!Array.isArray(helixOrgs) || helixOrgs.find((d) => typeof d !== 'string')) {
+    throw errorWithResponse(400, 'invalid helixOrgs');
   }
   if (await doesOrgExist(ctx, id)) {
     throw errorWithResponse(409, 'org already exists');
@@ -112,7 +115,7 @@ async function createOrg(req, ctx) {
   const orgkey = crypto.randomUUID().toUpperCase();
   await Promise.all([
     storeOrgkey(ctx, id, orgkey),
-    storeOrg(ctx, id, { domains }),
+    storeOrg(ctx, id, { domains, helixOrgs }),
     addOrgkeyToDomains(ctx, domains, id, orgkey),
   ]);
 
@@ -193,10 +196,14 @@ async function updateOrg(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
 
   const { org: id } = info;
-  const { domains = [] } = ctx.data;
+  const { domains = [], helixOrgs = [] } = ctx.data;
 
   if (!Array.isArray(domains) || domains.find((d) => typeof d !== 'string')) {
     throw errorWithResponse(400, 'invalid domains');
+  }
+
+  if (!Array.isArray(helixOrgs) || helixOrgs.find((d) => typeof d !== 'string')) {
+    throw errorWithResponse(400, 'invalid helixOrgs');
   }
 
   const org = await retrieveOrg(ctx, id);
@@ -218,10 +225,45 @@ async function updateOrg(req, ctx, info) {
     }
   });
   org.domains = [...existing, ...newDomains];
+  org.helixOrgs = [...new Set([...(org.helixOrgs ?? []), ...helixOrgs])];
   await Promise.all([
     storeOrg(ctx, id, org),
     addOrgkeyToDomains(ctx, newDomains, id, orgkey),
   ]);
+  return new Response(JSON.stringify(org), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function removeHelixOrgFromOrg(req, ctx, info) {
+  assertSuperuserAuthorized(req, ctx);
+
+  const { org: id, helixorg } = info;
+  console.log('removeHelixOrgFromOrg', id, helixorg);
+  if (!helixorg) {
+    return new Response('', { status: 404 });
+  }
+
+  const org = await retrieveOrg(ctx, id);
+  if (!org) {
+    return new Response('', { status: 404 });
+  }
+
+  const newHelixOrgs = org.helixOrgs.filter((d) => d !== helixorg);
+  if (newHelixOrgs.length === org.helixOrgs.length) {
+    return new Response('', { status: 200 });
+  }
+
+  org.helixOrgs = newHelixOrgs;
+  await storeOrg(ctx, id, org);
   return new Response(JSON.stringify(org), {
     status: 200,
     headers: {
@@ -493,6 +535,8 @@ export default async function handleRequest(req, ctx) {
   } else if (req.method === 'DELETE') {
     if (info.subroute === 'domains') {
       return removeDomainFromOrg(req, ctx, info);
+    } else if (info.subroute === 'helixorgs') {
+      return removeHelixOrgFromOrg(req, ctx, info);
     } else if (info.org && !info.subroute) {
       return removeOrg(req, ctx, info);
     }

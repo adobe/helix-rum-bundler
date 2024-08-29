@@ -67,6 +67,12 @@ describe('api/orgs Tests', () => {
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'invalid domains');
     });
 
+    it('rejects invalid (invalid helixOrgs)', async () => {
+      const req = REQUEST({ method: 'POST' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs' }, data: { id: 'foo', helixOrgs: 'invalid' } });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'invalid helixOrgs');
+    });
+
     it('rejects already existing', async () => {
       nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
         .head('/orgs/foo/org.json')
@@ -101,7 +107,7 @@ describe('api/orgs Tests', () => {
       const resp = await handleRequest(req, ctx);
 
       assert.strictEqual(resp.status, 200);
-      assert.strictEqual(await ungzip(bodies.org), '{"domains":[]}');
+      assert.strictEqual(await ungzip(bodies.org), '{"domains":[],"helixOrgs":[]}');
       assert.strictEqual(await ungzip(bodies.orgkey), 'TEST-UUID');
     });
 
@@ -136,7 +142,7 @@ describe('api/orgs Tests', () => {
       const resp = await handleRequest(req, ctx);
 
       assert.strictEqual(resp.status, 200);
-      assert.strictEqual(await ungzip(bodies.org), '{"domains":["example.com"]}');
+      assert.strictEqual(await ungzip(bodies.org), '{"domains":["example.com"],"helixOrgs":[]}');
       assert.strictEqual(await ungzip(bodies.orgkey), 'TEST-UUID');
       assert.strictEqual(await ungzip(bodies.domainOrgkeyMap), '{"foo":"TEST-UUID"}');
     });
@@ -163,6 +169,12 @@ describe('api/orgs Tests', () => {
       const req = REQUEST({ method: 'POST' });
       const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' }, data: { domains: ['new.domain', 123] } });
       await assertRejectsWithResponse(handleRequest(req, ctx), 400, 'invalid domains');
+    });
+
+    it('returns 400 for invalid helixOrgs', async () => {
+      const req = REQUEST({ method: 'POST' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe' }, data: { helixOrgs: ['new.domain', 123] } });
+      await assertRejectsWithResponse(handleRequest(req, ctx), 400, 'invalid helixOrgs');
     });
 
     it('returns 404 if org does not exist', async () => {
@@ -221,7 +233,54 @@ describe('api/orgs Tests', () => {
       const { domains } = await resp.json();
       assert.deepStrictEqual(domains, ['foo.example', 'bar.example', 'new.domain', 'new.domain.two']);
 
-      assert.strictEqual(bodies.org, '{"domains":["foo.example","bar.example","new.domain","new.domain.two"]}');
+      assert.strictEqual(bodies.org, '{"domains":["foo.example","bar.example","new.domain","new.domain.two"],"helixOrgs":[]}');
+      assert.strictEqual(bodies.orgkeys, '{"adobe":"ORG-KEY"}');
+      assert.strictEqual(bodies.orgkeys2, '{"existing":"EXISTING-ORG-KEY","adobe":"ORG-KEY"}');
+    });
+
+    it('adds only the new helixOrgs', async () => {
+      const bodies = { org: undefined, orgkeys: undefined, orgkeys2: undefined };
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['foo.example', 'bar.example'], helixOrgs: ['foo', 'bar'] }))
+        .get('/orgs/adobe/.orgkey?x-id=GetObject')
+        .reply(200, 'ORG-KEY')
+        .put('/orgs/adobe/org.json?x-id=PutObject', async (b) => {
+          bodies.org = await ungzip(b);
+          return true;
+        })
+        .reply(200)
+        .get('/domains/new.domain/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({}))
+        .get('/domains/new.domain.two/.orgkeys.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ existing: 'EXISTING-ORG-KEY' }))
+        .put('/domains/new.domain/.orgkeys.json?x-id=PutObject', async (b) => {
+          bodies.orgkeys = await ungzip(b);
+          return true;
+        })
+        .reply(200)
+        .put('/domains/new.domain.two/.orgkeys.json?x-id=PutObject', async (b) => {
+          bodies.orgkeys2 = await ungzip(b);
+          return true;
+        })
+        .reply(200);
+
+      const req = REQUEST({ method: 'POST' });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: { suffix: '/orgs/adobe' },
+        data: {
+          domains: ['new.domain', 'new.domain.two', 'foo.example', 'bar.example'],
+          helixOrgs: ['foo', 'bar', 'new'],
+        },
+      });
+      const resp = await handleRequest(req, ctx);
+
+      assert.strictEqual(resp.status, 200);
+      const { domains, helixOrgs } = await resp.json();
+      assert.deepStrictEqual(domains, ['foo.example', 'bar.example', 'new.domain', 'new.domain.two']);
+      assert.deepStrictEqual(helixOrgs, ['foo', 'bar', 'new']);
+
+      assert.strictEqual(bodies.org, '{"domains":["foo.example","bar.example","new.domain","new.domain.two"],"helixOrgs":["foo","bar","new"]}');
       assert.strictEqual(bodies.orgkeys, '{"adobe":"ORG-KEY"}');
       assert.strictEqual(bodies.orgkeys2, '{"existing":"EXISTING-ORG-KEY","adobe":"ORG-KEY"}');
     });
@@ -281,6 +340,55 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(resp.status, 200);
       assert.strictEqual(bodies.org, '{"domains":["foo.example","other.bar"]}');
       assert.strictEqual(bodies.orgkeys, '{"other":"OTHER-ORG-KEY"}');
+    });
+  });
+
+  describe('DELETE /orgs/:id/helixorgs/:helixorg', () => {
+    it('returns 404 for missing helixorg', async () => {
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/helixorgs/' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns 404 for missing org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/helixorgs/foo' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns 200, halts early for no change', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: [], helixOrgs: ['adobe', 'adobecom'] }));
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/helixorgs/foo' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+    });
+
+    it('removes helixorg from org', async () => {
+      const bodies = { org: undefined };
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['www.adobe.com'], helixOrgs: ['adobe', 'adobecom', 'foo'] }))
+        .put('/orgs/adobe/org.json?x-id=PutObject', async (b) => {
+          bodies.org = await ungzip(b);
+          return true;
+        })
+        .reply(200);
+
+      const req = REQUEST({ method: 'DELETE' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/helixorgs/foo' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.strictEqual(bodies.org, '{"domains":["www.adobe.com"],"helixOrgs":["adobe","adobecom"]}');
     });
   });
 
