@@ -31,6 +31,9 @@ export const contextLike = (overrides = {}) => ({
   attributes: {
     ...(overrides.attributes ?? {}),
   },
+  invocation: {
+    id: 'test',
+  },
 });
 
 /**
