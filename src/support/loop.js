@@ -91,7 +91,12 @@ export const loop = (fn, ctx, opts) => {
         stats: ctx.attributes.stats,
       }));
       if ([true, 'true'].includes(ctx.env.WRITE_PERF_LOGS)) {
-        await writeLogs(ctx, { task, measures, stats: ctx.attributes.stats });
+        await writeLogs(ctx, {
+          time: new Date().toISOString(),
+          task,
+          measures,
+          stats: ctx.attributes.stats,
+        });
       }
       performance.clearMarks();
       ctx.attributes.stats = {};
