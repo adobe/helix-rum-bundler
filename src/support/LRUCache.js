@@ -26,7 +26,7 @@ export default class LRUCache {
   constructor({
     name = 'default',
     log = console,
-    limit = 1000,
+    limit = 500,
     threshold = 0.5,
   } = {}) {
     this.#map = new Map();
