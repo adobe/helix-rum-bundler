@@ -172,6 +172,8 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   stats[`importGroupsCount${isVirtual ? 'Virtual' : ''}`] = groups.length;
   stats[`rawKeys${isVirtual ? 'Virtual' : ''}`] = entries.length;
 
+  log.info(`processing groups: ${groups.length}`);
+
   await processQueue(groups, async (group) => {
     /** @type {Set<{store: () => Promise<any>}>} */
     const toSave = new Set();
@@ -222,6 +224,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
           toSave.add(yManifest);
         }
         touchedBundles.forEach((b) => toSave.add(b));
+        log.debug(`toSave now contains ${toSave.size} items`);
       },
       concurrency,
     );
