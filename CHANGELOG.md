@@ -1,3 +1,10 @@
+## [1.6.16](https://github.com/adobe/helix-rum-bundler/compare/v1.6.15...v1.6.16) (2024-09-03)
+
+
+### Bug Fixes
+
+* reduce lru limit ([#195](https://github.com/adobe/helix-rum-bundler/issues/195)) ([a71c107](https://github.com/adobe/helix-rum-bundler/commit/a71c10765b99c1dbd1c43da0264b541bd98c3bb6))
+
 ## [1.6.15](https://github.com/adobe/helix-rum-bundler/compare/v1.6.14...v1.6.15) (2024-09-03)
 
 
