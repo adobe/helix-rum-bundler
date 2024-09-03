@@ -1,3 +1,10 @@
+## [1.6.15](https://github.com/adobe/helix-rum-bundler/compare/v1.6.14...v1.6.15) (2024-09-03)
+
+
+### Bug Fixes
+
+* add invocation id to lock meta ([#193](https://github.com/adobe/helix-rum-bundler/issues/193)) ([36dcc8e](https://github.com/adobe/helix-rum-bundler/commit/36dcc8e3a0c88cddfad48429afffbce9048f78ba))
+
 ## [1.6.14](https://github.com/adobe/helix-rum-bundler/compare/v1.6.13...v1.6.14) (2024-09-03)
 
 
