@@ -227,9 +227,13 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
     );
 
     // save touched manifests and bundles
-    await Promise.allSettled(
-      [...toSave].map((s) => s.store()),
-    );
+    await processQueue([...toSave], async (bundle) => {
+      try {
+        await bundle.store();
+      } catch (e) {
+        log.warn('failed to store bundle: ', e);
+      }
+    }, concurrency);
   }, concurrency);
 }
 
