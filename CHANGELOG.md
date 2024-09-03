@@ -1,3 +1,10 @@
+## [1.6.14](https://github.com/adobe/helix-rum-bundler/compare/v1.6.13...v1.6.14) (2024-09-03)
+
+
+### Bug Fixes
+
+* save bundles in process queue ([#194](https://github.com/adobe/helix-rum-bundler/issues/194)) ([9964dc1](https://github.com/adobe/helix-rum-bundler/commit/9964dc1728c5ccf5aaba52afdfe24a256f73a785))
+
 ## [1.6.13](https://github.com/adobe/helix-rum-bundler/compare/v1.6.12...v1.6.13) (2024-08-29)
 
 
