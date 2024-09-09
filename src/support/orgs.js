@@ -70,7 +70,7 @@ export async function storeOrgkey(ctx, org, orgkey) {
 /**
  * @param {UniversalContext} ctx
  * @param {string} org
- * @returns {Promise<{domains: string[]} | null>}
+ * @returns {Promise<OrgData | null>}
  */
 export async function retrieveOrg(ctx, org) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
@@ -85,7 +85,7 @@ export async function retrieveOrg(ctx, org) {
 /**
  * @param {UniversalContext} ctx
  * @param {string} org
- * @param {{ domains: string[] }} data
+ * @param {OrgData} data
  * @returns {Promise<void>}
  */
 export async function storeOrg(ctx, org, data) {
