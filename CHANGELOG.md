@@ -1,3 +1,10 @@
+## [1.6.18](https://github.com/adobe/helix-rum-bundler/compare/v1.6.17...v1.6.18) (2024-09-09)
+
+
+### Bug Fixes
+
+* allow orgkey to fetch orgkey ([#201](https://github.com/adobe/helix-rum-bundler/issues/201)) ([84f1e45](https://github.com/adobe/helix-rum-bundler/commit/84f1e45064a52c10dacabec8775631f1bdc2ad9e))
+
 ## [1.6.17](https://github.com/adobe/helix-rum-bundler/compare/v1.6.16...v1.6.17) (2024-09-07)
 
 
