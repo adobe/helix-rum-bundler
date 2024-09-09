@@ -171,9 +171,9 @@ async function getOrg(req, ctx, info) {
  * @param {PathInfo} info
  */
 async function getOrgkey(req, ctx, info) {
-  assertSuperuserAuthorized(req, ctx);
-
   const { org: id } = info;
+  await assertOrgAdminAuthorized(req, ctx, id);
+
   const orgkey = await retrieveOrgkey(ctx, id);
   if (!orgkey) {
     return new Response('', { status: 404 });
