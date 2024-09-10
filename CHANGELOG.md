@@ -1,3 +1,10 @@
+## [1.6.19](https://github.com/adobe/helix-rum-bundler/compare/v1.6.18...v1.6.19) (2024-09-10)
+
+
+### Bug Fixes
+
+* check for checkpoint existence ([#202](https://github.com/adobe/helix-rum-bundler/issues/202)) ([3ff90dc](https://github.com/adobe/helix-rum-bundler/commit/3ff90dc12f3dc575e762d6b1a5b670dc18dd95f2))
+
 ## [1.6.18](https://github.com/adobe/helix-rum-bundler/compare/v1.6.17...v1.6.18) (2024-09-09)
 
 
