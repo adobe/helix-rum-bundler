@@ -469,7 +469,7 @@ async function getOrgBundles(req, ctx, info) {
       rumBundles.push(...data.rumBundles.map((pbundle) => {
         const bundle = pbundle;
         // filter to only include `top` and `cwv-*` events
-        bundle.events = bundle.events.filter((e) => e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-'));
+        bundle.events = bundle.events.filter((e) => !!e.checkpoint && (e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-')));
         bundle.domain = domain;
         totalEvents += bundle.events.length;
         return bundle;
