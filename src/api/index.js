@@ -15,6 +15,7 @@ import domainkey from './domainkey.js';
 import bundles from './bundles.js';
 import orgs from './orgs.js';
 import domains from './domains.js';
+import cors from './cors.js';
 import { errorWithResponse } from '../support/util.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -23,6 +24,7 @@ const handlers = {
   domainkey,
   bundles,
   orgs,
+  cors,
 };
 
 /**

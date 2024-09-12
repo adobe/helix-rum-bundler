@@ -64,6 +64,9 @@ export class PathInfo {
       case 'domains':
         this.initDomainsRoute();
         break;
+      case 'cors':
+        this.initCorsRoute();
+        break;
       default:
         throw errorWithResponse(404);
     }
@@ -113,6 +116,12 @@ export class PathInfo {
   || Number.isNaN(this.hour)) {
       throw errorWithResponse(404);
     }
+  }
+
+  initCorsRoute() {
+    const [_, domain, ...next] = this.segments;
+    this.domain = domain;
+    this.subroute = next.join('/');
   }
 
   initDomainsRoute() {
