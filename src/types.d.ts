@@ -11,7 +11,7 @@ declare module '@adobe/helix-universal' {
       invocation: InvocationInfo & {
         event?: {
           source?: 'aws.scheduler';
-          task?: 'bundle-rum-aws' | 'bundle-rum-cloudflare' | 'process-logs';
+          task?: 'bundle-rum' | 'process-cloudflare-events' | 'process-logs';
         }
       }
 

@@ -17,45 +17,56 @@ import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
 import bundleRUM from './bundler/index.js';
 import handleRequest from './api/index.js';
+import processCloudflareEvents from './cloudflare.js';
+
+const EVENT_HANDLERS = {
+  'bundle-rum': bundleRUM,
+  'process-cloudflare-events': processCloudflareEvents,
+};
 
 /**
- * Perform bundling process if any:
- * 1. invoked by scheduler event & task is `bundle-rum-*`
- * 2. bundle param set & running locally
- * 3. bundle param set & x-bundler-authorization is allowed
+ * Check if the invocation is done by scheduler event
+ * @param {UniversalContext} ctx
+ * @returns {boolean}
+ */
+function wasInvokedByEvent(ctx) {
+  const event = ctx.invocation?.event;
+  return event?.source === 'aws.scheduler';
+}
+
+/**
+ * Perform handler process if any:
+ * 1. invoked by scheduler event & `task` is known
+ * 2. `task` param set & running locally
+ * 3. `task` param set & x-bundler-authorization is allowed
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @returns {boolean}
  */
-function shouldBundleRUM(req, ctx) {
+function shouldRunEventHandler(req, ctx) {
   const { log } = ctx;
   const event = ctx.invocation?.event;
-  const invokedByEvent = event?.source === 'aws.scheduler';
+  const invokedByEvent = wasInvokedByEvent(ctx);
 
-  if (invokedByEvent) {
-    if (event.task.startsWith('bundle-rum-')) {
-      const rumSrc = event.task.split('-').pop();
-      log.info(`invoked by scheduler, performing bundling of ${rumSrc} events`);
-      return true;
-    }
-    return false;
+  if (invokedByEvent && EVENT_HANDLERS[event?.task]) {
+    return true;
   }
 
   /* c8 ignore next 10 */
-  if (!ctx.data.bundle) {
+  if (!ctx.data.task || !EVENT_HANDLERS[ctx.data.task]) {
     return false;
   }
   const isDevMode = ctx.runtime?.name === 'simulate';
   if (isDevMode) {
     // simulate task if needed
     // @ts-ignore
-    ctx.invocation.event.task = event?.task || `bundle-rum-${ctx.data.source || 'aws'}`;
+    ctx.invocation.event.task = ctx.invocation.event.task || ctx.data.task;
     return true;
   }
 
   const invokeAllowed = ctx.env.INVOKE_BUNDLER_KEY && req.headers.get('x-bundler-authorization') === ctx.env.INVOKE_BUNDLER_KEY;
   /* c8 ignore next */
-  log.debug(`invoked manually, ${invokeAllowed ? '' : 'not'} performing bundling`);
+  log.debug(`invoked manually, ${invokeAllowed ? '' : 'not'} invoking handler`);
   return invokeAllowed;
 }
 
@@ -71,8 +82,8 @@ async function run(request, context) {
 
   let resp;
   try {
-    if (shouldBundleRUM(request, context)) {
-      resp = await bundleRUM(context);
+    if (shouldRunEventHandler(request, context)) {
+      resp = await EVENT_HANDLERS[context.invocation.event.task](context);
     } else {
       resp = await handleRequest(request, context);
     }
@@ -121,6 +132,7 @@ function addCommonResponseHeadersWrapper(fn) {
 }
 
 /** @type {(...args: any[]) => Promise<RResponse>} */
+// @ts-ignore
 export const main = wrap(run)
   .with(addCommonResponseHeadersWrapper)
   .with(bodyData)

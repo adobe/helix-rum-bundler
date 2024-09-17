@@ -386,58 +386,12 @@ export function sortRawEvents(rawEvents, log) {
 }
 
 /**
- * convert cloudflare logging format into rum event
- * @param {UniversalContext} ctx
- * @param {{
- *  ScriptName: string;
- *  Logs: {
- *    Level: string;
- *    Message: string[];
- *    TimestampMs: number;
- *  }[];
- * }} ev
- */
-export function adaptCloudflareEvent(ctx, ev) {
-  try {
-    // the log ordering may change, so find the first message that looks like a JSON string
-    const msg = ev.Logs.find(
-      ({ Message: [txt] }) => {
-        if (!txt.startsWith('{"') || !txt.includes('checkpoint')) {
-          return false;
-        }
-        if (txt.includes('<<<Logpush: message truncated>>>')) {
-          ctx.log.info('cloudflare event message truncated');
-          return false;
-        }
-        return true;
-      },
-    )?.Message[0];
-
-    if (!msg) {
-      ctx.log.debug('no JSON message found in cloudflare event');
-      return null;
-    }
-
-    const parsed = JSON.parse(msg);
-    // check that the cloudflare event has all required properties
-    if (parsed.url == null || parsed.time == null || parsed.id == null) {
-      ctx.log.info('missing required properties in cloudflare event');
-      return null;
-    }
-    return parsed;
-  } catch (e) {
-    ctx.log.warn('failed to parse cloudflare event JSON');
-    return null;
-  }
-}
-
-/**
  * Process RUM event files into bundles
  * @param {UniversalContext} ctx
  * @returns {Promise<boolean>} whether all files are processed
  */
 async function doBundling(ctx) {
-  performance.mark('start:bundling');
+  performance.mark('start:total');
   const { log, attributes: { stats } } = ctx;
   const { logBucket } = HelixStorage.fromContext(ctx);
   const concurrency = getEnvVar(ctx, 'CONCURRENCY', DEFAULT_CONCURRENCY_LIMIT, 'integer');
@@ -471,10 +425,7 @@ async function doBundling(ctx) {
       const lines = txt.split('\n');
       lines.forEach((line) => {
         try {
-          let event = JSON.parse(line);
-          if (ctx.invocation?.event?.task === 'bundle-rum-cloudflare') {
-            event = adaptCloudflareEvent(ctx, event);
-          }
+          const event = JSON.parse(line);
           if (event) {
             events.push(event);
           }
@@ -535,7 +486,7 @@ async function doBundling(ctx) {
   await logBucket.remove(toRemove);
   performance.mark('end:move-logs');
 
-  performance.mark('end:bundling');
+  performance.mark('end:total');
   return !isTruncated;
 }
 

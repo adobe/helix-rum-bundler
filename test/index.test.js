@@ -49,15 +49,18 @@ describe('Index Tests', () => {
         log: console,
         env: {},
         attributes: { stats: {} },
-        invocation: { event: { source: 'aws.scheduler', task: 'bundle-rum-aws' } },
+        invocation: { event: { source: 'aws.scheduler', task: 'bundle-rum' } },
       },
     );
     assert.strictEqual(resp.status, 200);
     assert.strictEqual(resp.headers.get('route'), 'bundle-rum');
   });
 
-  it('performs bundling when invoked by scheduler (cloudflare task)', async () => {
+  it('performs event processing when invoked by scheduler (cloudflare task)', async () => {
     const { main: mmain } = await esmock('../src/index.js', {
+      '../src/cloudflare.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'process-cloudflare-events' } })),
+      },
       '../src/bundler/index.js': {
         default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
       },
@@ -72,11 +75,11 @@ describe('Index Tests', () => {
         log: console,
         env: {},
         attributes: { stats: {} },
-        invocation: { event: { source: 'aws.scheduler', task: 'bundle-rum-cloudflare' } },
+        invocation: { event: { source: 'aws.scheduler', task: 'process-cloudflare-events' } },
       },
     );
     assert.strictEqual(resp.status, 200);
-    assert.strictEqual(resp.headers.get('route'), 'bundle-rum');
+    assert.strictEqual(resp.headers.get('route'), 'process-cloudflare-events');
   });
 
   it('can be invoked by scheduler with other task types', async () => {

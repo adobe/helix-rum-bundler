@@ -465,13 +465,6 @@ export class HelixStorage {
         HELIX_HTTP_SOCKET_TIMEOUT: socketTimeout = 15000,
       } = context.env;
 
-      // set log bucket name if bundling from other rum source than aws
-      let logBucket;
-      const { task } = context.invocation?.event || {};
-      if (task === 'bundle-rum-cloudflare') {
-        logBucket = 'helix-rum-logs-cloudflare';
-      }
-
       context.attributes.storage = new HelixStorage({
         // region,
         // accessKeyId,
@@ -479,7 +472,6 @@ export class HelixStorage {
         // sessionToken,
         connectionTimeout,
         socketTimeout,
-        logBucket,
         log: context.log,
       });
     }
@@ -495,6 +487,9 @@ export class HelixStorage {
 
   /** @type {string} */
   logBucketName = 'helix-rum-logs';
+
+  /** @type {string} */
+  cloudflareLogBucketName = 'helix-rum-logs-cloudflare';
 
   /** @type {string} */
   bundleBucketName = 'helix-rum-bundles';
@@ -583,6 +578,10 @@ export class HelixStorage {
 
   get logBucket() {
     return this.bucket(this.logBucketName);
+  }
+
+  get cloudflareLogBucket() {
+    return this.bucket(this.cloudflareLogBucketName);
   }
 
   get bundleBucket() {
