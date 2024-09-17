@@ -29,6 +29,7 @@ export const contextLike = (overrides = {}) => ({
   },
   // @ts-ignore
   attributes: {
+    stats: {},
     ...(overrides.attributes ?? {}),
   },
   invocation: {

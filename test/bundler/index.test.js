@@ -16,7 +16,7 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import zlib from 'zlib';
 import { promisify } from 'util';
-import bundleRUM, { adaptCloudflareEvent, sortRawEvents } from '../../src/bundler/index.js';
+import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
 import {
   DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
 } from '../util.js';
@@ -211,33 +211,6 @@ describe('bundler Tests', () => {
     });
   });
 
-  describe('adaptCloudflareEvent()', () => {
-    it('ignores missing JSON message', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['not json'] }] });
-      assert.deepStrictEqual(adapted, null);
-    });
-
-    it('ignores events without required properties', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo","id":null}'] }] });
-      assert.deepStrictEqual(adapted, null);
-    });
-
-    it('ignores broken JSON message', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo"'] }] });
-      assert.deepStrictEqual(adapted, null);
-    });
-
-    it('ignores JSON message missing checkpoint', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"id":"bar"}'] }] });
-      assert.deepStrictEqual(adapted, null);
-    });
-
-    it('ignores truncated JSON message', () => {
-      const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['{"checkpoint":"foo","id":"bar","target":"someth<<<Logpush: message truncated>>>ing"}'] }] });
-      assert.deepStrictEqual(adapted, null);
-    });
-  });
-
   describe('bundleRUM()', () => {
     /** @type {import('../util.js').Nocker} */
     let nock;
@@ -307,10 +280,10 @@ describe('bundler Tests', () => {
         .delete('/.lock?x-id=DeleteObject')
         .reply(200)
         // get bundler logs
-        .get('/bundler/2024/1/1.json?x-id=GetObject')
+        .get('/bundler/bundle-rum/2024/1/1.json?x-id=GetObject')
         .reply(404)
         // write bundler logs
-        .put('/bundler/2024/1/1.json?x-id=PutObject')
+        .put('/bundler/bundle-rum/2024/1/1.json?x-id=PutObject')
         .reply(200);
 
       // subdomain
@@ -391,7 +364,7 @@ describe('bundler Tests', () => {
         });
 
       const ctx = DEFAULT_CONTEXT({
-        invocation: { event: { task: 'bundle-rum-aws' } },
+        invocation: { event: { task: 'bundle-rum' } },
         env: { WRITE_PERF_LOGS: 'true' },
       });
       await bundleRUM(ctx);
@@ -575,7 +548,6 @@ describe('bundler Tests', () => {
       //   assert.strictEqual(typeof grp[2], 'number'); // tSave
       // });
       assert.deepEqual(Object.keys(measures).sort(), [
-        'bundling',
         'create-keys',
         'get-logs',
         'import-events',
@@ -583,348 +555,11 @@ describe('bundler Tests', () => {
         'move-logs',
         'parse-logs',
         'sort-events',
+        'total',
       ]);
       assert.deepEqual(perfLogObj, {
         metric: 'bundler-performance',
-        task: 'bundle-rum-aws',
-        loop: 0,
-        measures: undefined,
-        stats: {
-          rawEvents: 10,
-          logFiles: 1,
-          domains: 2,
-          importGroupsCount: 2,
-          importGroupsCountVirtual: 0,
-          newDomains: 1,
-          rawKeys: 4,
-          rawKeysVirtual: 0,
-          totalEventsVirtual: 0,
-          totalEvents: 10,
-          importGroups: undefined,
-          importGroupsVirtual: undefined,
-        },
-      });
-    });
-
-    it('should bundle events from cloudflare', async () => {
-      const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
-      const mockEventResponseBody = mockEventLogFile('example.com', 'cloudflare');
-      const bodies = {
-        subdomain: {
-          manifest: undefined,
-          bundle: undefined,
-          domainkey: undefined,
-        },
-        apex: {
-          manifest: [],
-          bundle: [],
-        },
-      };
-      // used in perf logs
-      Date.stub('2024-01-01T00:00:00Z');
-
-      nock('https://helix-rum-logs-cloudflare.s3.us-east-1.amazonaws.com')
-        // logs not locked
-        .head('/.lock')
-        .reply(404)
-        // lock logs
-        .put('/.lock?x-id=PutObject')
-        .reply(200)
-        // list logs
-        .get('/?list-type=2&max-keys=100&prefix=raw%2F')
-        .reply(200, logsBody)
-        // get log file contents
-        .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
-        .reply(200, mockEventResponseBody)
-        // move log file to processed
-        .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
-        .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
-        .post('/?delete=')
-        .reply(200)
-        // unlock
-        .delete('/.lock?x-id=DeleteObject')
-        .reply(200)
-        // get bundler logs
-        .get('/bundler/2024/1/1.json?x-id=GetObject')
-        .reply(404)
-        // write bundler logs
-        .put('/bundler/2024/1/1.json?x-id=PutObject')
-        .reply(200);
-
-      // subdomain
-      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        // check if domain exists (no)
-        .head('/sub.example.com/.domainkey')
-        .reply(404)
-        // create domainkey for new domain
-        .put('/sub.example.com/.domainkey?x-id=PutObject')
-        .reply(200, (_, body) => {
-          bodies.subdomain.domainkey = body;
-          return [200];
-        })
-        // get manifest
-        .get('/sub.example.com/1970/1/1/.manifest.json?x-id=GetObject')
-        .reply(404)
-        // get yesterday's manifest
-        .get('/sub.example.com/1969/12/31/.manifest.json?x-id=GetObject')
-        .reply(404)
-        // instantiate bundlegroup
-        .get('/sub.example.com/1970/1/1/0.json?x-id=GetObject')
-        .reply(404)
-        // store manifest
-        .put('/sub.example.com/1970/1/1/.manifest.json?x-id=PutObject')
-        .reply((_, body) => {
-          bodies.subdomain.manifest = body;
-          return [200];
-        })
-        // store bundlegroup
-        .put('/sub.example.com/1970/1/1/0.json?x-id=PutObject')
-        .reply((_, body) => {
-          bodies.subdomain.bundle = body;
-          return [200];
-        });
-
-      // apex
-      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        // check if domain exists (yes)
-        .head('/example.com/.domainkey')
-        .reply(200)
-        // get manifest
-        .get('/example.com/1970/1/1/.manifest.json?x-id=GetObject')
-        .reply(404)
-        // get yesterday's manifest
-        .get('/example.com/1969/12/31/.manifest.json?x-id=GetObject')
-        .reply(404)
-        // instantiate bundlegroups
-        .get('/example.com/1970/1/1/0.json?x-id=GetObject')
-        .reply(404)
-        .get('/example.com/1970/1/1/1.json?x-id=GetObject')
-        .reply(404)
-        .get('/example.com/1970/1/1/2.json?x-id=GetObject')
-        .reply(404)
-        // store manifest
-        .put('/example.com/1970/1/1/.manifest.json?x-id=PutObject')
-        // .times(3)
-        .reply((_, body) => {
-          bodies.apex.manifest.push(body);
-          return [200];
-        })
-        // store bundlegroup (0th hour)
-        .put('/example.com/1970/1/1/0.json?x-id=PutObject')
-        .reply((_, body) => {
-          bodies.apex.bundle[0] = body;
-          return [200];
-        })
-        // store bundlegroup (1st hour)
-        .put('/example.com/1970/1/1/1.json?x-id=PutObject')
-        .reply((_, body) => {
-          bodies.apex.bundle[1] = body;
-          return [200];
-        })
-        // store bundlegroup (2nd hour)
-        .put('/example.com/1970/1/1/2.json?x-id=PutObject')
-        .reply((_, body) => {
-          bodies.apex.bundle[2] = body;
-          return [200];
-        });
-
-      const ctx = DEFAULT_CONTEXT({
-        invocation: { event: { task: 'bundle-rum-cloudflare' } },
-        env: { WRITE_PERF_LOGS: 'true' },
-      });
-      await bundleRUM(ctx);
-
-      const { subdomain, apex } = bodies;
-      // one manifest/bundle update for subdomain, since one event exists
-      assert.deepStrictEqual(subdomain.manifest, { sessions: { '0--/': { hour: 0 } } });
-      assert.deepStrictEqual(subdomain.bundle, {
-        bundles: {
-          '0--/': {
-            id: 0,
-            time: '1970-01-01T00:00:00.000Z',
-            timeSlot: '1970-01-01T00:00:00.000Z',
-            url: 'https://sub.example.com/',
-            events: [
-              {
-                checkpoint: 0,
-                timeDelta: 0,
-              },
-            ],
-          },
-        },
-      });
-      assert.strictEqual(subdomain.domainkey, (await gzip('TEST-NEW-KEY')).toString('hex'));
-
-      // 3 manifest updates & 3 bundles for apex, since events were processed into 3 sessions
-      // but only 1 request should be made since the persist is deferred by domain
-      assert.deepEqual(apex.manifest.length, 1);
-      assert.deepEqual(apex.bundle.length, 3);
-
-      assert.deepStrictEqual(apex.manifest[0], {
-        sessions: {
-          '0--/even': {
-            hour: 0,
-          },
-          '1--/odd': {
-            hour: 0,
-          },
-          '2--/even': {
-            hour: 0,
-          },
-          '3--/odd': {
-            hour: 1,
-          },
-          '4--/even': {
-            hour: 1,
-          },
-          '5--/odd': {
-            hour: 1,
-          },
-          'constid--/': {
-            hour: 2,
-          },
-        },
-      });
-
-      // first 3 bundles
-      assert.deepStrictEqual(apex.bundle[0], {
-        bundles: {
-          '0--/even': {
-            id: 0,
-            time: '1970-01-01T00:00:00.000Z',
-            timeSlot: '1970-01-01T00:00:00.000Z',
-            url: 'https://example.com/even',
-            events: [
-              {
-                checkpoint: 1,
-                timeDelta: 0,
-              },
-            ],
-          },
-          '1--/odd': {
-            id: 1,
-            time: '1970-01-01T00:20:00.000Z',
-            timeSlot: '1970-01-01T00:00:00.000Z',
-            url: 'https://example.com/odd',
-            events: [
-              {
-                checkpoint: 2,
-                timeDelta: 1200000,
-              },
-            ],
-          },
-          '2--/even': {
-            id: 2,
-            time: '1970-01-01T00:40:00.000Z',
-            timeSlot: '1970-01-01T00:00:00.000Z',
-            url: 'https://example.com/even',
-            events: [
-              {
-                checkpoint: 3,
-                timeDelta: 2400000,
-              },
-            ],
-          },
-        },
-      });
-
-      // next 3 bundles
-      assert.deepStrictEqual(apex.bundle[1], {
-        bundles: {
-          '3--/odd': {
-            id: 3,
-            time: '1970-01-01T01:00:00.000Z',
-            timeSlot: '1970-01-01T01:00:00.000Z',
-            url: 'https://example.com/odd',
-            events: [
-              {
-                checkpoint: 4,
-                timeDelta: 0,
-              },
-            ],
-          },
-          '4--/even': {
-            id: 4,
-            time: '1970-01-01T01:20:00.000Z',
-            timeSlot: '1970-01-01T01:00:00.000Z',
-            url: 'https://example.com/even',
-            events: [
-              {
-                checkpoint: 5,
-                timeDelta: 1200000,
-              },
-            ],
-          },
-          '5--/odd': {
-            id: 5,
-            time: '1970-01-01T01:40:00.000Z',
-            timeSlot: '1970-01-01T01:00:00.000Z',
-            url: 'https://example.com/odd',
-            events: [
-              {
-                checkpoint: 6,
-                timeDelta: 2400000,
-              },
-            ],
-          },
-        },
-      });
-
-      // last bundle has the constid events
-      assert.deepStrictEqual(apex.bundle[2], {
-        bundles: {
-          'constid--/': {
-            id: 'constid',
-            time: '1970-01-01T02:00:00.000Z',
-            timeSlot: '1970-01-01T02:00:00.000Z',
-            url: 'https://example.com/',
-            events: [
-              {
-                checkpoint: 7,
-                timeDelta: 0,
-              },
-              {
-                checkpoint: 8,
-                timeDelta: 1200000,
-              },
-              {
-                checkpoint: 9,
-                timeDelta: 2400000,
-              },
-            ],
-          },
-        },
-      });
-
-      // check that performance was measured and logged correctly
-      const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"metric":"bundler-performance"'));
-      const perfLogObj = JSON.parse(perfLog);
-      const { measures } = perfLogObj;
-      perfLogObj.measures = undefined;
-      perfLogObj.stats.importGroups = undefined;
-      perfLogObj.stats.importGroupsVirtual = undefined;
-      Object.values(measures).forEach((m) => {
-        assert.strictEqual(typeof m, 'number');
-      });
-      // assert.strictEqual(importGroups.length, 2);
-      // importGroups.forEach((grp) => {
-      //   assert.ok(grp[0] === 3 || grp[0] === 1); // size
-      //   assert.strictEqual(typeof grp[1], 'number'); // tProcess
-      //   assert.strictEqual(typeof grp[2], 'number'); // tSave
-      // });
-      assert.deepEqual(Object.keys(measures).sort(), [
-        'bundling',
-        'create-keys',
-        'get-logs',
-        'import-events',
-        'import-virtual',
-        'move-logs',
-        'parse-logs',
-        'sort-events',
-      ]);
-      assert.deepEqual(perfLogObj, {
-        metric: 'bundler-performance',
-        task: 'bundle-rum-cloudflare',
+        task: 'bundle-rum',
         loop: 0,
         measures: undefined,
         stats: {

@@ -20,14 +20,18 @@ import { errorWithResponse } from './util.js';
  * @param {Object} data
  */
 async function writeLogs(ctx, data) {
-  const now = ctx.attributes.start;
+  const {
+    invocation: { event: { task } },
+    attributes: { start: now },
+  } = ctx;
   const day = now.getUTCDate();
   const month = now.getUTCMonth() + 1;
   const year = now.getUTCFullYear();
   const { logBucket } = HelixStorage.fromContext(ctx);
+
   // get existing
   let existing = {};
-  const buf = await logBucket.get(`bundler/${year}/${month}/${day}.json`);
+  const buf = await logBucket.get(`bundler/${task}/${year}/${month}/${day}.json`);
   if (buf) {
     existing = JSON.parse(buf.toString());
   }
@@ -35,7 +39,7 @@ async function writeLogs(ctx, data) {
   existing.performance = existing.performance || [];
   existing.performance.push(data);
 
-  await logBucket.put(`bundler/${year}/${month}/${day}.json`, JSON.stringify(existing), 'application/json');
+  await logBucket.put(`bundler/${task}/${year}/${month}/${day}.json`, JSON.stringify(existing), 'application/json');
 }
 
 /**
