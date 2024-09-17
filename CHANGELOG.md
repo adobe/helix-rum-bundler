@@ -1,3 +1,10 @@
+## [1.6.21](https://github.com/adobe/helix-rum-bundler/compare/v1.6.20...v1.6.21) (2024-09-17)
+
+
+### Bug Fixes
+
+* transform cf events ([#206](https://github.com/adobe/helix-rum-bundler/issues/206)) ([48c726b](https://github.com/adobe/helix-rum-bundler/commit/48c726b639da577ad7918bbf5ae0a3196c177010))
+
 ## [1.6.20](https://github.com/adobe/helix-rum-bundler/compare/v1.6.19...v1.6.20) (2024-09-14)
 
 
