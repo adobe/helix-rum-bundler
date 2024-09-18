@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.1...v1.8.2) (2024-09-18)
+
+
+### Bug Fixes
+
+* add domainkey check api ([df883fd](https://github.com/adobe/[secure]-rum-bundler/commit/df883fda60dcab8ccdba80037ee218192758e40c))
+
 ## [1.8.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.0...v1.8.1) (2024-09-18)
 
 
