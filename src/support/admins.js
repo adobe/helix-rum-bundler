@@ -24,9 +24,9 @@ export async function listAdmins(ctx, start, plimit) {
   let limit = plimit && typeof plimit === 'string' ? parseInt(plimit, 10) : plimit;
   limit = typeof limit === 'number' && limit > 0 ? limit : 1000;
   const { usersBucket } = HelixStorage.fromContext(ctx);
-  const { folders, next } = await usersBucket.listFolders('', { start, limit });
+  const { folders, next } = await usersBucket.listFolders('admins/', { start, limit });
   return {
-    items: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d)),
+    items: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d).substring('admins/'.length)),
     pagination: {
       start,
       limit,

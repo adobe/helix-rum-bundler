@@ -42,7 +42,7 @@ const SCOPES = {
  */
 function assertValidPermissions(permissions) {
   if (!Array.isArray(permissions) || permissions.find((d) => typeof d !== 'string')) {
-    throw errorWithResponse(400, 'invalid domains');
+    throw errorWithResponse(400, 'invalid permissions');
   }
 
   permissions.forEach((perm) => {

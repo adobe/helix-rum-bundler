@@ -53,7 +53,7 @@ describe('api/domains Tests', () => {
     assert.strictEqual(resp.status, 200);
     const data = await resp.json();
     assert.deepStrictEqual(data, {
-      domains: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
+      items: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
       pagination: { limit: 1000 },
       links: {},
     });
@@ -74,7 +74,7 @@ describe('api/domains Tests', () => {
     assert.strictEqual(resp.status, 200);
     const data = await resp.json();
     assert.deepStrictEqual(data, {
-      domains: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
+      items: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
       pagination: {
         limit: 3,
         next: 'abc=',
@@ -100,7 +100,7 @@ describe('api/domains Tests', () => {
     assert.strictEqual(resp.status, 200);
     const data = await resp.json();
     assert.deepStrictEqual(data, {
-      domains: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
+      items: ['www.adobe.com', 'www.aem.live', 'blog.adobe.com'],
       pagination: {
         limit: 3,
         start: 'abc=',
