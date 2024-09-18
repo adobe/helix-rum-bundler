@@ -30,11 +30,11 @@ async function getDomains(ctx) {
 
 /**
  * Get a non-paginated list of domains for use in a datalist.
- *  For superuser: get top 100 domains last 24h
- *  For adminkey (w/ `domainkey:read`): get top 100 domains
+ *  For superuser: get top N domains last 7 days
+ *  For adminkey (w/ `domainkey:read`): get top N domains last 7 days
  *  For orgkey: get all org domains
  *
- * Stores the top 100 for 24h in `<users-bucket>/domains/suggestions/top100.json`
+ * Stores the top N in `<users-bucket>/domains/suggestions/top{N}.json`
  *
  * @param {RRequest} req
  * @param {UniversalContext} ctx
