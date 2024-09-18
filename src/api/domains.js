@@ -78,7 +78,7 @@ async function getDomainSuggestions(req, ctx) {
   const acceptVal = req.headers.get('accept') ?? '';
   if (acceptVal.indexOf('text/html') > acceptVal.indexOf('application/json')) {
     return new Response(`\
-<datalist>
+<datalist id="rum-domain-suggestions">
 ${domains.map((d) => `  <option value="${d}">`).join('\n')}
 </datalist>`, {
       status: 200,
