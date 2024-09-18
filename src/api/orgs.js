@@ -366,7 +366,7 @@ async function rotateOrgkey(req, ctx, info) {
   const orgkey = crypto.randomUUID().toUpperCase();
   await _setOrgkey(ctx, id, orgkey, domains);
 
-  return new Response(JSON.stringify({ orgkey }), {
+  return new Response(JSON.stringify({ orgkey: `org:${id}:${orgkey}` }), {
     status: 200,
     headers: {
       'content-type': 'application/json',
@@ -381,20 +381,23 @@ async function rotateOrgkey(req, ctx, info) {
  */
 async function setOrgkey(req, ctx, info) {
   assertSuperuserAuthorized(req, ctx);
-
+  const { org: id } = info;
   const { orgkey } = ctx.data;
   if (!orgkey || typeof orgkey !== 'string') {
     throw errorWithResponse(400, 'invalid orgkey');
   }
+  if (!orgkey.startsWith(`org:${id}:`)) {
+    throw errorWithResponse(400, 'invalid orgkey, expecting org:<id>:<key>');
+  }
 
-  const { org: id } = info;
   const org = await retrieveOrg(ctx, id);
   if (!org) {
     return new Response('', { status: 404 });
   }
 
   const { domains } = org;
-  await _setOrgkey(ctx, id, orgkey, domains);
+  const key = orgkey.slice(`org:${id}:`.length);
+  await _setOrgkey(ctx, id, key, domains);
 
   return new Response('', { status: 204 });
 }

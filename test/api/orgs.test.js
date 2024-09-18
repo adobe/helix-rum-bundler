@@ -502,7 +502,7 @@ describe('api/orgs Tests', () => {
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 200);
       const { orgkey } = await resp.json();
-      assert.strictEqual(orgkey, 'TEST-UUID');
+      assert.strictEqual(orgkey, 'org:adobe:TEST-UUID');
       assert.strictEqual(bodies.orgkey, 'TEST-UUID');
       assert.strictEqual(bodies.domainOrgkeyMap, '{"adobe":"TEST-UUID","foo":"should-be-retained"}');
     });
@@ -514,7 +514,7 @@ describe('api/orgs Tests', () => {
         .get('/orgs/adobe/org.json?x-id=GetObject')
         .reply(404);
       const req = REQUEST({ method: 'PUT' });
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'valid-key' } });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'org:adobe:valid-key' } });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 404);
     });
@@ -537,7 +537,7 @@ describe('api/orgs Tests', () => {
         .reply(200);
 
       const req = REQUEST({ method: 'PUT' });
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'MY-NEW-ORGKEY' } });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/key' }, data: { orgkey: 'org:adobe:MY-NEW-ORGKEY' } });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 204);
       assert.strictEqual(bodies.orgkey, 'MY-NEW-ORGKEY');

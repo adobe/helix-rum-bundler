@@ -62,12 +62,17 @@ export async function assertOrgAdminAuthorized(req, ctx, org, key) {
     if (!actual) {
       throw e;
     }
+
     const expected = await fetchOrgKey(ctx, org);
     if (!expected) {
       throw errorWithResponse(403, 'no known orgkey to compare', 'orgkey not set');
     }
 
     if (actual !== expected) {
+      if (actual.startsWith(`org:${org}:`) && actual.substring(`org:${org}:`.length) === expected) {
+        // valid orgkey
+        return;
+      }
       throw e;
     }
   }
