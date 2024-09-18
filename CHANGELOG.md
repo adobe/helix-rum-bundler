@@ -1,3 +1,16 @@
+# [1.7.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.6.21...v1.7.0) (2024-09-18)
+
+
+### Bug Fixes
+
+* add delete admin, delete admin perm ([db5f7ca](https://github.com/adobe/[secure]-rum-bundler/commit/db5f7cab1bff66f43ddbc897bf7e871fdabfd6ab))
+* impl adminkey auth for domainkey:read ([e54ec9a](https://github.com/adobe/[secure]-rum-bundler/commit/e54ec9a4d3990144e981945a5892a8ee84667176))
+
+
+### Features
+
+* add admins ([bfe8c33](https://github.com/adobe/[secure]-rum-bundler/commit/bfe8c33209a68074c8e2e1fa11414bc0322bf93b))
+
 ## [1.6.21](https://github.com/adobe/helix-rum-bundler/compare/v1.6.20...v1.6.21) (2024-09-17)
 
 
