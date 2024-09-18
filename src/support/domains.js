@@ -12,6 +12,7 @@
 
 import { purgeSurrogateKey } from './cache.js';
 import { HelixStorage } from './storage.js';
+import { yesterday } from './util.js';
 
 /**
  * Fetch domainkey for domain
@@ -92,4 +93,42 @@ export async function setDomainKey(ctx, domain, domainkey, purgeCache = true) {
   }
 
   return domainkey;
+}
+
+/**
+ * Get the top N domains for the last M days.
+ *
+ * @param {UniversalContext} ctx
+ * @param {number} days M
+ * @param {number} count N
+ */
+export async function findTopDomains(ctx, days, count = 100) {
+  const domainkey = await fetchDomainKey(ctx, 'aem.live:all');
+
+  const now = new Date();
+  /** @type {[year: number, month: number, day: number]} */
+  let date = [now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()];
+
+  const proms = new Array(days).fill(0).map(async () => {
+    const url = `${ctx.env.CDN_ENDPOINT}/bundles/aem.live:all/${date.join('/')}?domainkey=${domainkey}`;
+    date = yesterday(...date);
+
+    const resp = await fetch(url);
+    return resp.json();
+  });
+
+  const domainHitMap = (await Promise.all(proms)).reduce((acc, json) => {
+    const { rumBundles } = json;
+    rumBundles.forEach((bundle) => {
+      const { domain, weight } = bundle;
+      if (!acc[domain]) {
+        acc[domain] = 0;
+      }
+      acc[domain] += weight;
+    });
+    return acc;
+  }, {});
+
+  const sorted = Object.entries(domainHitMap).sort((a, b) => b[1] - a[1]);
+  return sorted.slice(0, count).map(([domain]) => domain);
 }
