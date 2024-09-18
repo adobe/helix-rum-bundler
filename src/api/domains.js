@@ -13,7 +13,7 @@
 import { Response } from '@adobe/fetch';
 import { PathInfo } from '../support/PathInfo.js';
 import { assertSuperuserAuthorized, isSuperuserAuthorized } from '../support/authorization.js';
-import { findTopDomains, listDomains } from '../support/domains.js';
+import { fetchDomainKey, findTopDomains, listDomains } from '../support/domains.js';
 import { HelixStorage } from '../support/storage.js';
 import { retrieveOrg } from '../support/orgs.js';
 
@@ -103,16 +103,31 @@ ${domains.map((d) => `  <option value="${d}">`).join('\n')}
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  // eslint-disable-next-line no-new
-  new PathInfo(ctx.pathInfo.suffix);
+  const info = new PathInfo(ctx.pathInfo.suffix);
 
   if (req.method === 'GET') {
-    if (ctx.data.suggested) {
-      return getDomainSuggestions(req, ctx);
-    }
+    if (!info.domain) {
+      if (ctx.data.suggested) {
+        return getDomainSuggestions(req, ctx);
+      }
 
-    assertSuperuserAuthorized(req, ctx);
-    return getDomains(ctx);
+      assertSuperuserAuthorized(req, ctx);
+      return getDomains(ctx);
+    } else {
+      // check key
+      const { domainkey } = ctx.data;
+      if (!domainkey) {
+        return new Response('missing domainkey', { status: 400 });
+      }
+      const actual = await fetchDomainKey(ctx, info.domain);
+      if (!actual) {
+        return new Response('not found', { status: 404 });
+      }
+      if (actual === domainkey) {
+        return new Response('', { status: 204 });
+      }
+      return new Response('domainkey mismatch', { status: 403 });
+    }
   }
   return new Response('method not allowed', { status: 405 });
 }

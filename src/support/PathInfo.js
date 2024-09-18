@@ -125,10 +125,11 @@ export class PathInfo {
   }
 
   initDomainsRoute() {
-    const [_, next] = this.segments;
+    const [_, domain, next] = this.segments;
     if (next) {
       throw errorWithResponse(404);
     }
+    this.domain = domain;
   }
 
   initAdminsRoute() {
