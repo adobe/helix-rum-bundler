@@ -29,6 +29,9 @@ export class PathInfo {
   org;
 
   /** @type {string} */
+  permission;
+
+  /** @type {string} */
   admin;
 
   /** @type {number} */
@@ -133,7 +136,7 @@ export class PathInfo {
     this.admin = admin;
     this.subroute = subroute;
     if (subroute === 'permissions') {
-      this.domain = subvalue;
+      this.permission = subvalue;
     }
   }
 

@@ -14,9 +14,13 @@ import { Response } from '@adobe/fetch';
 import { PathInfo } from '../support/PathInfo.js';
 import { assertSuperuserAuthorized } from '../support/authorization.js';
 import {
-  doesAdminExist, listAdmins, retrieveAdmin, retrieveAdminkey,
+  doesAdminExist,
+  listAdmins,
+  retrieveAdmin,
+  retrieveAdminkey,
   storeAdmin,
   storeAdminkey,
+  deleteAdmin,
 } from '../support/admins.js';
 import { errorWithResponse } from '../support/util.js';
 
@@ -66,7 +70,6 @@ async function getAdmins(ctx) {
  */
 async function getAdmin(ctx, info) {
   const { admin: id } = info;
-  // await assertOrgAdminAuthorized(req, ctx, id);
   const admin = await retrieveAdmin(ctx, id);
   if (!admin) {
     return new Response('', { status: 404 });
@@ -112,7 +115,7 @@ async function createAdmin(ctx) {
   assertValidPermissions(permissions);
 
   if (await doesAdminExist(ctx, id)) {
-    throw errorWithResponse(409, 'org already exists');
+    throw errorWithResponse(409, 'admin already exists');
   }
 
   const adminkey = crypto.randomUUID().toUpperCase();
@@ -134,7 +137,7 @@ async function createAdmin(ctx) {
  * @param {PathInfo} info
  */
 async function updateAdmin(ctx, info) {
-  const { org: id } = info;
+  const { admin: id } = info;
   const { permissions = [] } = ctx.data;
   assertValidPermissions(permissions);
 
@@ -145,8 +148,8 @@ async function updateAdmin(ctx, info) {
 
   const adminkey = await retrieveAdminkey(ctx, id);
   if (!adminkey) {
-    ctx.log.warn(`orgkey not defined for org ${id}`);
-    throw errorWithResponse(400, 'orgkey not defined');
+    ctx.log.warn(`adminkey not defined for admin ${id}`);
+    throw errorWithResponse(400, 'adminkey not defined');
   }
 
   const newPerms = [];
@@ -156,6 +159,15 @@ async function updateAdmin(ctx, info) {
       newPerms.push(perm);
     }
   });
+  if (!newPerms.length) {
+    return new Response(JSON.stringify(admin), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }
+
   admin.permissions = [...existing, ...newPerms];
   await storeAdmin(ctx, id, admin);
   return new Response(JSON.stringify(admin), {
@@ -226,6 +238,57 @@ async function setAdminkey(ctx, info) {
 }
 
 /**
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function removePermissionFromAdmin(ctx, info) {
+  const { admin: id, permission } = info;
+  if (!permission) {
+    return new Response('', { status: 404 });
+  }
+
+  const admin = await retrieveAdmin(ctx, id);
+  if (!admin) {
+    return new Response('', { status: 404 });
+  }
+
+  const newPerms = admin.permissions.filter((p) => p !== permission);
+  if (newPerms.length === admin.permissions.length) {
+    return new Response(JSON.stringify(admin), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }
+
+  admin.permissions = newPerms;
+  await storeAdmin(ctx, id, admin);
+  return new Response(JSON.stringify(admin), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {PathInfo} info
+ */
+async function removeAdmin(ctx, info) {
+  const { admin: id } = info;
+  const admin = await retrieveAdmin(ctx, id);
+  if (!admin) {
+    return new Response('', { status: 404 });
+  }
+
+  await deleteAdmin(ctx, id);
+
+  return new Response('', { status: 204 });
+}
+
+/**
  * Handle /admins route
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -257,6 +320,12 @@ export default async function handleRequest(req, ctx) {
   } else if (req.method === 'PUT') {
     if (info.subroute === 'key') {
       return setAdminkey(ctx, info);
+    }
+  } else if (req.method === 'DELETE') {
+    if (info.subroute === 'permissions') {
+      return removePermissionFromAdmin(ctx, info);
+    } else if (!info.subroute && info.admin) {
+      return removeAdmin(ctx, info);
     }
   }
   return new Response('method not allowed', { status: 405 });

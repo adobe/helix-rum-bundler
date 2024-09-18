@@ -57,12 +57,12 @@ export async function retrieveAdmin(ctx, admin) {
  * Get adminkey for admin
  *
  * @param {UniversalContext} ctx
- * @param {string} org
+ * @param {string} admin
  * @returns {Promise<string|null>}
  */
-export async function retrieveAdminkey(ctx, org) {
+export async function retrieveAdminkey(ctx, admin) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
-  const buf = await usersBucket.get(`/admins/${org}/.adminkey`);
+  const buf = await usersBucket.get(`/admins/${admin}/.adminkey`);
   if (!buf) {
     return null;
   }
@@ -101,4 +101,14 @@ export async function storeAdminkey(ctx, admin, adminkey) {
 export async function storeAdmin(ctx, admin, data) {
   const { usersBucket } = HelixStorage.fromContext(ctx);
   await usersBucket.put(`/admins/${admin}/admin.json`, JSON.stringify(data), 'application/json');
+}
+
+/**
+ * @param {UniversalContext} ctx
+ * @param {string} admin
+ * @returns {Promise<void>}
+ */
+export async function deleteAdmin(ctx, admin) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+  await usersBucket.remove([`/admins/${admin}/admin.json`, `/admins/${admin}/.adminkey`]);
 }
