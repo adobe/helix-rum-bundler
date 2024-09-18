@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.0...v1.8.1) (2024-09-18)
+
+
+### Bug Fixes
+
+* add id to datalist ([634d976](https://github.com/adobe/[secure]-rum-bundler/commit/634d976a0b30d0d6fd02e953b7f414f97f78b4a5))
+
 # [1.8.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.7.1...v1.8.0) (2024-09-18)
 
 
