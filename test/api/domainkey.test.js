@@ -93,6 +93,34 @@ describe('api/domainkey Tests', () => {
       assert.strictEqual(domainkey, 'simple-domainkey');
     });
 
+    it('allows valid adminkey', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/admins/foo/admin.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ permissions: ['domainkeys:read'] }));
+
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/example.com/.domainkey?x-id=GetObject')
+        .reply(200, 'simple-domainkey');
+
+      const req = REQUEST({ method: 'GET', token: 'admin:foo:my-key' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/domainkey/example.com' } });
+      const resp = await handleRequest(req, ctx);
+
+      assert.strictEqual(resp.status, 200);
+      const { domainkey } = await resp.json();
+      assert.strictEqual(domainkey, 'simple-domainkey');
+    });
+
+    it('rejects invalid adminkey', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/admins/foo/admin.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ permissions: ['not:allowed'] }));
+
+      const req = REQUEST({ method: 'GET', token: 'admin:foo:my-key' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/domainkey/example.com' } });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 403);
+    });
+
     it('returns 404 if missing', async () => {
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .get('/example.com/.domainkey?x-id=GetObject')

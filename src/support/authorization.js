@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+import { retrieveAdmin } from './admins.js';
 import { getDomainOrgkeyMap } from './orgs.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
@@ -78,8 +79,9 @@ export async function assertOrgAdminAuthorized(req, ctx, org, key) {
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  * @param {string} domain
+ * @param {string[]} permissions
  */
-export async function assertAuthorizedForDomain(req, ctx, domain) {
+export async function assertAuthorizedForDomain(req, ctx, domain, permissions = []) {
   try {
     assertSuperuserAuthorized(req, ctx);
   } catch (e) {
@@ -87,6 +89,18 @@ export async function assertAuthorizedForDomain(req, ctx, domain) {
     if (!actual) {
       throw e;
     }
+
+    if (actual.startsWith('admin:')) {
+      // check adminkey permissions
+      const id = actual.split(':')[1];
+      const admin = await retrieveAdmin(ctx, id);
+      if (admin && permissions.every((perm) => admin.permissions.includes(perm))) {
+        // valid adminkey
+        return;
+      }
+      throw e;
+    }
+
     const allowedKeys = Object.values(await getDomainOrgkeyMap(ctx, domain));
     if (!allowedKeys.includes(actual)) {
       throw e;
