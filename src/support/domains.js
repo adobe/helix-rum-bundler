@@ -35,7 +35,7 @@ export async function fetchDomainKey(ctx, domain) {
  * @param {UniversalContext} ctx
  * @param {string} [start]
  * @param {number|string} [plimit]
- * @returns {Promise<{domains:string[]; pagination:Pagination; links:Links; }>}
+ * @returns {Promise<{items:string[]; pagination:Pagination; links:Links; }>}
  */
 export async function listDomains(ctx, start, plimit) {
   let limit = plimit && typeof plimit === 'string' ? parseInt(plimit, 10) : plimit;
@@ -43,7 +43,7 @@ export async function listDomains(ctx, start, plimit) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
   const { folders, next } = await bundleBucket.listFolders('', { start, limit });
   return {
-    domains: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d)),
+    items: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d)),
     pagination: {
       start,
       limit,

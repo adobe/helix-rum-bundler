@@ -193,6 +193,10 @@ declare global {
     helixOrgs: string[];
   }
 
+  export interface AdminData {
+    permissions: string[];
+  }
+
   export interface Links {
     self?: string;
     next?: string;

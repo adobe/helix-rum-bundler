@@ -291,7 +291,12 @@ async function removeDomainFromOrg(req, ctx, info) {
 
   const newDomains = org.domains.filter((d) => d !== domain);
   if (newDomains.length === org.domains.length) {
-    return new Response('', { status: 200 });
+    return new Response(JSON.stringify(org), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
   }
 
   org.domains = newDomains;

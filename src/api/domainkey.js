@@ -100,20 +100,23 @@ async function removeDomainKey(ctx, domain) {
  */
 export default async function handleRequest(req, ctx) {
   const { domain } = new PathInfo(ctx.pathInfo.suffix);
-  await assertAuthorizedForDomain(req, ctx, domain);
 
-  if (req.method === 'POST') {
-    return rotateDomainKey(ctx, domain);
-  } else if (req.method === 'GET') {
+  if (req.method === 'GET') {
+    await assertAuthorizedForDomain(req, ctx, domain, ['domainkeys:read']);
     return getDomainKey(ctx, domain);
-  } else if (req.method === 'DELETE') {
-    return removeDomainKey(ctx, domain);
-  } else if (req.method === 'PUT') {
-    const { domainkey } = ctx.data;
-    if (typeof domainkey !== 'string') {
-      throw errorWithResponse(400, 'invalid domainkey');
+  } else {
+    await assertAuthorizedForDomain(req, ctx, domain, ['domainkeys:write']);
+    if (req.method === 'POST') {
+      return rotateDomainKey(ctx, domain);
+    } else if (req.method === 'DELETE') {
+      return removeDomainKey(ctx, domain);
+    } else if (req.method === 'PUT') {
+      const { domainkey } = ctx.data;
+      if (typeof domainkey !== 'string') {
+        throw errorWithResponse(400, 'invalid domainkey');
+      }
+      return updateDomainKey(ctx, domain, domainkey);
     }
-    return updateDomainKey(ctx, domain, domainkey);
   }
   return new Response('method not allowed', { status: 405 });
 }

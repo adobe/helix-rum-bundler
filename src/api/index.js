@@ -11,18 +11,20 @@
  */
 
 import { Response } from '@adobe/fetch';
+import { errorWithResponse } from '../support/util.js';
+import { PathInfo } from '../support/PathInfo.js';
 import domainkey from './domainkey.js';
 import bundles from './bundles.js';
 import orgs from './orgs.js';
 import domains from './domains.js';
-import { errorWithResponse } from '../support/util.js';
-import { PathInfo } from '../support/PathInfo.js';
+import admins from './admins.js';
 
 const handlers = {
   domains,
   domainkey,
   bundles,
   orgs,
+  admins,
 };
 
 /**

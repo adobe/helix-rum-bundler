@@ -28,6 +28,12 @@ export class PathInfo {
   /** @type {string} */
   org;
 
+  /** @type {string} */
+  permission;
+
+  /** @type {string} */
+  admin;
+
   /** @type {number} */
   year;
 
@@ -63,6 +69,9 @@ export class PathInfo {
         break;
       case 'domains':
         this.initDomainsRoute();
+        break;
+      case 'admins':
+        this.initAdminsRoute();
         break;
       default:
         throw errorWithResponse(404);
@@ -119,6 +128,15 @@ export class PathInfo {
     const [_, next] = this.segments;
     if (next) {
       throw errorWithResponse(404);
+    }
+  }
+
+  initAdminsRoute() {
+    const [_, admin, subroute, subvalue] = this.segments;
+    this.admin = admin;
+    this.subroute = subroute;
+    if (subroute === 'permissions') {
+      this.permission = subvalue;
     }
   }
 
