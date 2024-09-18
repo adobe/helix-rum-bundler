@@ -35,6 +35,21 @@ async function fetchOrgKey(ctx, org) {
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  */
+export function isSuperuserAuthorized(req, ctx) {
+  if (!ctx.env.TMP_SUPERUSER_API_KEY) {
+    return false;
+  }
+  const actual = req.headers.get('authorization')?.slice(7); // bearer
+  if (actual !== ctx.env.TMP_SUPERUSER_API_KEY) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
 export function assertSuperuserAuthorized(req, ctx) {
   if (!ctx.env.TMP_SUPERUSER_API_KEY) {
     throw errorWithResponse(401, 'no known key to compare', 'TMP_SUPERUSER_API_KEY variable not set');
