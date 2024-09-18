@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.7.0...v1.7.1) (2024-09-18)
+
+
+### Bug Fixes
+
+* allow orgkey prefix ([#209](https://github.com/adobe/[secure]-rum-bundler/issues/209)) ([0822ba1](https://github.com/adobe/[secure]-rum-bundler/commit/0822ba196b2ee7ed75286bd0da5f4706e0ed4fde))
+
 # [1.7.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.6.21...v1.7.0) (2024-09-18)
 
 
