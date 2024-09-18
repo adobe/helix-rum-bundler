@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.7.1...v1.8.0) (2024-09-18)
+
+
+### Features
+
+* add suggested domains api ([#210](https://github.com/adobe/[secure]-rum-bundler/issues/210)) ([b63be31](https://github.com/adobe/[secure]-rum-bundler/commit/b63be31eec729f94615734e05390c76198fb5d96))
+
 ## [1.7.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.7.0...v1.7.1) (2024-09-18)
 
 
