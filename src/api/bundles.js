@@ -47,7 +47,12 @@ export const MAX_EVENTS = {
  * @throws {ErrorWithResponse} if unauthorized
  */
 export async function assertAuthorized(ctx, domain) {
-  const actual = ctx.data?.domainkey || '';
+  let actual = ctx.data?.domainkey || '';
+  // if there's an admin ident, remove it
+  const spl = actual.split('-');
+  if (spl.length === 6) {
+    actual = spl.slice(0, 5).join('-');
+  }
 
   const expected = await fetchDomainKey(ctx, domain);
   if (!expected) {

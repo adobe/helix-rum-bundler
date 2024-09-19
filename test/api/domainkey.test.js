@@ -108,7 +108,7 @@ describe('api/domainkey Tests', () => {
 
       assert.strictEqual(resp.status, 200);
       const { domainkey } = await resp.json();
-      assert.strictEqual(domainkey, 'simple-domainkey');
+      assert.strictEqual(domainkey, 'simple-domainkey-ACBD18DB'); // with admin ident hash
     });
 
     it('rejects invalid adminkey', async () => {

@@ -11,6 +11,7 @@
  */
 
 import { Response } from '@adobe/fetch';
+import crypto from 'crypto';
 import { PathInfo } from '../support/PathInfo.js';
 import { HelixStorage } from '../support/storage.js';
 import { errorWithResponse } from '../support/util.js';
@@ -56,7 +57,7 @@ async function rotateDomainKey(ctx, domain) {
  * @param {string} domain
  */
 async function getDomainKey(ctx, domain) {
-  const domainkey = await fetchDomainKey(ctx, domain);
+  let domainkey = await fetchDomainKey(ctx, domain);
   if (domainkey === null) {
     return new Response('not found', { status: 404 });
   }
@@ -68,6 +69,15 @@ async function getDomainKey(ctx, domain) {
     });
   }
 
+  // make domainkey custom to admin
+  if (ctx.attributes.adminId) {
+    const hash = crypto.createHash('md5')
+      .update(ctx.attributes.adminId)
+      .digest('hex')
+      .substring(0, 8)
+      .toUpperCase();
+    domainkey = `${domainkey}-${hash}`;
+  }
   return new Response(JSON.stringify({ domainkey }), {
     headers: {
       'content-type': 'application/json',
