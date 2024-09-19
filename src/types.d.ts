@@ -57,6 +57,7 @@ declare module '@adobe/helix-universal' {
       }
 
       attributes: {
+        adminId?: string;
         fetchContext?: ReturnType<typeof keepAliveNoCache>;
         rumManifests: LRUCache<Manifest | Promise<Manifest>>;
         rumBundleGroups: LRUCache<BundleGroup | Promise<BundleGroup>>;

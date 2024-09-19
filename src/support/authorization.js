@@ -114,6 +114,9 @@ export async function assertAuthorizedForDomain(req, ctx, domain, permissions = 
       // check adminkey permissions
       const id = actual.split(':')[1];
       const admin = await retrieveAdmin(ctx, id);
+      if (admin) {
+        ctx.attributes.adminId = id;
+      }
       if (admin && permissions.every((perm) => admin.permissions.includes(perm))) {
         // valid adminkey
         return;
