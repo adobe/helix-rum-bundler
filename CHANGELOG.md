@@ -1,3 +1,10 @@
+## [1.8.3](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.2...v1.8.3) (2024-09-19)
+
+
+### Bug Fixes
+
+* add and handle identifiers ([#211](https://github.com/adobe/[secure]-rum-bundler/issues/211)) ([c4fb56d](https://github.com/adobe/[secure]-rum-bundler/commit/c4fb56d6ec63a3af1e044e5fadbc3ff4b3a38ae8))
+
 ## [1.8.2](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.1...v1.8.2) (2024-09-18)
 
 
