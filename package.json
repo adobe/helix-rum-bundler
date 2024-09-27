@@ -27,7 +27,7 @@
     "testUrl": "/_status_check/healthcheck.json",
     "awsRole!important": "arn:aws:iam::118435662149:role/helix-service-role-rum-bundler",
     "awsRegion": "us-east-1",
-    "memory": 4096,
+    "memory": 10240,
     "fastlyServiceId!important": "",
     "awsAttachAuthorizer": "helix-token-authorizer_v2",
     "params-file": "./params.json",
