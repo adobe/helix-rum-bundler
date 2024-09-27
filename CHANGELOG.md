@@ -1,3 +1,10 @@
+## [1.8.6](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.5...v1.8.6) (2024-09-27)
+
+
+### Bug Fixes
+
+* tweak limits ([#218](https://github.com/adobe/[secure]-rum-bundler/issues/218)) ([06aec1f](https://github.com/adobe/[secure]-rum-bundler/commit/06aec1f6b17b5c5e9cbe0e23d306509f5254606c))
+
 ## [1.8.5](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.4...v1.8.5) (2024-09-22)
 
 
