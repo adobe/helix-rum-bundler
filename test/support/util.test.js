@@ -12,7 +12,12 @@
 
 import assert from 'assert';
 import {
-  pruneUndefined, getEnvVar, yesterday, calculateDownsample, magnitude,
+  pruneUndefined,
+  getEnvVar,
+  yesterday,
+  calculateDownsample,
+  magnitude,
+  weightedThreshold,
 } from '../../src/support/util.js';
 
 describe('util Tests', () => {
@@ -118,6 +123,30 @@ describe('util Tests', () => {
       v = calculateDownsample(2398.44, 10);
       assert.strictEqual(v.weightFactor, 100);
       assert.strictEqual(v.reductionFactor, 0.99);
+    });
+  });
+
+  describe('weightedThreshold()', () => {
+    it('returns the weighted threshold', () => {
+      const e = {
+        weight: 100,
+        checkpoint: 'top',
+      };
+      assert.strictEqual(weightedThreshold(e), 0.01);
+    });
+
+    it('clamps threshold', () => {
+      const e = {
+        weight: 100000,
+        checkpoint: 'top',
+      };
+      assert.strictEqual(weightedThreshold(e), 0.0001);
+
+      const e2 = {
+        weight: 1,
+        checkpoint: 'top',
+      };
+      assert.strictEqual(weightedThreshold(e2), 0.9999);
     });
   });
 });

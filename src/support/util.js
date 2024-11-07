@@ -255,3 +255,23 @@ export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 1
  * @returns {number}
  */
 export const sortKey = (e) => -Math.log(1.0 - fingerprintValue(e)) / e.weight;
+
+/**
+ * Calculate threshold for sampling based on weight.
+ * Used for ad-hoc sampling of events, eg. for "all" aggregates.
+ * The higher the weight, the lower the threshold, meaning higher chance of being selected.
+ *
+ * @note clamped between 0.0001, 0.9999
+ *
+ * w=1 => .9999
+ * w=10 => 0.1
+ * w=100 => 0.01
+ * w=1000 => 0.001
+ * w=10000 => 0.0001
+ * @param {{weight: number;}} e
+ * @returns {number}
+ */
+export const weightedThreshold = (e) => {
+  const threshold = 1 / e.weight;
+  return Math.max(0.0001, Math.min(0.9999, threshold));
+};
