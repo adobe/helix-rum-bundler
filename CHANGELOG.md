@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.12...v1.9.0) (2024-11-07)
+
+
+### Features
+
+* a-es sampling ([#236](https://github.com/adobe/[secure]-rum-bundler/issues/236)) ([c19a28a](https://github.com/adobe/[secure]-rum-bundler/commit/c19a28ae096503684e99ac0247f9007bf80c7efd))
+
 ## [1.8.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.11...v1.8.12) (2024-11-02)
 
 
