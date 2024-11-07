@@ -233,6 +233,7 @@ export const getCWVEventType = (event) => {
 
 /**
  * @param {{id: string; url: string; weight: number;}} event
+ * @returns {string}
  */
 export const fingerprint = (event) => {
   const uid = `${event.id}--${event.url}--${event.weight || 0}`;
@@ -246,6 +247,10 @@ export const fingerprint = (event) => {
 export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 16) / 3.402824e38;
 
 /**
+ * Calculate sort key for weighted sampling
+ *
+ * @see {@link https://blog.moertel.com/posts/2024-08-23-sampling-with-sql.html}
+ *
  * @param {{id: string; url: string; weight: number;}} e
  * @returns {number}
  */
