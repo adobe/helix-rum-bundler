@@ -244,3 +244,9 @@ export const fingerprint = (event) => {
  * @returns {number} between 0 and 1, evenly distributed
  */
 export const fingerprintValue = (event) => Number.parseInt(fingerprint(event), 16) / 3.402824e38;
+
+/**
+ * @param {{id: string; url: string; weight: number;}} e
+ * @returns {number}
+ */
+export const sortKey = (e) => -Math.log(1.0 - fingerprintValue(e)) / e.weight;
