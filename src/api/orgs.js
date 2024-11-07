@@ -14,7 +14,9 @@ import { Response } from '@adobe/fetch';
 import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from '../support/storage.js';
 import {
-  calculateDownsample, compressBody, errorWithResponse, getFetch,
+  compressBody,
+  errorWithResponse,
+  getFetch,
 } from '../support/util.js';
 import { assertSuperuserAuthorized, assertOrgAdminAuthorized } from '../support/authorization.js';
 import {
@@ -29,7 +31,7 @@ import {
 } from '../support/orgs.js';
 import { PathInfo } from '../support/PathInfo.js';
 import {
-  MAX_EVENTS,
+  downsample,
   fetchAggregate,
   getTTL,
   storeAggregate,
@@ -457,7 +459,6 @@ async function getOrgBundles(req, ctx, info) {
 
   /** @type {RUMBundle[]} */
   let rumBundles = [];
-  let totalEvents = 0;
   const { date } = orgPath;
   const fetch = getFetch(ctx);
   await processQueue(
@@ -479,25 +480,12 @@ async function getOrgBundles(req, ctx, info) {
         // filter to only include `top` and `cwv-*` events
         bundle.events = bundle.events.filter((e) => !!e.checkpoint && (e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-')));
         bundle.domain = domain;
-        totalEvents += bundle.events.length;
         return bundle;
       }));
     },
   );
 
-  const { reductionFactor, weightFactor } = calculateDownsample(
-    totalEvents,
-    orgPath.day ? MAX_EVENTS.daily : MAX_EVENTS.monthly,
-  );
-  if (reductionFactor > 0) {
-    rumBundles = rumBundles
-      .filter(() => (Math.random() > reductionFactor))
-      .map((b) => ({
-        ...b,
-        weight: b.weight * weightFactor,
-      }));
-  }
-
+  rumBundles = downsample(ctx, rumBundles, orgPath.day ? 'daily' : 'monthly');
   const str = JSON.stringify({ rumBundles });
 
   // store aggregate

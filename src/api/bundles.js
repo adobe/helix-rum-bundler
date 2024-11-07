@@ -34,7 +34,7 @@ const FANOUT_CONCURRENCY_LIMIT = 15;
  *
  * 5k events ~= 650KB uncompressed
  */
-export const MAX_EVENTS = {
+const MAX_EVENTS = {
   daily: 5_000,
   monthly: 20_000,
 };
@@ -47,7 +47,7 @@ export const MAX_EVENTS = {
  * @param {'daily'|'monthly'} timespan
  * @returns {RUMBundle[]}
  */
-function downsample(ctx, bundles, timespan) {
+export function downsample(ctx, bundles, timespan) {
   const { log } = ctx;
   const totalBundles = bundles.length;
   let totalEvents = 0;
