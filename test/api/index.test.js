@@ -168,6 +168,14 @@ describe('api Tests', () => {
             ],
           },
           {
+            id: 'foo',
+            url: 'https://example.com/foo',
+            timeSlot: '3',
+            time: '2024-03-01T01:00:03.001Z',
+            weight: 10,
+            events: [],
+          },
+          {
             id: 'bar',
             url: 'https://example.com/some/other/path',
             timeSlot: '4',
@@ -178,14 +186,6 @@ describe('api Tests', () => {
                 checkpoint: 'top',
               },
             ],
-          },
-          {
-            id: 'foo',
-            url: 'https://example.com/foo',
-            timeSlot: '3',
-            time: '2024-03-01T01:00:03.001Z',
-            weight: 10,
-            events: [],
           },
         ],
       });
