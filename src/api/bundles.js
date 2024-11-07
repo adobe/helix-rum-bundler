@@ -59,6 +59,9 @@ export function downsample(ctx, bundles, timespan) {
   });
 
   const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS[timespan]);
+  if (reductionFactor <= 0) {
+    return bundles;
+  }
 
   const selected = keyBundlePairs
     // sort by key
