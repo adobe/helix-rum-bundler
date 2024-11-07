@@ -16,8 +16,8 @@ import {
   calculateDownsample,
   compressBody,
   errorWithResponse,
-  fingerprintValue,
   getFetch,
+  sortKey,
 } from '../support/util.js';
 import { HelixStorage } from '../support/storage.js';
 import { PathInfo } from '../support/PathInfo.js';
@@ -38,6 +38,46 @@ export const MAX_EVENTS = {
   daily: 5_000,
   monthly: 20_000,
 };
+
+/**
+ * Perform downsampling on the given bundles
+ *
+ * @param {UniversalContext} ctx
+ * @param {RUMBundle[]} bundles
+ * @param {'daily'|'monthly'} timespan
+ * @returns {RUMBundle[]}
+ */
+function downsample(ctx, bundles, timespan) {
+  const { log } = ctx;
+  const totalBundles = bundles.length;
+  let totalEvents = 0;
+
+  /** @type {[key: number, bundle: RUMBundle][]} */
+  const keyBundlePairs = bundles.map((b) => {
+    totalEvents += b.events.length;
+    return [sortKey(b), b];
+  });
+
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS[timespan]);
+
+  const selected = keyBundlePairs
+    // sort by key
+    .sort(([a], [b]) => a - b)
+    // take top N bundles, determined by reductionFactor
+    .slice(0, Math.round(keyBundlePairs.length * (1 - reductionFactor)))
+    // apply weight factor
+    .map(([, b]) => ({
+      ...b,
+      weight: b.weight * weightFactor,
+    }))
+    // sort by time
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+  log.info(`reduced ${totalBundles} bundles ${timespan} bundles to ${selected.length} `
+    + `totalEvents=${totalEvents} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+
+  return selected;
+}
 
 /**
  * Check domainkey authorization
@@ -143,7 +183,6 @@ export async function fetchHourly(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchDaily(ctx, path) {
-  const { log } = ctx;
   const aggregate = await fetchAggregate(ctx, path);
   if (aggregate) {
     return { data: aggregate, isAggregate: true };
@@ -152,48 +191,23 @@ async function fetchDaily(ctx, path) {
   // use all hours, just handle 404s
   const hours = [...Array(24).keys()];
 
-  // fetch all bundles
-  let totalEvents = 0;
-  let totalBundles = 0;
-
-  const hourlyBundles = await processQueue(
+  /** @type {RUMBundle[]} */
+  const bundles = [];
+  await processQueue(
     hours,
     async (hour) => {
       const hpath = path.clone(undefined, undefined, undefined, undefined, hour);
       const data = await fetchHourly(ctx, hpath);
-      totalBundles += data.rumBundles.length;
-      totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
-
-      return data;
+      bundles.push(...data.rumBundles);
     },
     FANOUT_CONCURRENCY_LIMIT,
   );
-  log.info(`total events for ${path.domain} on ${path.month}/${path.day}/${path.year}: `, totalEvents);
 
   const forceAll = [true, 'true'].includes(ctx.data?.forceAll);
-  const maxEvents = forceAll ? Infinity : MAX_EVENTS.daily;
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
-
-  /** @type {RUMBundle[]} */
-  const rumBundles = [];
-  hourlyBundles.reduce(
-    (acc, curr) => {
-      acc.push(
-        ...curr.rumBundles
-          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
-          .map((b) => ({
-            ...b,
-            weight: b.weight * weightFactor,
-          })),
-      );
-      return acc;
-    },
-    rumBundles,
-  );
-  log.info(`reduced ${totalBundles} daily bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
+  const selected = forceAll ? bundles : downsample(ctx, bundles, 'daily');
 
   // treat forcedAll as aggregate so it doesn't get stored
-  return { data: { rumBundles }, isAggregate: forceAll };
+  return { data: { rumBundles: selected }, isAggregate: forceAll };
 }
 
 /**
@@ -202,7 +216,6 @@ async function fetchDaily(ctx, path) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 async function fetchMonthly(ctx, path) {
-  const { log } = ctx;
   const aggregate = await fetchAggregate(ctx, path);
   if (aggregate) {
     return { data: aggregate, isAggregate: true };
@@ -211,13 +224,11 @@ async function fetchMonthly(ctx, path) {
   // @ts-ignore
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
 
-  // fetch all bundles
-  let totalEvents = 0;
-  let totalBundles = 0;
-
   const fetch = getFetch(ctx);
   const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
-  const dailyBundles = await processQueue(
+  /** @type {RUMBundle[]} */
+  const bundles = [];
+  await processQueue(
     days,
     async (day) => {
       // fetch from the CDN so that it caches the result
@@ -230,36 +241,16 @@ async function fetchMonthly(ctx, path) {
       } else {
         data = { rumBundles: [] };
       }
-      totalBundles += data.rumBundles.length;
-      totalEvents += data.rumBundles.reduce((acc, b) => acc + b.events.length, 0);
+      bundles.push(...data.rumBundles);
 
       return data;
     },
     FANOUT_CONCURRENCY_LIMIT,
   );
-  log.info(`total events for ${path.domain} on ${path.month}/${path.year}: `, totalEvents);
 
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS.monthly);
+  const selected = downsample(ctx, bundles, 'monthly');
 
-  /** @type {RUMBundle[]} */
-  const rumBundles = [];
-  dailyBundles.reduce(
-    (acc, curr) => {
-      acc.push(
-        ...curr.rumBundles
-          .filter((b) => (reductionFactor > 0 ? fingerprintValue(b) > reductionFactor : true))
-          .map((b) => ({
-            ...b,
-            weight: b.weight * weightFactor,
-          })),
-      );
-      return acc;
-    },
-    rumBundles,
-  );
-  log.info(`reduced ${totalBundles} monthly bundles to ${rumBundles.length} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
-
-  return { data: { rumBundles }, isAggregate: false };
+  return { data: { rumBundles: selected }, isAggregate: false };
 }
 
 /**
