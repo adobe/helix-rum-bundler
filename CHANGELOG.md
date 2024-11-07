@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.9.0...v1.9.1) (2024-11-07)
+
+
+### Bug Fixes
+
+* use aes sampling for org aggregates ([#237](https://github.com/adobe/[secure]-rum-bundler/issues/237)) ([5023703](https://github.com/adobe/[secure]-rum-bundler/commit/50237033f375aafdbea8b5afb17f2979ac761a93))
+
 # [1.9.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.8.12...v1.9.0) (2024-11-07)
 
 
