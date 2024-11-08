@@ -226,9 +226,7 @@ async function fetchMonthly(ctx, path) {
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
 
   const fetch = getFetch(ctx);
-  // const endpoint = 'http://127.0.0.1:3000';
-  const endpoint = ctx.env.CDN_ENDPOINT;
-  const urlBase = `${endpoint}/bundles/${path.domain}/${path.year}/${path.month}`;
+  const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
   /** @type {RUMBundle[]} */
   const bundles = [];
   await processQueue(
