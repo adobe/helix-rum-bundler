@@ -189,14 +189,18 @@ export const calculateDownsample = (total, maximum) => {
     };
   }
 
-  const mTotal = magnitude(total);
-  const mMax = magnitude(maximum);
-  if (mTotal <= mMax) {
-    return {
-      reductionFactor: 0,
-      weightFactor: 1,
-    };
-  }
+  const mTotal = total;
+  const mMax = maximum;
+
+  // disabled requirement to downsample in orders of magnitude for now
+  // const mTotal = magnitude(total);
+  // const mMax = magnitude(maximum);
+  // if (mTotal <= mMax) {
+  //   return {
+  //     reductionFactor: 0,
+  //     weightFactor: 1,
+  //   };
+  // }
 
   const reductionFactor = (mTotal - mMax) / mTotal;
   const weightFactor = (mTotal > mMax || reductionFactor > 1)

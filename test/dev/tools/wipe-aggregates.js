@@ -44,7 +44,7 @@ configEnv();
     async (domain) => {
       const toRemove = (await bundleBucket.list(`${domain}/`))
         .objects
-        .filter(({ key }) => key.endsWith('/aggregate.json'))
+        .filter(({ key }) => key.endsWith('/aggregate.json') || key.endsWith('/aggregate-test.json'))
         .map(({ key }) => key);
 
       if (!toRemove.length) {

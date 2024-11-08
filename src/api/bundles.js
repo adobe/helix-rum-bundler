@@ -31,12 +31,10 @@ const FANOUT_CONCURRENCY_LIMIT = 15;
  * - roughly 130B/event uncompressed
  * - final payload size depends on bundle density
  * - gzip gives ~90% reduction
- *
- * 5k events ~= 650KB uncompressed
  */
 const MAX_EVENTS = {
-  daily: 5_000,
-  monthly: 20_000,
+  daily: 7_500, // ~50kb compressed => 1.5mb/mo
+  monthly: 100_000, // ~700kb compressed => 7.5mb/yr
 };
 
 /**
@@ -228,7 +226,9 @@ async function fetchMonthly(ctx, path) {
   const days = [...Array(new Date(path.year, path.month, 0).getDate()).keys()].map((d) => d + 1);
 
   const fetch = getFetch(ctx);
-  const urlBase = `${ctx.env.CDN_ENDPOINT}/bundles/${path.domain}/${path.year}/${path.month}`;
+  // const endpoint = 'http://127.0.0.1:3000';
+  const endpoint = ctx.env.CDN_ENDPOINT;
+  const urlBase = `${endpoint}/bundles/${path.domain}/${path.year}/${path.month}`;
   /** @type {RUMBundle[]} */
   const bundles = [];
   await processQueue(
