@@ -110,14 +110,10 @@ describe('util Tests', () => {
       assert.strictEqual(reductionFactor, 0.99);
     });
 
-    it('uses floors of magnitude for reduction', () => {
-      let v = calculateDownsample(200, 10);
-      assert.strictEqual(v.weightFactor, 10);
-      assert.strictEqual(v.reductionFactor, 0.9);
-
-      v = calculateDownsample(2398.44, 10);
-      assert.strictEqual(v.weightFactor, 100);
-      assert.strictEqual(v.reductionFactor, 0.99);
+    it('allows non-magnitude weight factors', () => {
+      const { weightFactor, reductionFactor } = calculateDownsample(2398.44, 10);
+      assert.strictEqual(weightFactor, 240);
+      assert.strictEqual(reductionFactor, 0.9958306232384383);
     });
   });
 });

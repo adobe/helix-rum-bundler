@@ -31,12 +31,10 @@ const FANOUT_CONCURRENCY_LIMIT = 15;
  * - roughly 130B/event uncompressed
  * - final payload size depends on bundle density
  * - gzip gives ~90% reduction
- *
- * 5k events ~= 650KB uncompressed
  */
 const MAX_EVENTS = {
-  daily: 5_000,
-  monthly: 20_000,
+  daily: 7_500, // ~50kb compressed => 1.5mb/mo
+  monthly: 100_000, // ~700kb compressed => 7.5mb/yr
 };
 
 /**
