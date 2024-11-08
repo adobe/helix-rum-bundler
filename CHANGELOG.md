@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.9.1...v1.10.0) (2024-11-08)
+
+
+### Features
+
+* downsample less ([#239](https://github.com/adobe/[secure]-rum-bundler/issues/239)) ([88c9b09](https://github.com/adobe/[secure]-rum-bundler/commit/88c9b09c9ffdbccee96df7aa79abcebb657d39bf))
+
 ## [1.9.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.9.0...v1.9.1) (2024-11-07)
 
 
