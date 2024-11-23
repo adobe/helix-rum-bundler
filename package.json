@@ -55,7 +55,7 @@
   "homepage": "https://github.com/adobe/helix-rum-bundler#readme",
   "dependencies": {
     "@adobe/fetch": "4.1.9",
-    "@adobe/helix-shared-body-data": "2.1.7",
+    "@adobe/helix-shared-body-data": "2.1.8",
     "@adobe/helix-shared-process-queue": "3.0.4",
     "@adobe/helix-shared-secrets": "2.2.10",
     "@adobe/helix-shared-wrap": "2.0.2",
