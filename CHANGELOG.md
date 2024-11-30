@@ -1,3 +1,10 @@
+## [1.10.6](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.5...v1.10.6) (2024-11-30)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @aws-sdk/client-s3 to v3.701.0 ([#249](https://github.com/adobe/[secure]-rum-bundler/issues/249)) ([1cf3857](https://github.com/adobe/[secure]-rum-bundler/commit/1cf385719ceac7aa7eb984ba3e7f2ba02c8da56f))
+
 ## [1.10.5](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.4...v1.10.5) (2024-11-23)
 
 
