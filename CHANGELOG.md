@@ -1,3 +1,10 @@
+## [1.10.10](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.9...v1.10.10) (2024-12-12)
+
+
+### Bug Fixes
+
+* add new sidekick virtual ([#260](https://github.com/adobe/[secure]-rum-bundler/issues/260)) ([15e64fd](https://github.com/adobe/[secure]-rum-bundler/commit/15e64fd79b2ea841efb1aa4d9f54a5cc6e380886))
+
 ## [1.10.9](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.8...v1.10.9) (2024-12-08)
 
 
