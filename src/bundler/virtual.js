@@ -29,6 +29,22 @@ export default [{
     };
   },
 }, {
+  domain: 'aem.live:sidekick',
+  test: (e) => e.source === 'sidekick',
+  destination(e, info) {
+    return {
+      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
+      info: {
+        ...info,
+        domain: this.domain,
+      },
+      event: {
+        ...e,
+        domain: info.domain,
+      },
+    };
+  },
+}, {
   // all top events, for viewing all domains' events
   // downsample by 100x
   domain: 'all',
