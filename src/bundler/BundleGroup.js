@@ -122,11 +122,14 @@ export default class BundleGroup {
       // and skip those properties for the events within it
       this.bundles[sessionId] = getBundleProperties(event);
     }
-    if (this.bundles[sessionId].events.length > BUNDLE_EVENT_LIMIT) {
+
+    const { events } = this.bundles[sessionId];
+    if (events.length >= BUNDLE_EVENT_LIMIT) {
       this.ctx.log.debug(`bundle ${sessionId} has reached the event limit`);
       return;
     }
-    this.bundles[sessionId].events.push(getEventProperties(event, this.bundles[sessionId]));
+
+    events.push(getEventProperties(event, this.bundles[sessionId]));
     this.dirty = true;
   }
 
