@@ -1,3 +1,10 @@
+## [1.10.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.11...v1.10.12) (2024-12-18)
+
+
+### Bug Fixes
+
+* limit events in bundles ([#264](https://github.com/adobe/[secure]-rum-bundler/issues/264)) ([8620955](https://github.com/adobe/[secure]-rum-bundler/commit/86209558504e4e51be4dff0c7f9a7b823c8a131f))
+
 ## [1.10.11](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.10...v1.10.11) (2024-12-14)
 
 
