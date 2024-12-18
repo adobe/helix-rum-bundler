@@ -13,7 +13,7 @@
 /* eslint-disable camelcase */
 
 import assert from 'assert';
-import { getEventProperties, getBundleProperties } from '../../src/bundler/BundleGroup.js';
+import BundleGroup, { getEventProperties, getBundleProperties } from '../../src/bundler/BundleGroup.js';
 
 const mockRawEvent = ({
   id = 'ABC',
@@ -145,6 +145,21 @@ describe('BundleGroup Tests', () => {
         value: 'value',
         source: 'source',
       });
+    });
+  });
+
+  describe('push()', () => {
+    it('skips events after limit reached', () => {
+      const events = Array.from({ length: 1023 }, (_, i) => mockRawEvent({ id: i }));
+      const bundleGrp = new BundleGroup({ log: { debug: () => {} } }, 'key', { bundles: { sessionId: { events } } });
+
+      // allows 1024 events
+      bundleGrp.push('sessionId', mockRawEvent({ id: 1023 }));
+      assert.strictEqual(bundleGrp.bundles.sessionId.events.length, 1024);
+
+      // ignores after 1024
+      bundleGrp.push('sessionId', mockRawEvent({ id: 1024 }));
+      assert.strictEqual(bundleGrp.bundles.sessionId.events.length, 1024);
     });
   });
 });

@@ -14,6 +14,8 @@ import LRUCache from '../support/LRUCache.js';
 import { HelixStorage } from '../support/storage.js';
 import { getCWVEventType, pruneUndefined } from '../support/util.js';
 
+const BUNDLE_EVENT_LIMIT = 1024;
+
 /**
  * @param {RawRUMEvent} event
  */
@@ -120,7 +122,14 @@ export default class BundleGroup {
       // and skip those properties for the events within it
       this.bundles[sessionId] = getBundleProperties(event);
     }
-    this.bundles[sessionId].events.push(getEventProperties(event, this.bundles[sessionId]));
+
+    const { events } = this.bundles[sessionId];
+    if (events.length >= BUNDLE_EVENT_LIMIT) {
+      this.ctx.log.debug(`bundle ${sessionId} has reached the event limit`);
+      return;
+    }
+
+    events.push(getEventProperties(event, this.bundles[sessionId]));
     this.dirty = true;
   }
 
