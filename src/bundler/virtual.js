@@ -13,22 +13,6 @@
 import { fingerprintValue, getCWVEventType } from '../support/util.js';
 
 export default [{
-  domain: 'sidekick',
-  test: (e) => e.checkpoint.startsWith('sidekick:'),
-  destination(e, info) {
-    return {
-      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-      info: {
-        ...info,
-        domain: this.domain,
-      },
-      event: {
-        ...e,
-        domain: info.domain,
-      },
-    };
-  },
-}, {
   domain: 'aem.live:sidekick',
   test: (e) => e.source === 'sidekick',
   destination(e, info) {
@@ -80,40 +64,6 @@ export default [{
         weight: e.weight * 100,
         domain: info.domain,
         hostType: (typeof e.host === 'string' && e.host.endsWith('.adobeaemcloud.net')) ? 'aemcs' : 'helix',
-      },
-    };
-  },
-}, {
-  // sidekick library
-  domain: 'sidekick.library',
-  test: (e) => e.checkpoint.startsWith('library:'),
-  destination(e, info) {
-    return {
-      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-      info: {
-        ...info,
-        domain: this.domain,
-      },
-      event: {
-        ...e,
-        domain: info.domain,
-      },
-    };
-  },
-}, {
-  // crosswalk
-  domain: 'crosswalk',
-  test: (e) => e.checkpoint.startsWith('crosswalk:'),
-  destination(e, info) {
-    return {
-      key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
-      info: {
-        ...info,
-        domain: this.domain,
-      },
-      event: {
-        ...e,
-        domain: info.domain,
       },
     };
   },

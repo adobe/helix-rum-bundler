@@ -162,49 +162,21 @@ describe('should bundle events to virtual destinations', () => {
     });
   }
 
-  it('sidekick events are grouped to "sidekick" virtual domain', async () => {
+  it('sidekick events are grouped to "aem.live:sidekick" virtual domain', async () => {
     const event = {
       id: 'foo',
-      checkpoint: 'sidekick:loaded',
+      checkpoint: 'click',
       url: 'https://test.example',
+      source: 'sidekick',
       time: 1337,
     };
     const expectedEvents = [{
-      checkpoint: 'sidekick:loaded',
+      checkpoint: 'click',
+      source: 'sidekick',
       timeDelta: 1337,
     }];
 
-    await simpleVirtualCase('sidekick', event, expectedEvents);
-  });
-
-  it('sidekick library events are grouped to "sidekick.library" virtual domain', async () => {
-    const event = {
-      id: 'foo',
-      checkpoint: 'library:opened',
-      url: 'https://test.example',
-      time: 1337,
-    };
-    const expectedEvents = [{
-      checkpoint: 'library:opened',
-      timeDelta: 1337,
-    }];
-
-    await simpleVirtualCase('sidekick.library', event, expectedEvents);
-  });
-
-  it('crosswalk events are grouped to "crosswalk" virtual domain', async () => {
-    const event = {
-      id: 'foo',
-      checkpoint: 'crosswalk:loaded',
-      url: 'https://test.example',
-      time: 1337,
-    };
-    const expectedEvents = [{
-      checkpoint: 'crosswalk:loaded',
-      timeDelta: 1337,
-    }];
-
-    await simpleVirtualCase('crosswalk', event, expectedEvents);
+    await simpleVirtualCase('aem.live%3Asidekick', event, expectedEvents);
   });
 
   it('~1% of top events should be grouped to "all" virtual domain', async () => {
