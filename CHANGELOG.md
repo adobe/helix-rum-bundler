@@ -1,3 +1,10 @@
+## [1.10.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.17...v1.10.18) (2025-01-13)
+
+
+### Bug Fixes
+
+* cleanup unused virtual rules ([#273](https://github.com/adobe/[secure]-rum-bundler/issues/273)) ([84a7040](https://github.com/adobe/[secure]-rum-bundler/commit/84a704008ddb89dff415bf79b5fae12bbd7dd34c))
+
 ## [1.10.17](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.16...v1.10.17) (2025-01-13)
 
 
