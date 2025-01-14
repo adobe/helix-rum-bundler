@@ -2,6 +2,6 @@
   "CONCURRENCY_LIMIT": 8,
   "BATCH_LIMIT": 500,
   "BUNDLER_DURATION_LIMIT": 540000,
-  "CDN_ENDPOINT": "https://rum.fastly-aem.page",
+  "CDN_ENDPOINT": "https://bundles.aem.page",
   "WRITE_PERF_LOGS": true
 }
