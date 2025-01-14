@@ -1,3 +1,10 @@
+## [1.10.19](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.18...v1.10.19) (2025-01-14)
+
+
+### Bug Fixes
+
+* use new domain ([#275](https://github.com/adobe/[secure]-rum-bundler/issues/275)) ([a3a75f3](https://github.com/adobe/[secure]-rum-bundler/commit/a3a75f3174ef8396c4de1126d0eac67d38cd3320))
+
 ## [1.10.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.17...v1.10.18) (2025-01-13)
 
 
