@@ -170,6 +170,27 @@ export const magnitude = (x) => {
 };
 
 /**
+ * Calculate threshold for sampling based on weight.
+ * Used for ad-hoc sampling of events, eg. for "all" aggregates.
+ * The higher the weight, the lower the threshold, meaning higher chance of being selected.
+ *
+ * w=1 => 0.01% 0.9999
+ * w=10 => 0.1% 0.999
+ * w=100 => 1% 0.99
+ * w=1000 => 10% 0.9
+ * w=10000+ => 99% 0.01
+ *
+ * We expect most events (before downsampling) to fall under the 100 weight,
+ * and the vast majority to be one of 1, 10, 100.
+ * @param {{weight: number;}} e
+ * @returns {number}
+ */
+export const weightedThreshold = (e) => {
+  const w = e.weight;
+  return 1 - Math.min(0.99, Math.max(0.00001, (w / 100) / 100));
+};
+
+/**
  * calculate downsampling factors
  * @param {number} total
  * @param {number} maximum

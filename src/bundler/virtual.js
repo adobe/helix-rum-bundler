@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { fingerprintValue, getCWVEventType } from '../support/util.js';
+import { fingerprintValue, getCWVEventType, weightedThreshold } from '../support/util.js';
 
 export default [{
   domain: 'aem.live:sidekick',
@@ -51,7 +51,7 @@ export default [{
   // all top events (new impl), for viewing all domains' events
   // downsample by 100x
   domain: 'aem.live:all',
-  test: (e) => (e.checkpoint === 'top' || getCWVEventType(e) != null) && fingerprintValue(e) < 0.01,
+  test: (e) => (e.checkpoint === 'top' || getCWVEventType(e) != null) && fingerprintValue(e) > weightedThreshold(e),
   destination(e, info) {
     return {
       key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
@@ -61,7 +61,7 @@ export default [{
       },
       event: {
         ...e,
-        weight: e.weight * 100,
+        weight: Math.round(e.weight * (1 / (1 - weightedThreshold(e)))),
         domain: info.domain,
         hostType: (typeof e.host === 'string' && e.host.endsWith('.adobeaemcloud.net')) ? 'aemcs' : 'helix',
       },
