@@ -994,5 +994,37 @@ describe('virtual tests', () => {
         hostType: 'helix',
       });
     });
+
+    it('should classify hostType correctly', () => {
+      const virt = pickVirtual('aem.live:all');
+      const ev = {
+        checkpoint: 'top',
+        id: 'included81',
+        url: 'https://test.one/1',
+        weight: 100,
+        host: 'rum.aem.page',
+      };
+      const info = {
+        year: 2025,
+        month: 1,
+        day: 1,
+        hour: 0,
+        domain: 'test.one',
+      };
+
+      // helix
+      let { event } = virt.destination(ev, info);
+      assert.strictEqual(event.hostType, 'helix');
+
+      // aemcs
+      ev.host = 'foo.adobeaemcloud.net';
+      ({ event } = virt.destination(ev, info));
+      assert.strictEqual(event.hostType, 'aemcs');
+
+      // ams
+      ev.host = 'bar.adobecqms.net';
+      ({ event } = virt.destination(ev, info));
+      assert.strictEqual(event.hostType, 'ams');
+    });
   });
 });
