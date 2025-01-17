@@ -1,3 +1,10 @@
+## [1.10.21](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.20...v1.10.21) (2025-01-17)
+
+
+### Bug Fixes
+
+* add ams hosttype ([#279](https://github.com/adobe/[secure]-rum-bundler/issues/279)) ([32595da](https://github.com/adobe/[secure]-rum-bundler/commit/32595da54af311aaae1edae3542a997a9d26bf70))
+
 ## [1.10.20](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.19...v1.10.20) (2025-01-17)
 
 
