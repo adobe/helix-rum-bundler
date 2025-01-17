@@ -52,6 +52,16 @@ export default [{
   // downsample by 100x
   domain: 'aem.live:all',
   test: (e) => (e.checkpoint === 'top' || getCWVEventType(e) != null) && fingerprintValue(e) < 0.01,
+  hostType(e) {
+    if (typeof e.host === 'string') {
+      if (e.host.endsWith('.adobeaemcloud.net')) {
+        return 'aemcs';
+      } else if (e.host.endsWith('adobecqms.net')) {
+        return 'ams';
+      }
+    }
+    return 'helix';
+  },
   destination(e, info) {
     return {
       key: `/${this.domain}/${info.year}/${info.month}/${info.day}/${info.hour}.json`,
@@ -63,7 +73,7 @@ export default [{
         ...e,
         weight: e.weight * 100,
         domain: info.domain,
-        hostType: (typeof e.host === 'string' && e.host.endsWith('.adobeaemcloud.net')) ? 'aemcs' : 'helix',
+        hostType: this.hostType(e),
       },
     };
   },
