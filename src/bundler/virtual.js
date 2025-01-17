@@ -56,7 +56,7 @@ export default [{
     if (typeof e.host === 'string') {
       if (e.host.endsWith('.adobeaemcloud.net')) {
         return 'aemcs';
-      } else if (e.host.endsWith('adobecqms.net')) {
+      } else if (e.host.endsWith('.adobecqms.net')) {
         return 'ams';
       }
     }
