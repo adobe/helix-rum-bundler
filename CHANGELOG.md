@@ -1,3 +1,10 @@
+## [1.10.20](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.19...v1.10.20) (2025-01-17)
+
+
+### Bug Fixes
+
+* weighted selection for all aggregate ([#278](https://github.com/adobe/[secure]-rum-bundler/issues/278)) ([ecff0eb](https://github.com/adobe/[secure]-rum-bundler/commit/ecff0ebedbf71ce888273f0519dcb9fc47858d0a))
+
 ## [1.10.19](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.18...v1.10.19) (2025-01-14)
 
 

@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { fingerprintValue } from '../../../src/support/util.js';
+import { fingerprintValue, weightedThreshold } from '../../../src/support/util.js';
 
 const event = (c) => ({ id: `included${c}`, url: 'https://test.one/1', weight: 100 });
 
@@ -20,7 +20,8 @@ let c = 0;
 while (c < 1000000) {
   const e = event(c);
   const val = fingerprintValue(e);
-  if (val < 0.01) {
+  console.log('thresh: ', weightedThreshold(e), 'val: ', val);
+  if (val > weightedThreshold(e)) {
     console.log('found hash: ', e);
     break;
   }
