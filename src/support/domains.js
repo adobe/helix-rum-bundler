@@ -36,13 +36,17 @@ export async function fetchDomainKey(ctx, domain) {
  * @param {UniversalContext} ctx
  * @param {string} [start]
  * @param {number|string} [plimit]
+ * @param {string} [pfilter]
  * @returns {Promise<{items:string[]; pagination:Pagination; links:Links; }>}
  */
-export async function listDomains(ctx, start, plimit) {
+export async function listDomains(ctx, start, plimit, pfilter) {
   let limit = plimit && typeof plimit === 'string' ? parseInt(plimit, 10) : plimit;
   limit = typeof limit === 'number' && limit > 0 ? limit : 1000;
+
+  const filter = pfilter && typeof pfilter === 'string' ? decodeURIComponent(pfilter) : undefined;
+
   const { bundleBucket } = HelixStorage.fromContext(ctx);
-  const { folders, next } = await bundleBucket.listFolders('', { start, limit });
+  const { folders, next } = await bundleBucket.listFolders('', { start, limit, filter });
   return {
     items: folders.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d)),
     pagination: {
@@ -51,7 +55,7 @@ export async function listDomains(ctx, start, plimit) {
       next,
     },
     links: {
-      next: next ? `${ctx.env.CDN_ENDPOINT}/domains?start=${encodeURIComponent(next)}&limit=${limit}` : undefined,
+      next: next ? `${ctx.env.CDN_ENDPOINT}/domains?start=${encodeURIComponent(next)}&limit=${limit}${filter ? `&filter=${pfilter}` : ''}` : undefined,
     },
   };
 }
