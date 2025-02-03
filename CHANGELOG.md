@@ -1,3 +1,10 @@
+## [1.10.24](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.23...v1.10.24) (2025-02-03)
+
+
+### Bug Fixes
+
+* allow filtering on domain list api ([#289](https://github.com/adobe/[secure]-rum-bundler/issues/289)) ([0d5b204](https://github.com/adobe/[secure]-rum-bundler/commit/0d5b20433c264bd28d0ff0e2a8b30ad045685a42))
+
 ## [1.10.23](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.22...v1.10.23) (2025-01-27)
 
 
