@@ -23,8 +23,8 @@ import { retrieveOrg } from '../support/orgs.js';
  * @param {UniversalContext} ctx
  */
 async function getDomains(ctx) {
-  const { limit, start } = ctx.data;
-  const data = await listDomains(ctx, start, limit);
+  const { limit, start, filter } = ctx.data;
+  const data = await listDomains(ctx, start, limit, filter);
   return new Response(JSON.stringify(data), { status: 200 });
 }
 

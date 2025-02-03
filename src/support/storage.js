@@ -418,10 +418,10 @@ class Bucket {
   /**
    * List folders, return array of folder names
    * @param {string} prefix
-   * @param {{ limit?: number; start?: string; }} [options]
+   * @param {{ limit?: number; start?: string; filter?: string; }} [options]
    * @returns {Promise<{ next?: string; folders: string[] }>}
    */
-  async listFolders(prefix, { limit, start } = { }) {
+  async listFolders(prefix, { limit, start, filter } = { }) {
     limit = limit || Infinity;
     let ContinuationToken = start;
     const folders = [];
@@ -436,7 +436,9 @@ class Bucket {
       }));
       ContinuationToken = result.IsTruncated ? result.NextContinuationToken : '';
       (result.CommonPrefixes || []).forEach(({ Prefix }) => {
-        folders.push(Prefix);
+        if (!filter || Prefix.includes(filter)) {
+          folders.push(Prefix);
+        }
       });
     } while (ContinuationToken && folders.length < limit);
     return {
