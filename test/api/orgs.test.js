@@ -567,4 +567,134 @@ describe('api/orgs Tests', () => {
       assert.strictEqual(orgkey, 'THE-KEY');
     });
   });
+
+  describe('GET /orgs/bundles', () => {
+    it('returns 404 for non-existent org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(404);
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 404);
+    });
+
+    it('returns early 200 for empty org', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: [] }));
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const json = await resp.json();
+      assert.deepStrictEqual(json, { rumBundles: [] });
+    });
+
+    it('returns aggregate if exists', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['www.adobe.com'] }));
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/adobe%3Aall/2024/1/1/aggregate.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ rumBundles: ['foo'] }));
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const json = await resp.json();
+      assert.deepStrictEqual(json, { rumBundles: ['foo'] });
+    });
+
+    it('fetches and aggregates if not exist, hourly', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['www.adobe.com'] }));
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        // get aggregate, missing
+        .get('/adobe%3Aall/2024/1/1/1/aggregate.json?x-id=GetObject')
+        .reply(404)
+        // get domainkey for org domain
+        .get('/www.adobe.com/.domainkey?x-id=GetObject')
+        .reply(200, 'test-key')
+        // store aggregate
+        .put('/adobe%3Aall/2024/1/1/1/aggregate.json?x-id=PutObject')
+        .reply(200);
+      nock('https://endpoint.example')
+        .get('/bundles/www.adobe.com/2024/1/1/1?domainkey=test-key')
+        .reply(200, JSON.stringify({ rumBundles: [{ events: [{ id: 'foo' }] }] }));
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01/01/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.deepStrictEqual(await resp.json(), {
+        rumBundles: [{
+          domain: 'www.adobe.com',
+          events: [],
+        }],
+      });
+    });
+
+    it('fetches and aggregates if not exist, daily', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['www.adobe.com'] }));
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        // get aggregate, missing
+        .get('/adobe%3Aall/2024/1/1/aggregate.json?x-id=GetObject')
+        .reply(404)
+        // get domainkey for org domain
+        .get('/www.adobe.com/.domainkey?x-id=GetObject')
+        .reply(200, 'test-key')
+        // store aggregate
+        .put('/adobe%3Aall/2024/1/1/aggregate.json?x-id=PutObject')
+        .reply(200);
+      nock('https://endpoint.example')
+        .get('/bundles/www.adobe.com/2024/1/1?domainkey=test-key')
+        .reply(200, JSON.stringify({ rumBundles: [{ events: [{ id: 'foo' }] }] }));
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.deepStrictEqual(await resp.json(), {
+        rumBundles: [{
+          domain: 'www.adobe.com',
+          events: [],
+        }],
+      });
+    });
+
+    it('fetches and aggregates if not exist, daily', async () => {
+      nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+        .get('/orgs/adobe/org.json?x-id=GetObject')
+        .reply(200, JSON.stringify({ domains: ['www.adobe.com'] }));
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        // get aggregate, missing
+        .get('/adobe%3Aall/2024/1/aggregate.json?x-id=GetObject')
+        .reply(404)
+        // get domainkey for org domain
+        .get('/www.adobe.com/.domainkey?x-id=GetObject')
+        .reply(200, 'test-key')
+        // store aggregate
+        .put('/adobe%3Aall/2024/1/aggregate.json?x-id=PutObject')
+        .reply(200);
+      nock('https://endpoint.example')
+        .get('/bundles/www.adobe.com/2024/1?domainkey=test-key')
+        .reply(200, JSON.stringify({ rumBundles: [{ events: [{ id: 'foo' }] }] }));
+
+      const req = REQUEST({ method: 'GET' });
+      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/orgs/adobe/bundles/2024/01' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.deepStrictEqual(await resp.json(), {
+        rumBundles: [{
+          domain: 'www.adobe.com',
+          events: [],
+        }],
+      });
+    });
+  });
 });
