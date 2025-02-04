@@ -568,7 +568,7 @@ describe('api/orgs Tests', () => {
     });
   });
 
-  describe.only('GET /orgs/bundles', () => {
+  describe('GET /orgs/bundles', () => {
     it('returns 404 for non-existent org', async () => {
       nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
         .get('/orgs/adobe/org.json?x-id=GetObject')
