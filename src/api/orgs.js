@@ -457,6 +457,16 @@ async function getOrgBundles(req, ctx, info) {
     filtered.add(`${helixOrg}.aem.live`);
   });
 
+  // start with low concurrency and increase for each decrease in timeframe
+  // the lower the timeframe, the less fanout, the higher concurrency can be set
+  let concurrency = 2;
+  if (orgPath.day) {
+    concurrency = 4;
+  }
+  if (orgPath.hour) {
+    concurrency = 8; // should not cause fanout on domains
+  }
+
   /** @type {RUMBundle[]} */
   let rumBundles = [];
   const { date } = orgPath;
@@ -483,6 +493,7 @@ async function getOrgBundles(req, ctx, info) {
         return bundle;
       }));
     },
+    concurrency,
   );
 
   rumBundles = downsample(ctx, rumBundles, orgPath.day ? 'daily' : 'monthly');
