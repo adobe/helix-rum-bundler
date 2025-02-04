@@ -1,3 +1,10 @@
+## [1.10.26](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.25...v1.10.26) (2025-02-04)
+
+
+### Bug Fixes
+
+* limit org aggregate concurrency ([#292](https://github.com/adobe/[secure]-rum-bundler/issues/292)) ([ea0e381](https://github.com/adobe/[secure]-rum-bundler/commit/ea0e381e12434b2a16bbffb5d91e19ba5cc2b96f))
+
 ## [1.10.25](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.24...v1.10.25) (2025-02-04)
 
 
