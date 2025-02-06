@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.28...v1.11.0) (2025-02-06)
+
+
+### Features
+
+* add commerce hostType ([#298](https://github.com/adobe/[secure]-rum-bundler/issues/298)) ([0f4a617](https://github.com/adobe/[secure]-rum-bundler/commit/0f4a61769efa2eee08b09cd2e86295145e653044))
+
 ## [1.10.28](https://github.com/adobe/[secure]-rum-bundler/compare/v1.10.27...v1.10.28) (2025-02-06)
 
 
