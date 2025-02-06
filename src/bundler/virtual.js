@@ -58,6 +58,8 @@ export default [{
         return 'aemcs';
       } else if (e.host.endsWith('.adobecqms.net')) {
         return 'ams';
+      } else if (e.host.endsWith('.adobecommerce.net')) {
+        return 'commerce';
       }
     }
     return 'helix';
