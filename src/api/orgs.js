@@ -511,7 +511,10 @@ async function getOrgBundles(req, ctx, info) {
     .map(([domain, { bundles, numEvents }]) => {
       const fraction = numEvents / totalEvents;
       log.debug(`downsampling ${numEvents} events for ${domain} using fraction=${fraction}`);
-      return downsample(ctx, bundles, orgPath.day ? 'daily' : 'monthly', fraction);
+      if (typeof orgPath.hour !== 'number') {
+        return downsample(ctx, bundles, orgPath.day ? 'daily' : 'monthly', fraction);
+      }
+      return bundles;
     })
     .flat();
 
