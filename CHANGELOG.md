@@ -1,3 +1,10 @@
+## [1.11.6](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.5...v1.11.6) (2025-03-05)
+
+
+### Bug Fixes
+
+* dont downsample hourly ([#317](https://github.com/adobe/[secure]-rum-bundler/issues/317)) ([620cc42](https://github.com/adobe/[secure]-rum-bundler/commit/620cc42888636e8c48509a7e4c0bb66c518509db))
+
 ## [1.11.5](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.4...v1.11.5) (2025-03-04)
 
 
