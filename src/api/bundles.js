@@ -47,6 +47,7 @@ const MAX_EVENTS = {
  */
 export function downsample(ctx, bundles, timespan) {
   const { log } = ctx;
+  const maxEvents = MAX_EVENTS[timespan];
   const totalBundles = bundles.length;
   let totalEvents = 0;
 
@@ -56,7 +57,7 @@ export function downsample(ctx, bundles, timespan) {
     return [sortKey(b), b];
   });
 
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS[timespan]);
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
   if (reductionFactor <= 0) {
     return bundles;
   }
