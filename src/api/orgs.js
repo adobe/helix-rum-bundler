@@ -496,7 +496,10 @@ async function getOrgBundles(req, ctx, info) {
     concurrency,
   );
 
-  rumBundles = downsample(ctx, rumBundles, orgPath.day ? 'daily' : 'monthly');
+  // downsample if not hourly
+  if (typeof orgPath.hour !== 'number') {
+    rumBundles = downsample(ctx, rumBundles, typeof orgPath.day === 'number' ? 'daily' : 'monthly');
+  }
   const str = JSON.stringify({ rumBundles });
 
   // store aggregate
