@@ -470,7 +470,7 @@ async function getOrgBundles(req, ctx, info) {
 
   /** @type {Record<string, { bundles: RUMBundle[], numEvents: number }>} */
   const domainBundles = {};
-  let totalEvents = 0;
+  let totalEvents = 1; // start with 1 to avoid division by zero
   const { date } = orgPath;
   const fetch = getFetch(ctx);
   await processQueue(
@@ -489,18 +489,18 @@ async function getOrgBundles(req, ctx, info) {
       }
 
       // filter to only include `top` and `cwv-*` events
-      let evtCount = 0;
+      let numEvents = 1;
       const bundles = data.rumBundles.map((pbundle) => {
         const bundle = pbundle;
         bundle.events = bundle.events.filter((e) => !!e.checkpoint && (e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-')));
         bundle.domain = domain;
         totalEvents += bundle.events.length;
-        evtCount += bundle.events.length;
+        numEvents += bundle.events.length;
         return bundle;
       });
       domainBundles[domain] = {
         bundles,
-        numEvents: evtCount,
+        numEvents,
       };
     },
     concurrency,

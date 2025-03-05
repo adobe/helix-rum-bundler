@@ -667,7 +667,7 @@ describe('api/orgs Tests', () => {
       });
     });
 
-    it('fetches and aggregates if not exist, daily', async () => {
+    it('fetches and aggregates if not exist, monthly', async () => {
       nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
         .get('/orgs/adobe/org.json?x-id=GetObject')
         .reply(200, JSON.stringify({ domains: ['www.adobe.com'] }));
