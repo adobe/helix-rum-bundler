@@ -1,3 +1,10 @@
+## [1.11.8](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.7...v1.11.8) (2025-03-05)
+
+
+### Bug Fixes
+
+* downsample org aggregates according to their composition ([#318](https://github.com/adobe/[secure]-rum-bundler/issues/318)) ([5ecbf82](https://github.com/adobe/[secure]-rum-bundler/commit/5ecbf82a47db2eefdbeadf1d4b0f5409f0f46342))
+
 ## [1.11.7](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.6...v1.11.7) (2025-03-05)
 
 
