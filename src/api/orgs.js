@@ -410,6 +410,7 @@ async function setOrgkey(req, ctx, info) {
  * @param {PathInfo} info
  */
 async function getOrgBundles(req, ctx, info) {
+  const { log } = ctx;
   const { org: id } = info;
   await assertOrgAdminAuthorized(req, ctx, id, ctx.data.domainkey);
 
@@ -467,8 +468,9 @@ async function getOrgBundles(req, ctx, info) {
     concurrency = 8; // should not cause fanout on domains
   }
 
-  /** @type {RUMBundle[]} */
-  let rumBundles = [];
+  /** @type {Record<string, { bundles: RUMBundle[], numEvents: number }>} */
+  const domainBundles = {};
+  let totalEvents = 0;
   const { date } = orgPath;
   const fetch = getFetch(ctx);
   await processQueue(
@@ -485,21 +487,36 @@ async function getOrgBundles(req, ctx, info) {
       } else {
         data = { rumBundles: [] };
       }
-      rumBundles.push(...data.rumBundles.map((pbundle) => {
+
+      // filter to only include `top` and `cwv-*` events
+      let evtCount = 0;
+      const bundles = data.rumBundles.map((pbundle) => {
         const bundle = pbundle;
-        // filter to only include `top` and `cwv-*` events
         bundle.events = bundle.events.filter((e) => !!e.checkpoint && (e.checkpoint === 'top' || e.checkpoint.startsWith('cwv-')));
         bundle.domain = domain;
+        totalEvents += bundle.events.length;
+        evtCount += bundle.events.length;
         return bundle;
-      }));
+      });
+      domainBundles[domain] = {
+        bundles,
+        numEvents: evtCount,
+      };
     },
     concurrency,
   );
 
-  rumBundles = downsample(ctx, rumBundles, orgPath.day ? 'daily' : 'monthly');
-  const str = JSON.stringify({ rumBundles });
+  // downsample each domain's bundles based on it's fraction of total events
+  const rumBundles = Object.entries(domainBundles)
+    .map(([domain, { bundles, numEvents }]) => {
+      const fraction = numEvents / totalEvents;
+      log.debug(`downsampling ${numEvents} events for ${domain} using fraction=${fraction}`);
+      return downsample(ctx, bundles, orgPath.day ? 'daily' : 'monthly', fraction);
+    })
+    .flat();
 
   // store aggregate
+  const str = JSON.stringify({ rumBundles });
   await storeAggregate(ctx, orgPath, str, ttl * 1000);
 
   return compressBody(

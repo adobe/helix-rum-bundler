@@ -43,10 +43,12 @@ const MAX_EVENTS = {
  * @param {UniversalContext} ctx
  * @param {RUMBundle[]} bundles
  * @param {'daily'|'monthly'} timespan
+ * @param {number} [fraction=1.0]
  * @returns {RUMBundle[]}
  */
-export function downsample(ctx, bundles, timespan) {
+export function downsample(ctx, bundles, timespan, fraction = 1.0) {
   const { log } = ctx;
+  const maxEvents = MAX_EVENTS[timespan] * fraction;
   const totalBundles = bundles.length;
   let totalEvents = 0;
 
@@ -56,7 +58,7 @@ export function downsample(ctx, bundles, timespan) {
     return [sortKey(b), b];
   });
 
-  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, MAX_EVENTS[timespan]);
+  const { reductionFactor, weightFactor } = calculateDownsample(totalEvents, maxEvents);
   if (reductionFactor <= 0) {
     return bundles;
   }
@@ -74,7 +76,7 @@ export function downsample(ctx, bundles, timespan) {
     // sort by time
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-  log.info(`reduced ${totalBundles} bundles ${timespan} bundles to ${selected.length} `
+  log.info(`reduced ${totalBundles} bundles to ${selected.length} using maxEvents=${maxEvents} `
     + `totalEvents=${totalEvents} reductionFactor=${reductionFactor} weightFactor=${weightFactor}`);
 
   return selected;
