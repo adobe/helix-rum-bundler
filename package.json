@@ -60,7 +60,7 @@
     "@adobe/helix-shared-secrets": "2.2.10",
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.1.5",
-    "@aws-sdk/client-s3": "3.758.0",
+    "@aws-sdk/client-s3": "3.772.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.0.6"
   },
@@ -70,7 +70,7 @@
     "@adobe/helix-universal": "5.0.9",
     "@adobe/helix-universal-devserver": "1.1.95",
     "@adobe/semantic-release-coralogix": "1.1.35",
-    "@google-cloud/bigquery": "7.9.2",
+    "@google-cloud/bigquery": "7.9.3",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "7.0.3",
     "@semantic-release/git": "10.0.1",
