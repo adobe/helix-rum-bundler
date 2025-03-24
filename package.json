@@ -80,7 +80,7 @@
     "eslint": "8.57.1",
     "esmock": "2.7.0",
     "fs-extra": "11.3.0",
-    "googleapis": "146.0.0",
+    "googleapis": "148.0.0",
     "husky": "9.1.7",
     "junit-report-builder": "5.1.1",
     "lint-staged": "15.5.0",
