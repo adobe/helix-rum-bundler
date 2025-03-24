@@ -1,3 +1,10 @@
+## [1.11.9](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.8...v1.11.9) (2025-03-24)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#327](https://github.com/adobe/[secure]-rum-bundler/issues/327)) ([875ed19](https://github.com/adobe/[secure]-rum-bundler/commit/875ed1942922f67fa01d88162bca0396c495363d))
+
 ## [1.11.8](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.7...v1.11.8) (2025-03-05)
 
 
