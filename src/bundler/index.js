@@ -288,8 +288,8 @@ export function sortRawEvents(rawEvents, log) {
   /** @type {Set<string>} */
   const domains = new Set();
 
-  const now = new Date();
-  const dayMs = 1000 * 60 * 60 * 24;
+  // const now = new Date();
+  // const dayMs = 1000 * 60 * 60 * 24;
 
   rawEvents.forEach((pevent) => {
     if (!pevent.url) {
@@ -333,10 +333,11 @@ export function sortRawEvents(rawEvents, log) {
       }
       const date = new Date(event.time);
 
-      const msDif = Math.abs(Number(date) - Number(now));
-      if (msDif > dayMs) {
-        log.warn(`date in event differs significantly from current date: (${dayMs}ms)`, JSON.stringify(event, undefined, 2));
-      }
+      // const msDif = Math.abs(Number(date) - Number(now));
+      // if (msDif > dayMs) {
+      //   log.warn(`date in event differs significantly from current date: (${dayMs}ms)`,
+      // JSON.stringify(event, undefined, 2));
+      // }
 
       const domain = url.host;
       domains.add(domain);
