@@ -1,3 +1,10 @@
+## [1.11.15](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.14...v1.11.15) (2025-03-26)
+
+
+### Bug Fixes
+
+* update params ([3a745b3](https://github.com/adobe/[secure]-rum-bundler/commit/3a745b320e6801629c626ad85091455a8e9948e5))
+
 ## [1.11.14](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.13...v1.11.14) (2025-03-26)
 
 
