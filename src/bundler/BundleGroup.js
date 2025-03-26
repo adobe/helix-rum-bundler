@@ -125,7 +125,7 @@ export default class BundleGroup {
 
     const { events } = this.bundles[sessionId];
     if (events.length >= BUNDLE_EVENT_LIMIT) {
-      this.ctx.log.debug(`bundle ${sessionId} has reached the event limit`);
+      // this.ctx.log.debug(`bundle ${sessionId} has reached the event limit`);
       return;
     }
 
