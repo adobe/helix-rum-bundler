@@ -1,3 +1,10 @@
+## [1.11.14](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.13...v1.11.14) (2025-03-26)
+
+
+### Bug Fixes
+
+* allow manual invocation ([#334](https://github.com/adobe/[secure]-rum-bundler/issues/334)) ([c22bd73](https://github.com/adobe/[secure]-rum-bundler/commit/c22bd7319ba6d0478f9753b7608f5a4659d33cc3))
+
 ## [1.11.13](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.12...v1.11.13) (2025-03-26)
 
 
