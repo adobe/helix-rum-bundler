@@ -1,3 +1,10 @@
+## [1.11.13](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.12...v1.11.13) (2025-03-26)
+
+
+### Bug Fixes
+
+* revert batch limit ([5046711](https://github.com/adobe/[secure]-rum-bundler/commit/504671141626ae64da84208eb5e11d4c09199bbf))
+
 ## [1.11.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.11...v1.11.12) (2025-03-26)
 
 
