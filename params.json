@@ -1,6 +1,6 @@
 {
   "CONCURRENCY_LIMIT": 8,
-  "BATCH_LIMIT": 500,
+  "BATCH_LIMIT": 50,
   "BUNDLER_DURATION_LIMIT": 540000,
   "CDN_ENDPOINT": "https://bundles.aem.page",
   "WRITE_PERF_LOGS": true
