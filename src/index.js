@@ -65,8 +65,12 @@ function shouldRunEventHandler(req, ctx) {
   }
 
   const invokeAllowed = ctx.env.INVOKE_BUNDLER_KEY && req.headers.get('x-bundler-authorization') === ctx.env.INVOKE_BUNDLER_KEY;
-  /* c8 ignore next */
+  /* c8 ignore next 5 */
   log.debug(`invoked manually, ${invokeAllowed ? '' : 'not'} invoking handler`);
+  if (invokeAllowed) {
+    // @ts-ignore
+    event.task = event.task || ctx.data.task;
+  }
   return invokeAllowed;
 }
 
