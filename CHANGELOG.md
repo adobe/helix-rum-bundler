@@ -1,3 +1,10 @@
+## [1.11.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.11...v1.11.12) (2025-03-26)
+
+
+### Bug Fixes
+
+* remove another log ([#333](https://github.com/adobe/[secure]-rum-bundler/issues/333)) ([a19725e](https://github.com/adobe/[secure]-rum-bundler/commit/a19725eb5d574a7506b94c529ba2ffd788a3ffa3))
+
 ## [1.11.11](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.10...v1.11.11) (2025-03-26)
 
 
