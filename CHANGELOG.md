@@ -1,3 +1,10 @@
+## [1.11.11](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.10...v1.11.11) (2025-03-26)
+
+
+### Bug Fixes
+
+* timeout tweaks ([#332](https://github.com/adobe/[secure]-rum-bundler/issues/332)) ([0e9adf9](https://github.com/adobe/[secure]-rum-bundler/commit/0e9adf9fbfc81145a705a18b27ed547eb9324969))
+
 ## [1.11.10](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.9...v1.11.10) (2025-03-25)
 
 
