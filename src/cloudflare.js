@@ -119,6 +119,7 @@ async function doProcessing(ctx) {
   // collect events until we reach the expected file size
   let events = [];
   let estimatedSize = 0;
+  let lastKey = '';
   await processQueue(
     objects.filter((o) => !!o.contentType),
     async ({ key }) => {
@@ -151,6 +152,7 @@ async function doProcessing(ctx) {
       });
 
       totalEvents += events.length;
+      lastKey = key;
       await cloudflareLogBucket.remove(key);
 
       if (estimatedSize < fileSizeLimit) {
@@ -169,7 +171,10 @@ async function doProcessing(ctx) {
   // we may still have events leftover, store them in a single file if needed
   if (events.length) {
     const combined = events.map((e) => JSON.stringify(e)).join('\n');
-    await logBucket.put(`raw/cf-${new Date().toISOString()}.log`, combined);
+    const keyParts = lastKey.split('/');
+    const lastPart = keyParts.pop();
+    const partialKey = `${keyParts.join('/')}/cf-partial-${lastPart}`;
+    await logBucket.put(partialKey, combined);
     events = [];
   }
 
