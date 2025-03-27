@@ -1,3 +1,10 @@
+## [1.11.16](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.15...v1.11.16) (2025-03-27)
+
+
+### Bug Fixes
+
+* group cf files ([#335](https://github.com/adobe/[secure]-rum-bundler/issues/335)) ([7f56f6e](https://github.com/adobe/[secure]-rum-bundler/commit/7f56f6e658530c0f48e7556b82113f676dec4a63))
+
 ## [1.11.15](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.14...v1.11.15) (2025-03-26)
 
 
