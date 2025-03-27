@@ -95,7 +95,7 @@
     "*.js": "eslint"
   },
   "nodemonConfig": {
-    "exec": "node --inspect ./test/dev/server.js",
+    "exec": "node --max-old-space-size=12288 --inspect ./test/dev/server.js",
     "watch": [
       ".env",
       "."
