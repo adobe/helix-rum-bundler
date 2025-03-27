@@ -19,6 +19,8 @@ import { loop } from './support/loop.js';
 const DEFAULT_BATCH_LIMIT = 1000;
 const DEFAULT_CONCURRENCY_LIMIT = 10;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
+// approx the same size as a fastly-sourced log file (~1-2MB)
+const DEFAULT_LOG_FILE_SIZE_TARGET = 1.5 * 1024 * 1024;
 
 /**
  * Lock the log bucket to prevent concurrent processing.
@@ -102,6 +104,7 @@ async function doProcessing(ctx) {
   const { cloudflareLogBucket, logBucket } = HelixStorage.fromContext(ctx);
   const concurrency = getEnvVar(ctx, 'CONCURRENCY', DEFAULT_CONCURRENCY_LIMIT, 'integer');
   const batchLimit = getEnvVar(ctx, 'BATCH_LIMIT', DEFAULT_BATCH_LIMIT, 'integer');
+  const fileSizeLimit = getEnvVar(ctx, 'CF_LOG_SIZE_TARGET', DEFAULT_LOG_FILE_SIZE_TARGET, 'integer');
 
   // list files in log bucket
   const { objects, isTruncated } = await cloudflareLogBucket.list('raw/', { limit: batchLimit });
@@ -112,6 +115,10 @@ async function doProcessing(ctx) {
   let discardedEvents = 0;
   let rawEvents = 0;
   let totalEvents = 0;
+
+  // collect events until we reach the expected file size
+  let events = [];
+  let estimatedSize = 0;
   await processQueue(
     objects.filter((o) => !!o.contentType),
     async ({ key }) => {
@@ -127,7 +134,6 @@ async function doProcessing(ctx) {
       }
 
       // parse all events, drop invalid
-      const events = [];
       const lines = txt.split('\n');
       rawEvents += lines.length;
       lines.forEach((line) => {
@@ -135,6 +141,7 @@ async function doProcessing(ctx) {
           const event = adaptCloudflareEvent(ctx, JSON.parse(line));
           if (event) {
             events.push(event);
+            estimatedSize += line.length; // use rough 1byte/char
           } else {
             discardedEvents += 1;
           }
@@ -144,13 +151,27 @@ async function doProcessing(ctx) {
       });
 
       totalEvents += events.length;
+      await cloudflareLogBucket.remove(key);
+
+      if (estimatedSize < fileSizeLimit) {
+        return;
+      }
+
       // combine events back into single line-delimited file & move to main bucket
       const combined = events.map((e) => JSON.stringify(e)).join('\n');
+      estimatedSize = 0;
+      events = [];
       await logBucket.put(key, combined);
-      await cloudflareLogBucket.remove(key);
     },
     concurrency,
   );
+
+  // we may still have events leftover, store them in a single file if needed
+  if (events.length) {
+    const combined = events.map((e) => JSON.stringify(e)).join('\n');
+    await logBucket.put(`raw/cf-${new Date().toISOString()}.log`, combined);
+    events = [];
+  }
 
   stats.discardedEvents = discardedEvents;
   stats.discardedFiles = discardedFiles;
