@@ -1,3 +1,10 @@
+## [1.11.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.17...v1.11.18) (2025-03-27)
+
+
+### Bug Fixes
+
+* tweak batch limit ([344dd24](https://github.com/adobe/[secure]-rum-bundler/commit/344dd24887c2693b7fff45f9d7f9f887a58ff318))
+
 ## [1.11.17](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.16...v1.11.17) (2025-03-27)
 
 
