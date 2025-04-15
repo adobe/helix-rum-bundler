@@ -70,7 +70,7 @@
     "@adobe/helix-universal": "5.1.1",
     "@adobe/helix-universal-devserver": "1.1.107",
     "@adobe/semantic-release-coralogix": "1.1.35",
-    "@google-cloud/bigquery": "7.9.3",
+    "@google-cloud/bigquery": "7.9.4",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "7.0.3",
     "@semantic-release/git": "10.0.1",
