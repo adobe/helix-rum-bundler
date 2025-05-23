@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.30...v1.12.0) (2025-05-23)
+
+
+### Features
+
+* sample hourly bundles ([#375](https://github.com/adobe/[secure]-rum-bundler/issues/375)) ([9b32ffc](https://github.com/adobe/[secure]-rum-bundler/commit/9b32ffc1e116143bc333556b5a66ec3f10d57d4f))
+
 ## [1.11.30](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.29...v1.11.30) (2025-05-20)
 
 
