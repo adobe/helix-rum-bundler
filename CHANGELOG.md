@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.0...v1.12.1) (2025-05-23)
+
+
+### Bug Fixes
+
+* tweak limit ([#377](https://github.com/adobe/[secure]-rum-bundler/issues/377)) ([47d88ca](https://github.com/adobe/[secure]-rum-bundler/commit/47d88ca9271304b893c97b6ff0d6b3909eafac26))
+
 # [1.12.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.11.30...v1.12.0) (2025-05-23)
 
 
