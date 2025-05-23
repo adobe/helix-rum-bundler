@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.1...v1.12.2) (2025-05-23)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/[secure]-shared-body-data to v2.1.11 ([#376](https://github.com/adobe/[secure]-rum-bundler/issues/376)) ([d034709](https://github.com/adobe/[secure]-rum-bundler/commit/d034709ca0f13b2ca64a26339061969fc0e36ae7))
+
 ## [1.12.1](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.0...v1.12.1) (2025-05-23)
 
 
