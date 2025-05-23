@@ -16,6 +16,7 @@ import {
   calculateDownsample,
   compressBody,
   errorWithResponse,
+  getEnvVar,
   getFetch,
   sortKey,
 } from '../support/util.js';
@@ -25,7 +26,7 @@ import { fetchDomainKey } from '../support/domains.js';
 
 const FANOUT_CONCURRENCY_LIMIT = 15;
 
-const HOURLY_FILE_MAX_SIZE = 30 * 1024 * 1024; // 30mb
+const DEFAULT_HOURLY_FILE_MAX_SIZE = 30 * 1024 * 1024; // 30mb
 
 /**
  * Estimated maximum number events in daily/monthly aggregate responses.
@@ -168,6 +169,8 @@ export async function storeAggregate(ctx, path, data, ttl) {
  * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
 export async function fetchHourly(ctx, path, forceAll = false) {
+  const fileSizeLimit = getEnvVar(ctx, 'HOURLY_FILE_MAX_SIZE', DEFAULT_HOURLY_FILE_MAX_SIZE, 'integer');
+
   // eslint-disable-next-line no-param-reassign
   forceAll = forceAll || [true, 'true'].includes(ctx.data?.forceAll);
   const { bundleBucket } = HelixStorage.fromContext(ctx);
@@ -179,21 +182,19 @@ export async function fetchHourly(ctx, path, forceAll = false) {
   }
   const txt = new TextDecoder('utf8').decode(buf);
   // only attempt downsampling if the file is large enough
-  if (txt.length < HOURLY_FILE_MAX_SIZE) {
+  if (txt.length < fileSizeLimit || forceAll) {
     const json = JSON.parse(txt);
 
     // convert to array of bundles, change weight < 1 to 1
     const bundles = Object.values(json.bundles)
       .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
-      // always mark as aggregate to avoid storing non-aggregates
+    // always mark as aggregate to avoid storing non-aggregates
     return { data: { rumBundles: bundles }, isAggregate: true };
   }
 
-  if (!forceAll) {
-    const aggregate = await fetchAggregate(ctx, path);
-    if (aggregate) {
-      return { data: aggregate, isAggregate: true };
-    }
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
   }
 
   const json = JSON.parse(txt);
@@ -201,7 +202,7 @@ export async function fetchHourly(ctx, path, forceAll = false) {
   const bundles = Object.values(json.bundles)
     .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
 
-  const selected = forceAll ? bundles : downsample(ctx, bundles, 'hourly');
+  const selected = downsample(ctx, bundles, 'hourly');
   return { data: { rumBundles: selected }, isAggregate: forceAll };
 }
 

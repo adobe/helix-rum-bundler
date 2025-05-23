@@ -77,6 +77,101 @@ describe('api Tests', () => {
       });
     });
 
+    it('get hourly data - over limit, serves aggregate if it exists', async () => {
+      const now = new Date().toISOString();
+      nock.domainKey();
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/example.com/2024/3/1/0.json?x-id=GetObject')
+        .reply(200, JSON.stringify({
+          bundles: {
+            'foo-/some/path': {
+              id: 'foo',
+              url: 'https://example.com/some/path',
+              timeSlot: now,
+              events: [{
+                checkpoint: 'top',
+              }],
+            },
+          },
+        }))
+        .get('/example.com/2024/3/1/0/aggregate.json?x-id=GetObject')
+        .reply(200, JSON.stringify({
+          rumBundles: [{
+            id: 'foo',
+            url: 'https://example.com/some/path/from/aggregate',
+            timeSlot: now,
+            events: [{
+              checkpoint: 'top',
+            }],
+          }],
+        }));
+
+      const ctx = DEFAULT_CONTEXT({ env: { HOURLY_FILE_MAX_SIZE: 100 }, pathInfo: { suffix: '/bundles/example.com/2024/03/01/0.json' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const data = await resp.json();
+      assert.deepStrictEqual(data, {
+        rumBundles: [{
+          id: 'foo',
+          url: 'https://example.com/some/path/from/aggregate',
+          timeSlot: now,
+          events: [{
+            checkpoint: 'top',
+          }],
+        }],
+      });
+    });
+
+    it('get hourly data - over limit, downsamples if no aggregate exists', async () => {
+      const now = new Date().toISOString();
+      nock.domainKey();
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/example.com/2024/3/1/0.json?x-id=GetObject')
+        .reply(200, JSON.stringify({
+          bundles: {
+            'foo-/some/path': {
+              id: 'foo',
+              url: 'https://example.com/some/path',
+              timeSlot: now,
+              events: [{
+                checkpoint: 'top',
+              }],
+            },
+          },
+        }))
+        .get('/example.com/2024/3/1/0/aggregate.json?x-id=GetObject')
+        .reply(404)
+        .put('/example.com/2024/3/1/0/aggregate.json?x-id=PutObject')
+        .reply((_, body) => {
+          assert.deepStrictEqual(body, {
+            rumBundles: [{
+              id: 'foo',
+              url: 'https://example.com/some/path',
+              timeSlot: now,
+              events: [{
+                checkpoint: 'top',
+              }],
+            }],
+          });
+          return [200, ''];
+        });
+
+      const ctx = DEFAULT_CONTEXT({ env: { HOURLY_FILE_MAX_SIZE: 100 }, pathInfo: { suffix: '/bundles/example.com/2024/03/01/0.json' } });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const data = await resp.json();
+      assert.deepStrictEqual(data, {
+        rumBundles: [{
+          id: 'foo',
+          url: 'https://example.com/some/path',
+          timeSlot: now,
+          events: [{
+            checkpoint: 'top',
+          }],
+        }],
+      });
+    });
+
     it('get daily data', async () => {
       nock.domainKey();
       nock.getAggregate(2024, 3, 1);
