@@ -36,7 +36,7 @@ const DEFAULT_HOURLY_FILE_MAX_SIZE = 30 * 1024 * 1024; // 30mb
  * - gzip gives ~90% reduction
  */
 const MAX_EVENTS = {
-  hourly: 600_000, // ~4mb compressed => 96mb/day (try to avoid downsampling when possible)
+  hourly: 300_000, // ~4mb compressed => 96mb/day (try to avoid downsampling when possible)
   daily: 7_500, // ~50kb compressed => 1.5mb/mo
   monthly: 100_000, // ~700kb compressed => 7.5mb/yr
 };
@@ -203,6 +203,7 @@ export async function fetchHourly(ctx, path, forceAll = false) {
     .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
 
   const selected = downsample(ctx, bundles, 'hourly');
+  // treat forcedAll as aggregate so it doesn't get stored
   return { data: { rumBundles: selected }, isAggregate: forceAll };
 }
 
