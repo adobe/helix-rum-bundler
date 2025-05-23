@@ -16,6 +16,7 @@ import {
   calculateDownsample,
   compressBody,
   errorWithResponse,
+  getEnvVar,
   getFetch,
   sortKey,
 } from '../support/util.js';
@@ -25,6 +26,8 @@ import { fetchDomainKey } from '../support/domains.js';
 
 const FANOUT_CONCURRENCY_LIMIT = 15;
 
+const DEFAULT_HOURLY_FILE_MAX_SIZE = 30 * 1024 * 1024; // 30mb
+
 /**
  * Estimated maximum number events in daily/monthly aggregate responses.
  *
@@ -33,6 +36,7 @@ const FANOUT_CONCURRENCY_LIMIT = 15;
  * - gzip gives ~90% reduction
  */
 const MAX_EVENTS = {
+  hourly: 600_000, // ~4mb compressed => 96mb/day (try to avoid downsampling when possible)
   daily: 7_500, // ~50kb compressed => 1.5mb/mo
   monthly: 100_000, // ~700kb compressed => 7.5mb/yr
 };
@@ -42,7 +46,7 @@ const MAX_EVENTS = {
  *
  * @param {UniversalContext} ctx
  * @param {RUMBundle[]} bundles
- * @param {'daily'|'monthly'} timespan
+ * @param {'hourly'|'daily'|'monthly'} timespan
  * @param {number} [fraction=1.0]
  * @returns {RUMBundle[]}
  */
@@ -161,23 +165,45 @@ export async function storeAggregate(ctx, path, data, ttl) {
 /**
  * @param {UniversalContext} ctx
  * @param {PathInfo} path
- * @returns {Promise<{ rumBundles: RUMBundle[] }>}
+ * @param {boolean} [forceAll=false] - if true, return all bundles
+ * @returns {Promise<{ isAggregate: boolean; data: {rumBundles: RUMBundle[]} }>}
  */
-export async function fetchHourly(ctx, path) {
+export async function fetchHourly(ctx, path, forceAll = false) {
+  const fileSizeLimit = getEnvVar(ctx, 'HOURLY_FILE_MAX_SIZE', DEFAULT_HOURLY_FILE_MAX_SIZE, 'integer');
+
+  // eslint-disable-next-line no-param-reassign
+  forceAll = forceAll || [true, 'true'].includes(ctx.data?.forceAll);
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
   const key = `${path}.json`;
   const buf = await bundleBucket.get(key);
   if (!buf) {
-    return { rumBundles: [] };
+    return { data: { rumBundles: [] }, isAggregate: true };
   }
   const txt = new TextDecoder('utf8').decode(buf);
-  const json = JSON.parse(txt);
+  // only attempt downsampling if the file is large enough
+  if (txt.length < fileSizeLimit || forceAll) {
+    const json = JSON.parse(txt);
 
+    // convert to array of bundles, change weight < 1 to 1
+    const bundles = Object.values(json.bundles)
+      .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
+    // always mark as aggregate to avoid storing non-aggregates
+    return { data: { rumBundles: bundles }, isAggregate: true };
+  }
+
+  const aggregate = await fetchAggregate(ctx, path);
+  if (aggregate) {
+    return { data: aggregate, isAggregate: true };
+  }
+
+  const json = JSON.parse(txt);
   // convert to array of bundles, change weight < 1 to 1
-  const rumBundles = Object.values(json.bundles)
+  const bundles = Object.values(json.bundles)
     .map((b) => (b.weight < 1 ? { ...b, weight: 1 } : b));
-  return { rumBundles };
+
+  const selected = downsample(ctx, bundles, 'hourly');
+  return { data: { rumBundles: selected }, isAggregate: forceAll };
 }
 
 /**
@@ -200,7 +226,7 @@ async function fetchDaily(ctx, path) {
     hours,
     async (hour) => {
       const hpath = path.clone(undefined, undefined, undefined, undefined, hour);
-      const data = await fetchHourly(ctx, hpath);
+      const { data } = await fetchHourly(ctx, hpath, true);
       bundles.push(...data.rumBundles);
     },
     FANOUT_CONCURRENCY_LIMIT,
@@ -316,9 +342,7 @@ export default async function handleRequest(req, ctx) {
   } else if (typeof info.hour !== 'number') {
     ({ data, isAggregate } = await fetchDaily(ctx, info));
   } else {
-    // never store hourly aggregates, so pretend it already is one
-    isAggregate = true;
-    data = await fetchHourly(ctx, info);
+    ({ data, isAggregate } = await fetchHourly(ctx, info));
   }
   if (!data) {
     return new Response('Not found', { status: 404 });
