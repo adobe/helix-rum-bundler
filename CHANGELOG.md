@@ -1,3 +1,10 @@
+## [1.12.3](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.2...v1.12.3) (2025-05-24)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#372](https://github.com/adobe/[secure]-rum-bundler/issues/372)) ([738dac7](https://github.com/adobe/[secure]-rum-bundler/commit/738dac7836d694fbd063e1b8fd581522b6a79315))
+
 ## [1.12.2](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.1...v1.12.2) (2025-05-23)
 
 
