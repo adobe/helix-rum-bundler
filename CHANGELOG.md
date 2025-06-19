@@ -1,3 +1,10 @@
+## [1.12.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.11...v1.12.12) (2025-06-19)
+
+
+### Bug Fixes
+
+* change cf file keys after transform ([#389](https://github.com/adobe/[secure]-rum-bundler/issues/389)) ([f2e3105](https://github.com/adobe/[secure]-rum-bundler/commit/f2e31058ec3530eea2b4007016414c6308b09721))
+
 ## [1.12.11](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.10...v1.12.11) (2025-06-17)
 
 

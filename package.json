@@ -1,6 +1,6 @@
 {
   "name": "@adobe/helix-rum-bundler",
-  "version": "1.12.11",
+  "version": "1.12.12",
   "private": true,
   "description": "Helix RUM bundler",
   "main": "src/index.js",
