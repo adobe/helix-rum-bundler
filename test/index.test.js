@@ -58,7 +58,7 @@ describe('Index Tests', () => {
 
   it('performs event processing when invoked by scheduler (cloudflare task)', async () => {
     const { main: mmain } = await esmock('../src/index.js', {
-      '../src/cloudflare.js': {
+      '../src/tasks/cloudflare.js': {
         default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'process-cloudflare-events' } })),
       },
       '../src/bundler/index.js': {
