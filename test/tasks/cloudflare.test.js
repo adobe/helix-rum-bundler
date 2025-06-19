@@ -16,8 +16,8 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import zlib from 'zlib';
 import { promisify } from 'util';
-import { DEFAULT_CONTEXT, mockDate, Nock } from './util.js';
-import processCloudflareEvents, { adaptCloudflareEvent } from '../src/cloudflare.js';
+import { DEFAULT_CONTEXT, mockDate, Nock } from '../util.js';
+import processCloudflareEvents, { adaptCloudflareEvent } from '../../src/tasks/cloudflare.js';
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -61,7 +61,7 @@ const mockEventLogFile = (domain, type = 'aws') => {
 
 describe('cloudflare tests', () => {
   describe('processCloudflareEvents()', () => {
-    /** @type {import('./util.js').Nocker} */
+    /** @type {import('../util.js').Nocker} */
     let nock;
     let ogUUID;
     beforeEach(() => {
@@ -77,7 +77,7 @@ describe('cloudflare tests', () => {
     });
 
     it('should move events to default log bucket', async () => {
-      const logsBody = await fs.readFile(path.resolve(__dirname, 'bundler', 'fixtures', 'list-logs-single.xml'), 'utf-8');
+      const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'cloudflare-list-logs-single.xml'), 'utf-8');
       const mockEventResponseBody = mockEventLogFile('example.com', 'cloudflare');
       const bodies = {
         put: undefined,
@@ -94,17 +94,17 @@ describe('cloudflare tests', () => {
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logsBody)
         // get log file contents
-        .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
+        .get('/raw/20240101/20240101T00_00_00.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
         // delete log file
-        .delete('/raw/2024-01-01T00_00_00.000-1.log?x-id=DeleteObject')
+        .delete('/raw/20240101/20240101T00_00_00.000-1.log?x-id=DeleteObject')
         .reply(204)
         // delete lock
         .delete('/.lock?x-id=DeleteObject')
         .reply(204);
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-        .put('/raw/cf-partial-2024-01-01T00_00_00.000-1.log?x-id=PutObject')
+        .put('/raw/2024-01-01T00_00_00.000-1.log?x-id=PutObject')
         .reply(200, async (_, body) => {
           bodies.put = body;
           return [200];

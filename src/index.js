@@ -17,9 +17,9 @@ import { helixStatus } from '@adobe/helix-status';
 import { Response } from '@adobe/fetch';
 import bundleRUM from './bundler/index.js';
 import handleRequest from './api/index.js';
-import processCloudflareEvents from './cloudflare.js';
+import processCloudflareEvents from './tasks/cloudflare.js';
 
-const EVENT_HANDLERS = {
+const TASK_HANDLERS = {
   'bundle-rum': bundleRUM,
   'process-cloudflare-events': processCloudflareEvents,
 };
@@ -48,12 +48,12 @@ function shouldRunEventHandler(req, ctx) {
   const event = ctx.invocation?.event;
   const invokedByEvent = wasInvokedByEvent(ctx);
 
-  if (invokedByEvent && EVENT_HANDLERS[event?.task]) {
+  if (invokedByEvent && TASK_HANDLERS[event?.task]) {
     return true;
   }
 
   /* c8 ignore next 10 */
-  if (!ctx.data.task || !EVENT_HANDLERS[ctx.data.task]) {
+  if (!ctx.data.task || !TASK_HANDLERS[ctx.data.task]) {
     return false;
   }
   const isDevMode = ctx.runtime?.name === 'simulate';
@@ -87,7 +87,7 @@ async function run(request, context) {
   let resp;
   try {
     if (shouldRunEventHandler(request, context)) {
-      resp = await EVENT_HANDLERS[context.invocation.event.task](context);
+      resp = await TASK_HANDLERS[context.invocation.event.task](context);
     } else {
       resp = await handleRequest(request, context);
     }

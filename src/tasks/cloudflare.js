@@ -10,11 +10,15 @@
  * governing permissions and limitations under the License.
  */
 
+/**
+ * Reads events from the Cloudflare log bucket and writes them to the Fastly/AWS bucket format.
+ */
+
 import { Response } from '@adobe/fetch';
 import processQueue from '@adobe/helix-shared-process-queue';
-import { HelixStorage } from './support/storage.js';
-import { errorWithResponse, getEnvVar } from './support/util.js';
-import { loop } from './support/loop.js';
+import { HelixStorage } from '../support/storage.js';
+import { errorWithResponse, getEnvVar } from '../support/util.js';
+import { loop } from '../support/loop.js';
 
 const DEFAULT_BATCH_LIMIT = 1000;
 const DEFAULT_CONCURRENCY_LIMIT = 10;
@@ -95,6 +99,21 @@ export function adaptCloudflareEvent(ctx, ev) {
 }
 
 /**
+ * Make the key sort properly into the list of existing events.
+ *
+ * Cloudflare keys are in the format of `raw/20240101/20240101T...`
+ * we want to move them to `raw/2024-01-01T00...`, where date and hour
+ * is enough to be sorted properly.
+ * @param {string} key
+ * @returns {string}
+ */
+function getNewKey(key) {
+  let newKey = key.split('/').pop();
+  newKey = `raw/${newKey.slice(0, 4)}-${newKey.slice(4, 6)}-${newKey.slice(6)}`;
+  return newKey;
+}
+
+/**
  * @param {UniversalContext} ctx
  * @returns {Promise<boolean>}
  */
@@ -163,7 +182,7 @@ async function doProcessing(ctx) {
       const combined = events.map((e) => JSON.stringify(e)).join('\n');
       estimatedSize = 0;
       events = [];
-      await logBucket.put(key, combined);
+      await logBucket.put(getNewKey(key), combined);
     },
     concurrency,
   );
@@ -171,10 +190,7 @@ async function doProcessing(ctx) {
   // we may still have events leftover, store them in a single file if needed
   if (events.length) {
     const combined = events.map((e) => JSON.stringify(e)).join('\n');
-    const keyParts = lastKey.split('/');
-    const lastPart = keyParts.pop();
-    const partialKey = `${keyParts.join('/')}/cf-partial-${lastPart}`;
-    await logBucket.put(partialKey, combined);
+    await logBucket.put(getNewKey(lastKey), combined);
     events = [];
   }
 
