@@ -136,3 +136,34 @@ export async function findTopDomains(ctx, days, count = 100) {
   const sorted = Object.entries(domainHitMap).sort((a, b) => b[1] - a[1]);
   return sorted.slice(0, count).map(([domain]) => domain);
 }
+
+/**
+ * Get top N domains
+ * @param {UniversalContext} ctx
+ * @param {number} [N=10]
+ */
+export async function fetchTopDomains(ctx, N = 10) {
+  const { usersBucket } = HelixStorage.fromContext(ctx);
+
+  /** @type {string[]} */
+  let domains = [];
+
+  // check the top file
+  const topFile = await usersBucket.get(`/domains/suggestions/top${N}.json`);
+  if (topFile) {
+    domains = JSON.parse(new TextDecoder('utf8').decode(topFile));
+  } else {
+    // determine top 100 domains from last week
+    domains = await findTopDomains(ctx, 7, N);
+
+    // store them for future requests with 24h expiry
+    await usersBucket.put(
+      `/domains/suggestions/top${N}.json`,
+      JSON.stringify(domains),
+      'application/json',
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+    );
+  }
+
+  return domains;
+}

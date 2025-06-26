@@ -152,7 +152,7 @@ export function getMaskedUserAgent(userAgent) {
 export async function getDomains(ctx) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
 
-  const domains = await bundleBucket.listFolders('').folders;
+  const domains = (await bundleBucket.listFolders('')).folders;
   return domains.map((d) => (d.endsWith('/') ? d.slice(0, -1) : d));
 }
 

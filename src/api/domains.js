@@ -13,8 +13,11 @@
 import { Response } from '@adobe/fetch';
 import { PathInfo } from '../support/PathInfo.js';
 import { assertSuperuserAuthorized, isSuperuserAuthorized } from '../support/authorization.js';
-import { fetchDomainKey, findTopDomains, listDomains } from '../support/domains.js';
-import { HelixStorage } from '../support/storage.js';
+import {
+  fetchDomainKey,
+  fetchTopDomains,
+  listDomains,
+} from '../support/domains.js';
 import { retrieveOrg } from '../support/orgs.js';
 
 /**
@@ -41,7 +44,6 @@ async function getDomains(ctx) {
  */
 async function getDomainSuggestions(req, ctx) {
   const token = req.headers.get('authorization')?.slice(7); // bearer
-  const { usersBucket } = HelixStorage.fromContext(ctx);
   const { top = '100' } = ctx.data;
   const topNum = parseInt(top, 10);
   if (Number.isNaN(topNum) || topNum <= 0) {
@@ -51,22 +53,7 @@ async function getDomainSuggestions(req, ctx) {
   /** @type {string[]} */
   let domains;
   if (isSuperuserAuthorized(req, ctx)) {
-    // check the top file
-    const topFile = await usersBucket.get(`/domains/suggestions/top${topNum}.json`);
-    if (topFile) {
-      domains = JSON.parse(new TextDecoder('utf8').decode(topFile));
-    } else {
-    // determine top 100 domains from last week
-      domains = await findTopDomains(ctx, 7, topNum);
-
-      // store them for future requests with 24h expiry
-      await usersBucket.put(
-        `/domains/suggestions/top${topNum}.json`,
-        JSON.stringify(domains),
-        'application/json',
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
-      );
-    }
+    domains = await fetchTopDomains(ctx, topNum);
   } else if (token.startsWith('org:')) {
     const org = await retrieveOrg(ctx, token.split(':')[1]);
     domains = org.domains;

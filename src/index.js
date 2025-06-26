@@ -18,10 +18,12 @@ import { Response } from '@adobe/fetch';
 import bundleRUM from './bundler/index.js';
 import handleRequest from './api/index.js';
 import processCloudflareEvents from './tasks/cloudflare.js';
+import preprocessEvents from './tasks/preprocess.js';
 
 const TASK_HANDLERS = {
   'bundle-rum': bundleRUM,
   'process-cloudflare-events': processCloudflareEvents,
+  'preprocess-events': preprocessEvents,
 };
 
 /**
