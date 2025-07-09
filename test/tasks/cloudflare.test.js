@@ -125,7 +125,7 @@ describe('cloudflare tests', () => {
     });
   });
 
-  describe.only('adaptCloudflareEvent()', () => {
+  describe('adaptCloudflareEvent()', () => {
     it('ignores missing JSON message', () => {
       const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['not json'] }] });
       assert.deepStrictEqual(adapted, null);
