@@ -109,7 +109,7 @@ export function adaptCloudflareEvent(ctx, ev) {
  */
 function getNewKey(key) {
   let newKey = key.split('/').pop();
-  newKey = `raw/${newKey.slice(0, 4)}-${newKey.slice(4, 6)}-${newKey.slice(6, 9)}:${newKey.slice(9, 11)}:${newKey.slice(11)}`;
+  newKey = `raw/${newKey.slice(0, 4)}-${newKey.slice(4, 6)}-${newKey.slice(6, 11)}:${newKey.slice(11, 13)}:${newKey.slice(13)}`;
   return newKey;
 }
 

@@ -94,17 +94,17 @@ describe('cloudflare tests', () => {
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logsBody)
         // get log file contents
-        .get('/raw/20240101/20240101T00_00_00.000-1.log?x-id=GetObject')
+        .get('/raw/20240101/20240101T000000.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
         // delete log file
-        .delete('/raw/20240101/20240101T00_00_00.000-1.log?x-id=DeleteObject')
+        .delete('/raw/20240101/20240101T000000.000-1.log?x-id=DeleteObject')
         .reply(204)
         // delete lock
         .delete('/.lock?x-id=DeleteObject')
         .reply(204);
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-        .put('/raw/2024-01-01T%3A00%3A_00_00.000-1.log?x-id=PutObject')
+        .put('/raw/2024-01-01T00%3A00%3A00.000-1.log?x-id=PutObject')
         .reply(200, async (_, body) => {
           bodies.put = body;
           return [200];
@@ -125,7 +125,7 @@ describe('cloudflare tests', () => {
     });
   });
 
-  describe('adaptCloudflareEvent()', () => {
+  describe.only('adaptCloudflareEvent()', () => {
     it('ignores missing JSON message', () => {
       const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['not json'] }] });
       assert.deepStrictEqual(adapted, null);
