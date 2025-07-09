@@ -1,3 +1,10 @@
+## [1.12.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.17...v1.12.18) (2025-07-09)
+
+
+### Bug Fixes
+
+* dispurse cf events ([#399](https://github.com/adobe/[secure]-rum-bundler/issues/399)) ([3142896](https://github.com/adobe/[secure]-rum-bundler/commit/3142896230280b7385575a50b2dea22ae991cf87))
+
 ## [1.12.17](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.16...v1.12.17) (2025-07-09)
 
 
