@@ -1,3 +1,10 @@
+## [1.12.17](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.16...v1.12.17) (2025-07-09)
+
+
+### Bug Fixes
+
+* spread out cf events more evenly over time ([#398](https://github.com/adobe/[secure]-rum-bundler/issues/398)) ([2fb9acc](https://github.com/adobe/[secure]-rum-bundler/commit/2fb9acc1ec8262f920227ba799ce51e15596a7b9))
+
 ## [1.12.16](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.15...v1.12.16) (2025-07-09)
 
 
