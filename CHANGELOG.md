@@ -1,3 +1,10 @@
+## [1.12.16](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.15...v1.12.16) (2025-07-09)
+
+
+### Bug Fixes
+
+* cache all time ranges less aggressively ([#397](https://github.com/adobe/[secure]-rum-bundler/issues/397)) ([ddbf33d](https://github.com/adobe/[secure]-rum-bundler/commit/ddbf33d05f87e46a28cfea16287c79f024ad48a6))
+
 ## [1.12.15](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.14...v1.12.15) (2025-07-07)
 
 
