@@ -303,23 +303,23 @@ export function getTTL(path) {
   const diff = Number(now) - Number(requested);
   if (typeof path.hour === 'number') {
     // hourly bundles expire every 10min until the hour elapses
-    // then within 10mins they should be stable forever
-    if (diff > (10 * 60 * 1000)) {
+    // then within 3 hours they should be stable forever
+    if (diff > (3 * 60 * 60 * 1000)) {
       ttl = 31536000;
     }
   } else if (typeof path.day === 'number') {
     // daily bundles expire every hour until the day elapses in UTC
-    // then within 1 hour they should be stable forever
+    // then within 6 hour they should be stable forever
     ttl = 60 * 60; // 1 hour
-    if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
+    if (diff > (24 * 60 * 60 * 1000) + (6 * 60 * 60 * 1000)) {
       ttl = 31536000;
     }
   } else if (typeof path.month === 'number') {
-    // monthly bundles expire every 12h until the month elapses
-    // then within 1 hour they are stable forever
-    ttl = 12 * 60 * 60; // 12 hours
+    // monthly bundles expire every 6h until the month elapses
+    // then within 12 hour they are stable forever
+    ttl = 6 * 60 * 60; // 6 hours
     // same threshold as daily, since monthly resource date is the last second of the month
-    if (diff > (24 * 60 * 60 * 1000) + (60 * 60 * 1000)) {
+    if (diff > (24 * 60 * 60 * 1000) + (12 * 60 * 60 * 1000)) {
       ttl = 31536000;
     }
   }
