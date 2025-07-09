@@ -104,7 +104,7 @@ describe('cloudflare tests', () => {
         .reply(204);
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-        .put('/raw/2024-01-01T00_00_00.000-1.log?x-id=PutObject')
+        .put('/raw/2024-01-01T%3A00%3A_00_00.000-1.log?x-id=PutObject')
         .reply(200, async (_, body) => {
           bodies.put = body;
           return [200];

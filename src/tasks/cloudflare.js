@@ -23,7 +23,7 @@ import { loop } from '../support/loop.js';
 const DEFAULT_BATCH_LIMIT = 1000;
 const DEFAULT_CONCURRENCY_LIMIT = 10;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
-// approx the same size as a fastly-sourced log file (~1-2MB)
+// approx the same size as a fastly-sourced log file (~1.5MB)
 const DEFAULT_LOG_FILE_SIZE_TARGET = 1.5 * 1024 * 1024;
 
 /**
@@ -109,7 +109,7 @@ export function adaptCloudflareEvent(ctx, ev) {
  */
 function getNewKey(key) {
   let newKey = key.split('/').pop();
-  newKey = `raw/${newKey.slice(0, 4)}-${newKey.slice(4, 6)}-${newKey.slice(6)}`;
+  newKey = `raw/${newKey.slice(0, 4)}-${newKey.slice(4, 6)}-${newKey.slice(6, 9)}:${newKey.slice(9, 11)}:${newKey.slice(11)}`;
   return newKey;
 }
 
