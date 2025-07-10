@@ -104,8 +104,8 @@ describe('api/bundles Tests', () => {
       assert.strictEqual(val, 31536000);
     });
 
-    it('monthly bundles >1h past end of month, should be cached forever', () => {
-      Date.stub(2024, 1, 2, 1); // feb 2 at 1:00
+    it('monthly bundles >12h past end of month, should be cached forever', () => {
+      Date.stub(2024, 1, 2, 12); // feb 2 at 1:00
       const resource = {
         year: 2024,
         month: 1, // jan
@@ -114,14 +114,14 @@ describe('api/bundles Tests', () => {
       assert.strictEqual(val, 31536000);
     });
 
-    it('monthly bundles <1h past end of month, should be cached for 12h', () => {
+    it('monthly bundles <12h past end of month, should be cached for 6h', () => {
       Date.stub(2024, 0, 2);
       const resource = {
         year: 2024,
         month: 1,
       };
       const val = getTTL(resource);
-      assert.strictEqual(val, 43200);
+      assert.strictEqual(val, 21600);
     });
 
     it('daily bundles <25h old should be cached for 60min', () => {
@@ -135,8 +135,8 @@ describe('api/bundles Tests', () => {
       assert.strictEqual(val, 3600);
     });
 
-    it('hourly bundles >=70m old should be cached forever', () => {
-      Date.stub(2024, 0, 1, 2, 10, 1);
+    it('hourly bundles >=3h old should be cached forever', () => {
+      Date.stub(2024, 0, 1, 5, 1);
       const resource = {
         year: 2024,
         month: 1,
@@ -147,7 +147,7 @@ describe('api/bundles Tests', () => {
       assert.strictEqual(val, 31536000);
     });
 
-    it('hourly bundles <70min old should be cached for 10min', () => {
+    it('hourly bundles <3hmin old should be cached for 10min', () => {
       Date.stub(2024, 0, 1, 2, 0);
       const resource = {
         year: 2024,

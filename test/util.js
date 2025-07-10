@@ -206,6 +206,15 @@ export const mockDate = () => {
       super(...(Date._stubbed.shift() || args));
     }
 
+    /**
+     * @param {number} [year]
+     * @param {number} [month]
+     * @param {number} [day]
+     * @param {number} [hour]
+     * @param {number} [minute]
+     * @param {number} [second]
+     * @param {number} [millisecond]
+     */
     static stub(...args) {
       // eslint-disable-next-line no-underscore-dangle
       Date._stubbed.push(args);

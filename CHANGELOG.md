@@ -1,3 +1,45 @@
+## [1.12.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.17...v1.12.18) (2025-07-09)
+
+
+### Bug Fixes
+
+* dispurse cf events ([#399](https://github.com/adobe/[secure]-rum-bundler/issues/399)) ([3142896](https://github.com/adobe/[secure]-rum-bundler/commit/3142896230280b7385575a50b2dea22ae991cf87))
+
+## [1.12.17](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.16...v1.12.17) (2025-07-09)
+
+
+### Bug Fixes
+
+* spread out cf events more evenly over time ([#398](https://github.com/adobe/[secure]-rum-bundler/issues/398)) ([2fb9acc](https://github.com/adobe/[secure]-rum-bundler/commit/2fb9acc1ec8262f920227ba799ce51e15596a7b9))
+
+## [1.12.16](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.15...v1.12.16) (2025-07-09)
+
+
+### Bug Fixes
+
+* cache all time ranges less aggressively ([#397](https://github.com/adobe/[secure]-rum-bundler/issues/397)) ([ddbf33d](https://github.com/adobe/[secure]-rum-bundler/commit/ddbf33d05f87e46a28cfea16287c79f024ad48a6))
+
+## [1.12.15](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.14...v1.12.15) (2025-07-07)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#395](https://github.com/adobe/[secure]-rum-bundler/issues/395)) ([ae80d47](https://github.com/adobe/[secure]-rum-bundler/commit/ae80d477d9aef25a80373333951a0df325a90e14))
+
+## [1.12.14](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.13...v1.12.14) (2025-07-01)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#392](https://github.com/adobe/[secure]-rum-bundler/issues/392)) ([6bee73f](https://github.com/adobe/[secure]-rum-bundler/commit/6bee73fa63eb967eb02321291e13c0bca903bef6))
+
+## [1.12.13](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.12...v1.12.13) (2025-06-24)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#390](https://github.com/adobe/[secure]-rum-bundler/issues/390)) ([f150044](https://github.com/adobe/[secure]-rum-bundler/commit/f150044ac3d254e560ed37617e0b8f3042ae28a1))
+
 ## [1.12.12](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.11...v1.12.12) (2025-06-19)
 
 

@@ -7,7 +7,7 @@
   <MaxKeys>1</MaxKeys>
   <IsTruncated>false</IsTruncated>
   <Contents>
-    <Key>raw/20240101/20240101T00_00_00.000-1.log</Key>
+    <Key>raw/20240101/20240101T000000.000-1.log</Key>
     <LastModified>2024-01-01T00:00:00.000Z</LastModified>
     <ETag>"1"</ETag>
     <Size>123</Size>
