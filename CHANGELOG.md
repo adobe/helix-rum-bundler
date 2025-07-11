@@ -1,3 +1,10 @@
+## [1.12.19](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.18...v1.12.19) (2025-07-11)
+
+
+### Bug Fixes
+
+* tweak params ([#400](https://github.com/adobe/[secure]-rum-bundler/issues/400)) ([12d1c9e](https://github.com/adobe/[secure]-rum-bundler/commit/12d1c9ed0b210c06b30b8f5f9dbc5fe3a54d73a7))
+
 ## [1.12.18](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.17...v1.12.18) (2025-07-09)
 
 
