@@ -1,3 +1,10 @@
+## [1.12.32](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.31...v1.12.32) (2025-09-30)
+
+
+### Bug Fixes
+
+* upgrade to node 22.x ([6e43294](https://github.com/adobe/[secure]-rum-bundler/commit/6e432942633689d4aed89c5149a3b0175cfbc9c0))
+
 ## [1.12.31](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.30...v1.12.31) (2025-09-30)
 
 
