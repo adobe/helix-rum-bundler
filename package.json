@@ -21,7 +21,7 @@
     "import:bq": "node ./test/dev/tools/import-bundles.js"
   },
   "wsk": {
-    "nodeVersion": 20,
+    "nodeVersion": 22,
     "target": "aws",
     "name": "helix3/rum-bundler@${version}",
     "testUrl": "/_status_check/healthcheck.json",
