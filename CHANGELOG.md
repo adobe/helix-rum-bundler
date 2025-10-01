@@ -1,3 +1,10 @@
+## [1.12.33](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.32...v1.12.33) (2025-10-01)
+
+
+### Bug Fixes
+
+* add llmo virtual ([#423](https://github.com/adobe/[secure]-rum-bundler/issues/423)) ([c87c1d0](https://github.com/adobe/[secure]-rum-bundler/commit/c87c1d04381777c709cbc42dd5498f2b4a9e260f))
+
 ## [1.12.32](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.31...v1.12.32) (2025-09-30)
 
 
