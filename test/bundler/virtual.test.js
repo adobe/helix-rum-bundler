@@ -28,7 +28,7 @@ function pickVirtual(domain) {
 
 describe('virtual tests', () => {
   describe('should bundle events to virtual destinations', () => {
-  /** @type {import('../util.js').Nocker} */
+    /** @type {import('../util.js').Nocker} */
     let nock;
     let ogRandom;
     let ogUUID;
@@ -54,48 +54,48 @@ describe('virtual tests', () => {
       };
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-      // logs not locked
+        // logs not locked
         .head('/.lock')
         .reply(404)
-      // lock logs
+        // lock logs
         .put('/.lock?x-id=PutObject')
         .reply(200)
-      // list logs
+        // list logs
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logFileList)
-      // get log file contents
+        // get log file contents
         .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
-      // move log file to processed
+        // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
         .post('/?delete=')
         .reply(200)
-      // unlock
+        // unlock
         .delete('/.lock?x-id=DeleteObject')
         .reply(200);
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // check if domain exists (yes)
+        // check if domain exists (yes)
         .head('/test.example/.domainkey')
         .reply(200)
-      // get manifest
+        // get manifest
         .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/test.example/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/test.example/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // store manifest
+        // store manifest
         .put('/test.example/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.apex.manifest = body;
           return [200];
         })
-      // store bundlegroup
+        // store bundlegroup
         .put('/test.example/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.apex.bundle = body;
@@ -104,22 +104,22 @@ describe('virtual tests', () => {
 
       // virtual domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // get manifest
+        // get manifest
         .get(`/${virtualDomain}/1970/1/1/.manifest.json?x-id=GetObject`)
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get(`/${virtualDomain}/1969/12/31/.manifest.json?x-id=GetObject`)
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get(`/${virtualDomain}/1970/1/1/0.json?x-id=GetObject`)
         .reply(404)
-      // store manifest
+        // store manifest
         .put(`/${virtualDomain}/1970/1/1/.manifest.json?x-id=PutObject`)
         .reply((_, body) => {
           bodies.virtual.manifest = body;
           return [200];
         })
-      // store bundlegroup
+        // store bundlegroup
         .put(`/${virtualDomain}/1970/1/1/0.json?x-id=PutObject`)
         .reply((_, body) => {
           bodies.virtual.bundle = body;
@@ -185,9 +185,26 @@ describe('virtual tests', () => {
       await simpleVirtualCase('aem.live%3Asidekick', event, expectedEvents);
     });
 
+    it('llmo-extension events are grouped to "aem.live:llmo" virtual domain', async () => {
+      const event = {
+        id: 'foo',
+        checkpoint: 'click',
+        url: 'https://test.example',
+        source: 'llmo-extension',
+        time: 1337,
+      };
+      const expectedEvents = [{
+        checkpoint: 'click',
+        source: 'llmo-extension',
+        timeDelta: 1337,
+      }];
+
+      await simpleVirtualCase('aem.live%3Allmo', event, expectedEvents);
+    });
+
     it('~1% of top events should be grouped to "all" virtual domain', async () => {
       const vals = [
-      /** example.one doesn't hit threshold, excluded */
+        /** example.one doesn't hit threshold, excluded */
         1,
         /** example.two does hit threshold, included */
         0.001,
@@ -214,68 +231,68 @@ describe('virtual tests', () => {
       };
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-      // logs not locked
+        // logs not locked
         .head('/.lock')
         .reply(404)
-      // lock logs
+        // lock logs
         .put('/.lock?x-id=PutObject')
         .reply(200)
-      // list logs
+        // list logs
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logFileList)
-      // get log file contents
+        // get log file contents
         .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
-      // move log file to processed
+        // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
         .post('/?delete=')
         .reply(200)
-      // unlock
+        // unlock
         .delete('/.lock?x-id=DeleteObject')
         .reply(200);
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // check if domain exists (yes)
+        // check if domain exists (yes)
         .head('/test.one/.domainkey')
         .reply(200)
         .head('/test.two/.domainkey')
         .reply(200)
-      // get manifest
+        // get manifest
         .get('/test.one/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/test.one/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/test.one/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // store manifest (one)
+        // store manifest (one)
         .put('/test.one/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.one.manifest = body;
           return [200];
         })
-      // store manifest (two)
+        // store manifest (two)
         .put('/test.two/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.two.manifest = body;
           return [200];
         })
-      // store bundlegroup (one)
+        // store bundlegroup (one)
         .put('/test.one/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.one.bundle = body;
           return [200];
         })
-      // store bundlegroup (two)
+        // store bundlegroup (two)
         .put('/test.two/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.two.bundle = body;
@@ -284,22 +301,22 @@ describe('virtual tests', () => {
 
       // virtual domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // get manifest
+        // get manifest
         .get('/all/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/all/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/all/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // store manifest
+        // store manifest
         .put('/all/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.manifest = body;
           return [200];
         })
-      // store bundlegroup
+        // store bundlegroup
         .put('/all/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.bundle = body;
@@ -421,68 +438,68 @@ describe('virtual tests', () => {
       };
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-      // logs not locked
+        // logs not locked
         .head('/.lock')
         .reply(404)
-      // lock logs
+        // lock logs
         .put('/.lock?x-id=PutObject')
         .reply(200)
-      // list logs
+        // list logs
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logFileList)
-      // get log file contents
+        // get log file contents
         .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
-      // move log file to processed
+        // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
         .post('/?delete=')
         .reply(200)
-      // unlock
+        // unlock
         .delete('/.lock?x-id=DeleteObject')
         .reply(200);
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // check if domain exists (yes)
+        // check if domain exists (yes)
         .head('/test.one/.domainkey')
         .reply(200)
         .head('/test.two/.domainkey')
         .reply(200)
-      // get manifest
+        // get manifest
         .get('/test.one/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/test.one/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/test.one/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
         .get('/test.two/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // store manifest (one)
+        // store manifest (one)
         .put('/test.one/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.one.manifest = body;
           return [200];
         })
-      // store manifest (two)
+        // store manifest (two)
         .put('/test.two/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.two.manifest = body;
           return [200];
         })
-      // store bundlegroup (one)
+        // store bundlegroup (one)
         .put('/test.one/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.one.bundle = body;
           return [200];
         })
-      // store bundlegroup (two)
+        // store bundlegroup (two)
         .put('/test.two/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.two.bundle = body;
@@ -491,22 +508,22 @@ describe('virtual tests', () => {
 
       // virtual domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // get manifest
+        // get manifest
         .get('/aem.live%3Aall/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/aem.live%3Aall/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/aem.live%3Aall/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // store manifest
+        // store manifest
         .put('/aem.live%3Aall/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.manifest = body;
           return [200];
         })
-      // store bundlegroup
+        // store bundlegroup
         .put('/aem.live%3Aall/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.bundle = body;
@@ -644,30 +661,30 @@ describe('virtual tests', () => {
       };
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
-      // logs not locked
+        // logs not locked
         .head('/.lock')
         .reply(404)
-      // lock logs
+        // lock logs
         .put('/.lock?x-id=PutObject')
         .reply(200)
-      // list logs
+        // list logs
         .get('/?list-type=2&max-keys=100&prefix=raw%2F')
         .reply(200, logFileList)
-      // get log file contents
+        // get log file contents
         .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
         .reply(200, mockEventResponseBody)
-      // move log file to processed
+        // move log file to processed
         .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
         .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
         .post('/?delete=')
         .reply(200)
-      // unlock
+        // unlock
         .delete('/.lock?x-id=DeleteObject')
         .reply(200);
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-      // check if domain exists (yes)
+        // check if domain exists (yes)
         .head('/main--helix-website--adobe.hlx.page/.domainkey')
         .reply(200)
         .head('/foo--helix-website--adobe.hlx.live/.domainkey')
@@ -676,7 +693,7 @@ describe('virtual tests', () => {
         .reply(200)
         .head('/qux--helix-website--adobe.aem.live/.domainkey')
         .reply(200)
-      // get manifest
+        // get manifest
         .get('/main--helix-website--adobe.hlx.page/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/foo--helix-website--adobe.hlx.live/1970/1/1/.manifest.json?x-id=GetObject')
@@ -685,7 +702,7 @@ describe('virtual tests', () => {
         .reply(404)
         .get('/qux--helix-website--adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest
+        // get yesterday's manifest
         .get('/main--helix-website--adobe.hlx.page/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
         .get('/foo--helix-website--adobe.hlx.live/1969/12/31/.manifest.json?x-id=GetObject')
@@ -694,7 +711,7 @@ describe('virtual tests', () => {
         .reply(404)
         .get('/qux--helix-website--adobe.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup
+        // instantiate bundlegroup
         .get('/main--helix-website--adobe.hlx.page/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
         .get('/foo--helix-website--adobe.hlx.live/1970/1/1/0.json?x-id=GetObject')
@@ -704,50 +721,50 @@ describe('virtual tests', () => {
         .get('/qux--helix-website--adobe.aem.live/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
 
-      // store manifest (hlxpage)
+        // store manifest (hlxpage)
         .put('/main--helix-website--adobe.hlx.page/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.hlxpage.manifest = body;
           return [200];
         })
-      // store manifest (hlxlive)
+        // store manifest (hlxlive)
         .put('/foo--helix-website--adobe.hlx.live/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.hlxlive.manifest = body;
           return [200];
         })
-      // store manifest (aempage)
+        // store manifest (aempage)
         .put('/bar--helix-website--adobe.aem.page/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.aempage.manifest = body;
           return [200];
         })
-      // store manifest (aemlive)
+        // store manifest (aemlive)
         .put('/qux--helix-website--adobe.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.aemlive.manifest = body;
           return [200];
         })
 
-      // store bundlegroup (hlxpage)
+        // store bundlegroup (hlxpage)
         .put('/main--helix-website--adobe.hlx.page/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.hlxpage.bundle = body;
           return [200];
         })
-      // store bundlegroup (hlxlive)
+        // store bundlegroup (hlxlive)
         .put('/foo--helix-website--adobe.hlx.live/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.hlxlive.bundle = body;
           return [200];
         })
-      // store bundlegroup (aempage)
+        // store bundlegroup (aempage)
         .put('/bar--helix-website--adobe.aem.page/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.aempage.bundle = body;
           return [200];
         })
-      // store bundlegroup (aemlive)
+        // store bundlegroup (aemlive)
         .put('/qux--helix-website--adobe.aem.live/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.aemlive.bundle = body;
@@ -758,22 +775,22 @@ describe('virtual tests', () => {
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         .head('/adobe.aem.live/.domainkey')
         .reply(200)
-      // get manifest (org)
+        // get manifest (org)
         .get('/adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
-      // instantiate bundlegroup (org)
+        // instantiate bundlegroup (org)
         .get('/adobe.aem.live/1970/1/1/0.json?x-id=GetObject')
         .reply(404)
-      // get yesterday's manifest (org)
+        // get yesterday's manifest (org)
         .get('/adobe.aem.live/1969/12/31/.manifest.json?x-id=GetObject')
         .reply(404)
-      // store manifest (org)
+        // store manifest (org)
         .put('/adobe.aem.live/1970/1/1/.manifest.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.manifest = body;
           return [200];
         })
-      // store bundlegroup (org)
+        // store bundlegroup (org)
         .put('/adobe.aem.live/1970/1/1/0.json?x-id=PutObject')
         .reply((_, body) => {
           bodies.virtual.bundle = body;
