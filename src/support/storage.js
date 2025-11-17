@@ -378,16 +378,19 @@ class Bucket {
   /**
    * Returns a list of object below the given prefix
    * @param {string} prefix
-   * @param {{ limit?: number }} [options]
+   * @param {{ limit?: number, byteLimit?: number, startAfter?: string }} [options]
    * @returns {Promise<{ isTruncated: boolean; objects: ObjectInfo[] }>}
    */
-  async list(prefix, { limit } = { limit: Infinity }) {
+  async list(prefix, { limit, byteLimit, startAfter } = { limit: Infinity }) {
     let ContinuationToken;
     let truncated = false;
     const objects = [];
+    let totalBytes = 0;
     do {
+      /** @type {import('@aws-sdk/client-s3').ListObjectsV2CommandOutput} */
       // eslint-disable-next-line no-await-in-loop
       const result = await this.client.send(new ListObjectsV2Command({
+        StartAfter: startAfter,
         Bucket: this.bucket,
         ContinuationToken,
         Prefix: prefix,
@@ -407,6 +410,11 @@ class Bucket {
           truncated = true;
           break;
         }
+        totalBytes += content.Size;
+        if (byteLimit && totalBytes > byteLimit) {
+          truncated = true;
+          break;
+        }
       }
     } while (ContinuationToken && objects.length < limit);
     return {
@@ -421,7 +429,7 @@ class Bucket {
    * @param {{ limit?: number; start?: string; filter?: string; }} [options]
    * @returns {Promise<{ next?: string; folders: string[] }>}
    */
-  async listFolders(prefix, { limit, start, filter } = { }) {
+  async listFolders(prefix, { limit, start, filter } = {}) {
     limit = limit || Infinity;
     let ContinuationToken = start;
     const folders = [];

@@ -29,6 +29,7 @@ import VIRTUAL_DOMAIN_RULES from './virtual.js';
  * }>} RawEventMap
  */
 
+const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
@@ -397,10 +398,11 @@ async function doBundling(ctx) {
   const { logBucket } = HelixStorage.fromContext(ctx);
   const concurrency = getEnvVar(ctx, 'CONCURRENCY', DEFAULT_CONCURRENCY_LIMIT, 'integer');
   const batchLimit = getEnvVar(ctx, 'BATCH_LIMIT', DEFAULT_BATCH_LIMIT, 'integer');
+  const byteLimit = getEnvVar(ctx, 'BYTE_LIMIT', DEFAULT_BYTE_LIMIT, 'integer');
 
   // list files in log bucket
   performance.mark('start:get-logs');
-  const { objects, isTruncated } = await logBucket.list('raw/', { limit: batchLimit });
+  const { objects, isTruncated } = await logBucket.list('raw/', { limit: batchLimit, byteLimit });
   /* c8 ignore next */
   log.info(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
 
