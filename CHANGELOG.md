@@ -1,3 +1,10 @@
+## [1.12.41](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.40...v1.12.41) (2025-11-18)
+
+
+### Bug Fixes
+
+* use byte limit ([#433](https://github.com/adobe/[secure]-rum-bundler/issues/433)) ([d7bf82a](https://github.com/adobe/[secure]-rum-bundler/commit/d7bf82a88e87fabbf3c42e605a699a5ec5b92f88))
+
 ## [1.12.40](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.39...v1.12.40) (2025-11-11)
 
 
