@@ -407,11 +407,13 @@ class Bucket {
           path: `${key.substring(prefix.length)}`,
         });
         if (objects.length >= limit) {
+          this.log.debug(`reached limit of ${limit} objects, stopping list (${totalBytes} bytes)`);
           truncated = true;
           break;
         }
         totalBytes += content.Size;
         if (byteLimit && totalBytes > byteLimit) {
+          this.log.debug(`reached limit of ${byteLimit} bytes, stopping list (${objects.length} objects)`);
           truncated = true;
           break;
         }
