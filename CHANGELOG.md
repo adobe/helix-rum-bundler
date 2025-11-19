@@ -1,3 +1,10 @@
+## [1.12.47](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.46...v1.12.47) (2025-11-19)
+
+
+### Bug Fixes
+
+* increase limits again ([#438](https://github.com/adobe/[secure]-rum-bundler/issues/438)) ([c6aa9c9](https://github.com/adobe/[secure]-rum-bundler/commit/c6aa9c96788b012988731fda01db53f0f960b093))
+
 ## [1.12.46](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.45...v1.12.46) (2025-11-19)
 
 
