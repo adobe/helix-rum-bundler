@@ -390,7 +390,7 @@ class Bucket {
       /** @type {import('@aws-sdk/client-s3').ListObjectsV2CommandOutput} */
       // eslint-disable-next-line no-await-in-loop
       const result = await this.client.send(new ListObjectsV2Command({
-        StartAfter: startAfter,
+        StartAfter: startAfter && !truncated ? `${prefix}${startAfter}` : undefined,
         Bucket: this.bucket,
         ContinuationToken,
         Prefix: prefix,
@@ -418,7 +418,7 @@ class Bucket {
           break;
         }
       }
-    } while (ContinuationToken && objects.length < limit);
+    } while (ContinuationToken && objects.length < limit && totalBytes < byteLimit);
     return {
       objects,
       isTruncated: truncated || !!ContinuationToken,

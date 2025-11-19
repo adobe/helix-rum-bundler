@@ -4,6 +4,7 @@ import BundleGroup from './BundleGroup';
 import Manifest from './Manifest';
 import LRUCache from './LRUCache';
 import { PathInfo } from './support/PathInfo';
+import Profiler from './support/Profiler';
 
 declare module '@adobe/helix-universal' {
   export namespace Helix {
@@ -64,6 +65,7 @@ declare module '@adobe/helix-universal' {
         pathInfo: PathInfo;
         stats: Record<string, unknown>;
         start: Date;
+        profiler: Profiler;
         [key: string]: unknown;
       }
 

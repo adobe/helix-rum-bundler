@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUM Bundler Memory Profiler</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 16px;
+      color: #111;
+      background: #fff;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta {
+      margin-left: auto;
+      opacity: 0.7;
+      font-size: 12px;
+    }
+
+    #chart-container {
+      width: 100%;
+      height: 70vh;
+      position: relative;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .legend label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .legend .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  </style>
+  <!-- Chart.js and Annotation plugin (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>RUM Bundler Memory Profiler</h1>
+    <div class="controls">
+      <label>
+        <input type="checkbox" id="stackedToggle">
+        Stacked view
+      </label>
+      <label>
+        <input type="checkbox" id="showDividersToggle" checked>
+        Show loop dividers
+      </label>
+      <label>
+        <input type="checkbox" id="normalizeTimeToggle">
+        Normalize time per loop
+      </label>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div id="chart-container">
+    <canvas id="memChart"></canvas>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="hint">
+    - Hover for details. Toggle series via legend. Stacked view sums memory categories.<br>
+    - Dividers mark boundaries between loops. Normalize time resets time to 0 for each loop.
+  </div>
+
+  <!-- The generator replaces this placeholder with embedded JSON -->
+  <!-- __EMBEDDED_MEMORY_DATA__ -->
+
+  <script>
+    (function () {
+      // Ensure annotation plugin is registered if available
+      try {
+        const ann = window['chartjs-plugin-annotation'] || window.ChartAnnotation;
+        if (ann && Chart && Chart.register) {
+          Chart.register(ann);
+        }
+      } catch (e) {
+        // no-op if registration fails
+      }
+
+      const embedded = document.getElementById('embedded-memory-data');
+      if (!embedded) {
+        document.getElementById('meta').textContent = 'No embedded data found. Run the generator script.';
+        return;
+      }
+      /** @type {{ generatedAt: string, sourceFile: string, loops: Array<Array<{t:number,memory:{rss:number,heapTotal:number,heapUsed:number,external:number,arrayBuffers:number}}>> }} */
+      const payload = JSON.parse(embedded.textContent || 'null');
+      if (!payload || !Array.isArray(payload.loops)) {
+        document.getElementById('meta').textContent = 'Invalid embedded data.';
+        return;
+      }
+
+      const bytesToMB = (b) => b / (1024 * 1024);
+      const categories = [
+        { key: 'rss', label: 'rss', color: '#1f77b4' },
+        { key: 'heapUsed', label: 'heapUsed', color: '#ff7f0e' },
+        { key: 'heapTotal', label: 'heapTotal', color: '#2ca02c' },
+        { key: 'external', label: 'external', color: '#d62728' },
+        { key: 'arrayBuffers', label: 'arrayBuffers', color: '#9467bd' },
+      ];
+
+      // Build a continuous time series across loops, but keep loop boundaries
+      function buildSeries({ normalizePerLoop }) {
+        /** xUnits are milliseconds */
+        const x = [];
+        const loopBoundaries = []; // x indices where a loop ends (for divider lines)
+        const series = Object.fromEntries(categories.map(c => [c.key, []]));
+
+        let cumulativeOffset = 0;
+        let idx = 0;
+        for (let loopIndex = 0; loopIndex < payload.loops.length; loopIndex += 1) {
+          const loop = payload.loops[loopIndex] || [];
+          if (loop.length === 0) {
+            // Still record a divider to indicate empty loop
+            if (loopIndex > 0) {
+              loopBoundaries.push(idx);
+            }
+            continue;
+          }
+          const t0 = normalizePerLoop ? loop[0].t : 0;
+          for (let i = 0; i < loop.length; i += 1) {
+            const p = loop[i];
+            const tx = normalizePerLoop ? (p.t - t0) : (cumulativeOffset + p.t);
+            x.push(tx);
+            for (const cat of categories) {
+              const val = p.memory?.[cat.key] ?? 0;
+              series[cat.key].push(bytesToMB(val));
+            }
+            idx += 1;
+          }
+          // Record boundary after each loop
+          loopBoundaries.push(idx);
+          // For continuous time (not normalized), advance offset by last t in loop
+          if (!normalizePerLoop) {
+            cumulativeOffset = x[x.length - 1];
+          }
+        }
+        // Remove trailing boundary if it equals the final index (no divider needed at the very end)
+        if (loopBoundaries.length && loopBoundaries[loopBoundaries.length - 1] === idx) {
+          loopBoundaries.pop();
+        }
+        return { x, series, loopBoundaries };
+      }
+
+      const ctx = document.getElementById('memChart').getContext('2d');
+      const stackedToggle = document.getElementById('stackedToggle');
+      const showDividersToggle = document.getElementById('showDividersToggle');
+      const normalizeTimeToggle = document.getElementById('normalizeTimeToggle');
+      const meta = document.getElementById('meta');
+
+      meta.textContent = `Generated ${new Date(payload.generatedAt).toLocaleString()} from ${payload.sourceFile}`;
+
+      function buildChartConfig({ normalizePerLoop, stacked, showDividers }) {
+        const { x, series, loopBoundaries } = buildSeries({ normalizePerLoop });
+        const xLabels = x; // milliseconds (kept for potential categorical fallback)
+        const datasets = categories.map(cat => {
+          const yvals = series[cat.key];
+          const points = x.map((xv, i) => ({ x: xv, y: yvals[i] }));
+          return {
+            label: cat.label,
+            data: points,
+            borderColor: cat.color,
+            backgroundColor: cat.color + '33',
+            fill: stacked ? 'origin' : false,
+            tension: 0.1,
+            pointRadius: 0,
+            borderWidth: 2,
+            hidden: false,
+            stack: stacked ? 'mem' : undefined,
+          };
+        });
+
+        // Build vertical annotations for loop boundaries (by index => x coordinate)
+        const annotations = {};
+        if (showDividers && loopBoundaries.length > 0) {
+          loopBoundaries.forEach((endIndex, i) => {
+            const label = `Loop ${i + 1}`;
+            // Use scaleIndex reference by converting index to x value
+            const xValue = xLabels[endIndex - 1] ?? xLabels[endIndex] ?? null;
+            if (xValue != null) {
+              annotations[`divider_${i}`] = {
+                type: 'line',
+                xMin: xValue,
+                xMax: xValue,
+                borderColor: '#999',
+                borderDash: [4, 4],
+                borderWidth: 1,
+                label: {
+                  display: true,
+                  content: label,
+                  position: 'start',
+                  color: '#666',
+                  backgroundColor: 'rgba(255,255,255,0.8)',
+                  borderRadius: 2,
+                  padding: 4,
+                },
+              };
+            }
+          });
+        }
+
+        return {
+          type: 'line',
+          data: {
+            datasets,
+          },
+          options: {
+            // default parsing is fine for {x,y} points
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'nearest',
+              intersect: false,
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                },
+                onClick(e, legendItem, legend) {
+                  const index = legendItem.datasetIndex;
+                  const ci = legend.chart;
+                  const ds = ci.data.datasets[index];
+                  ds.hidden = !ds.hidden;
+                  ci.update();
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  title: (items) => {
+                    if (!items.length) return '';
+                    const xms = items[0].parsed.x ?? items[0].label;
+                    return normalizePerLoop ? `t = ${Math.round(xms)} ms` : `t = ${Math.round(xms)} ms (cumulative)`;
+                  },
+                  label: (item) => {
+                    const name = item.dataset.label || 'value';
+                    const val = item.parsed.y;
+                    return `${name}: ${val.toFixed(2)} MB`;
+                  },
+                },
+              },
+              annotation: {
+                annotations,
+              },
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: {
+                  display: true,
+                  text: normalizePerLoop ? 'Time within loop (ms)' : 'Time (ms)',
+                },
+              },
+              y: {
+                stacked: !!stacked,
+                title: {
+                  display: true,
+                  text: 'Memory (MB)',
+                },
+                beginAtZero: true,
+              },
+            },
+          },
+        };
+      }
+
+      let chart = null;
+      function render() {
+        const cfg = buildChartConfig({
+          normalizePerLoop: normalizeTimeToggle.checked,
+          stacked: stackedToggle.checked,
+          showDividers: showDividersToggle.checked,
+        });
+        if (chart) {
+          chart.destroy();
+        }
+        chart = new Chart(ctx, cfg);
+      }
+
+      stackedToggle.addEventListener('change', render);
+      showDividersToggle.addEventListener('change', render);
+      normalizeTimeToggle.addEventListener('change', render);
+      render();
+    }());
+  </script>
+</body>
+
+</html>

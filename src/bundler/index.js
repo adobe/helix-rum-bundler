@@ -21,6 +21,7 @@ import {
 import { loop } from '../support/loop.js';
 import { isNewDomain, setDomainKey } from '../support/domains.js';
 import VIRTUAL_DOMAIN_RULES from './virtual.js';
+import Profiler from '../support/Profiler.js';
 
 /**
  * @typedef {Record<string, {
@@ -502,6 +503,9 @@ export default async function bundleRUM(ctx) {
   ctx.attributes.start = ctx.attributes.start || new Date();
   const limit = getEnvVar(ctx, 'BUNDLER_DURATION_LIMIT', DEFAULT_DURATION_LIMIT, 'integer');
 
+  const profiler = Profiler.fromContext(ctx);
+  profiler?.start();
+
   const processor = loop(doBundling, ctx, { limit });
 
   await lockOrThrow(ctx);
@@ -509,6 +513,7 @@ export default async function bundleRUM(ctx) {
     await processor(ctx);
   } finally {
     await unlock(ctx);
+    profiler?.stop();
   }
   return new Response('rum bundled', { status: 200 });
 }
