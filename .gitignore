@@ -10,3 +10,5 @@ test-results.xml
 *.env
 .backups
 test/dev/tools/.local
+test/dev/tools/profiler/index.html
+test/dev/profiler/*.json

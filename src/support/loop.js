@@ -12,6 +12,7 @@
 
 /* eslint-disable no-await-in-loop */
 
+import Profiler from './Profiler.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
 
@@ -54,6 +55,7 @@ async function writeLogs(ctx, data) {
 */
 export const loop = (fn, ctx, opts) => {
   const { limit } = opts;
+  const profiler = Profiler.fromContext(ctx);
 
   return async (...args) => {
     let done = false;
@@ -116,6 +118,8 @@ export const loop = (fn, ctx, opts) => {
           `timeout after ${state.times.length} runs (${Math.round(state.timer)} + ${Math.round(state.average())} >= ${limit})`,
         );
       }
+
+      profiler?.next();
     }
   };
 };
