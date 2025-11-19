@@ -1,3 +1,10 @@
+## [1.12.44](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.43...v1.12.44) (2025-11-19)
+
+
+### Bug Fixes
+
+* profiler, tweak limits ([#435](https://github.com/adobe/[secure]-rum-bundler/issues/435)) ([da603c6](https://github.com/adobe/[secure]-rum-bundler/commit/da603c6c5f562519bd4054f01630195fd96dc8b2))
+
 ## [1.12.43](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.42...v1.12.43) (2025-11-18)
 
 
