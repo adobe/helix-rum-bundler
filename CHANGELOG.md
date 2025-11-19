@@ -1,3 +1,24 @@
+## [1.12.44](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.43...v1.12.44) (2025-11-19)
+
+
+### Bug Fixes
+
+* profiler, tweak limits ([#435](https://github.com/adobe/[secure]-rum-bundler/issues/435)) ([da603c6](https://github.com/adobe/[secure]-rum-bundler/commit/da603c6c5f562519bd4054f01630195fd96dc8b2))
+
+## [1.12.43](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.42...v1.12.43) (2025-11-18)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @aws-sdk/client-s3 to v3.922.0 ([#432](https://github.com/adobe/[secure]-rum-bundler/issues/432)) ([906cae7](https://github.com/adobe/[secure]-rum-bundler/commit/906cae7668588e6f6f634a3200230ede31713c7b))
+
+## [1.12.42](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.41...v1.12.42) (2025-11-18)
+
+
+### Bug Fixes
+
+* tweak params ([#434](https://github.com/adobe/[secure]-rum-bundler/issues/434)) ([dfd5a0a](https://github.com/adobe/[secure]-rum-bundler/commit/dfd5a0a9a574e7459c9cb370ffe1e6d2cfcfd9b8))
+
 ## [1.12.41](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.40...v1.12.41) (2025-11-18)
 
 
