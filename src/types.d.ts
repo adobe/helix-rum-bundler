@@ -66,6 +66,7 @@ declare module '@adobe/helix-universal' {
         stats: Record<string, unknown>;
         start: Date;
         profiler: Profiler;
+        domainTable: DomainTable;
         [key: string]: unknown;
       }
 
@@ -210,5 +211,12 @@ declare global {
     start?: string;
     next?: string;
     limit: number;
+  }
+
+  export interface DomainTable {
+    domains: Map<string, boolean>;
+    save(): void;
+    add(domain: string): void;
+    has(domain: string): boolean;
   }
 }

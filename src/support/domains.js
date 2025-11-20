@@ -61,6 +61,49 @@ export async function listDomains(ctx, start, plimit, pfilter) {
 }
 
 /**
+ * Get domain lookup table from context
+ * @param {UniversalContext} ctx
+ * @returns {Promise<DomainTable>}
+ */
+export async function getDomainTable(ctx) {
+  if (!ctx.attributes.domainTable) {
+    let timeout;
+    ctx.attributes.domainTable = {
+      domains: new Map(),
+      // @ts-ignore
+      async load() {
+        const { bundleBucket } = HelixStorage.fromContext(ctx);
+        const data = await bundleBucket.get('/.domains/lookup.json');
+        const json = data ? JSON.parse(new TextDecoder('utf8').decode(data)) : {};
+        this.domains = new Map(Object.entries(json));
+      },
+      save() {
+        // debounced save
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        timeout = setTimeout(async () => {
+          const { bundleBucket } = HelixStorage.fromContext(ctx);
+          const data = Object.fromEntries(this.domains.entries());
+          await bundleBucket.put('/.domains/lookup.json', JSON.stringify(data), 'application/json');
+          ctx.log.info(`saved ${this.domains.size} domains to lookup table`);
+        }, 1000);
+      },
+      add(domain) {
+        this.domains.set(domain, true);
+        this.save();
+      },
+      has(domain) {
+        return this.domains.has(domain);
+      },
+    };
+    // @ts-ignore
+    await ctx.attributes.domainTable.load();
+  }
+  return ctx.attributes.domainTable;
+}
+
+/**
  * Check whether domain exists in storage yet
  *
  * @param {UniversalContext} ctx
@@ -69,7 +112,18 @@ export async function listDomains(ctx, start, plimit, pfilter) {
  */
 export async function isNewDomain(ctx, domain) {
   const { bundleBucket } = HelixStorage.fromContext(ctx);
+  // check if domainkey exists in lookup table
+  const domainTable = await getDomainTable(ctx);
+  if (domainTable.has(domain)) {
+    return false;
+  }
+
+  // still might already exist, if so add to lookup table
   const res = await bundleBucket.head(`/${domain}/.domainkey`);
+  if (res !== null) {
+    domainTable.add(domain);
+    return false;
+  }
   return res === null;
 }
 

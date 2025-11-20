@@ -15,7 +15,7 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import bundleRUM from '../../src/bundler/index.js';
-import { DEFAULT_CONTEXT, Nock } from '../util.js';
+import { DEFAULT_CONTEXT, Nock, sleep } from '../util.js';
 import { makeEventFile } from './index.test.js';
 import VIRTUALS from '../../src/bundler/virtual.js';
 
@@ -78,8 +78,8 @@ describe('virtual tests', () => {
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         // check if domain exists (yes)
-        .head('/test.example/.domainkey')
-        .reply(200)
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(200, '{"test.example":true}')
         // get manifest
         .get('/test.example/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
@@ -254,10 +254,13 @@ describe('virtual tests', () => {
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        // check if domain exists (yes)
-        .head('/test.one/.domainkey')
-        .reply(200)
+        // check if domain exists (yes, yes but not in lookup table)
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(200, '{"test.one":true}')
         .head('/test.two/.domainkey')
+        .reply(200)
+        // saves lookup table
+        .put('/.domains/lookup.json?x-id=PutObject')
         .reply(200)
         // get manifest
         .get('/test.one/1970/1/1/.manifest.json?x-id=GetObject')
@@ -324,6 +327,7 @@ describe('virtual tests', () => {
         });
       const ctx = DEFAULT_CONTEXT();
       await bundleRUM(ctx);
+      await sleep(1000); // wait for lookup table to be saved
 
       assert.deepStrictEqual(bodies.one.manifest, {
         sessions: {
@@ -461,11 +465,9 @@ describe('virtual tests', () => {
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        // check if domain exists (yes)
-        .head('/test.one/.domainkey')
-        .reply(200)
-        .head('/test.two/.domainkey')
-        .reply(200)
+        // check if domain exists (yes, yes)
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(200, '{"test.one":true, "test.two":true}')
         // get manifest
         .get('/test.one/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
@@ -684,15 +686,9 @@ describe('virtual tests', () => {
 
       // domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        // check if domain exists (yes)
-        .head('/main--helix-website--adobe.hlx.page/.domainkey')
-        .reply(200)
-        .head('/foo--helix-website--adobe.hlx.live/.domainkey')
-        .reply(200)
-        .head('/bar--helix-website--adobe.aem.page/.domainkey')
-        .reply(200)
-        .head('/qux--helix-website--adobe.aem.live/.domainkey')
-        .reply(200)
+        // check if domain exists (all yes)
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(200, '{"main--helix-website--adobe.hlx.page":true, "foo--helix-website--adobe.hlx.live":true, "bar--helix-website--adobe.aem.page":true, "qux--helix-website--adobe.aem.live":true}')
         // get manifest
         .get('/main--helix-website--adobe.hlx.page/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
