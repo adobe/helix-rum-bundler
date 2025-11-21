@@ -455,18 +455,14 @@ async function doBundling(ctx) {
   performance.mark('start:create-keys');
   const domainTable = await getDomainTable(ctx);
   const newDomains = [];
-  await processQueue(
-    domains,
-    async (domain) => {
-      if (await isNewDomain(ctx, domain)) {
-        log.info(`new domain identified: ${domain}`);
-        newDomains.push(domain);
-        await setDomainKey(ctx, domain, undefined, false);
-        domainTable.add(domain);
-      }
-    },
-    concurrency,
-  );
+  await Promise.all(domains.map(async (domain) => {
+    if (await isNewDomain(ctx, domain)) {
+      log.info(`new domain identified: ${domain}`);
+      newDomains.push(domain);
+      await setDomainKey(ctx, domain, undefined, false);
+      domainTable.add(domain);
+    }
+  }));
   performance.mark('end:create-keys');
   stats.newDomains = newDomains.length;
 
