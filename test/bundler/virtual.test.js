@@ -204,7 +204,6 @@ describe('virtual tests', () => {
 
     it('~1% of top events should be grouped to "all" virtual domain', async () => {
       const ogSetTimeout = global.setTimeout;
-      // before(() => {
       global.setTimeout = (fn, ...rest) => {
         if (fn.name === 'saveDomainTable') {
           // save immediately
@@ -213,7 +212,6 @@ describe('virtual tests', () => {
           return ogSetTimeout(fn, ...rest);
         }
       };
-      // });
       after(() => {
         global.setTimeout = ogSetTimeout;
       });
@@ -244,10 +242,6 @@ describe('virtual tests', () => {
         two: {},
         virtual: {},
       };
-      // let lookupTablePutCalled;
-      // const lookupTablePromise = new Promise((resolve) => {
-      //   lookupTablePutCalled = resolve;
-      // });
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
         // logs not locked
@@ -347,7 +341,6 @@ describe('virtual tests', () => {
       const ctx = DEFAULT_CONTEXT();
       await bundleRUM(ctx);
       await sleep(10); // wait for lookup table to be saved
-      // await lookupTablePromise;
 
       assert.deepStrictEqual(bodies.one.manifest, {
         sessions: {
