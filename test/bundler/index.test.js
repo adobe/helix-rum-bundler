@@ -245,7 +245,7 @@ describe('bundler Tests', () => {
       await assertRejectsWithResponse(bundleRUM(ctx), 409);
     });
 
-    it('should bundle events from aws', async () => {
+    it('should bundle events', async () => {
       global.setTimeout = (fn, ...rest) => {
         if (fn.name === 'saveDomainTable') {
           // save immediately
