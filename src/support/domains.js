@@ -128,7 +128,7 @@ export async function isNewDomain(ctx, domain) {
     domainTable.add(domain);
     return false;
   }
-  return res === null;
+  return true;
 }
 
 /**
