@@ -19,7 +19,7 @@ import {
   errorWithResponse, getEnvVar, yesterday,
 } from '../support/util.js';
 import { loop } from '../support/loop.js';
-import { isNewDomain, setDomainKey } from '../support/domains.js';
+import { getDomainTable, isNewDomain, setDomainKey } from '../support/domains.js';
 import VIRTUAL_DOMAIN_RULES from './virtual.js';
 import Profiler from '../support/Profiler.js';
 
@@ -453,6 +453,7 @@ async function doBundling(ctx) {
 
   // find all new domains, generate domainkeys for them
   performance.mark('start:create-keys');
+  const domainTable = await getDomainTable(ctx);
   const newDomains = [];
   await processQueue(
     domains,
@@ -461,6 +462,7 @@ async function doBundling(ctx) {
         log.info(`new domain identified: ${domain}`);
         newDomains.push(domain);
         await setDomainKey(ctx, domain, undefined, false);
+        domainTable.add(domain);
       }
     },
     concurrency,

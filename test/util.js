@@ -54,6 +54,7 @@ export const DEFAULT_CONTEXT = (overrides = {}) => ({
   ...overrides,
   log: new ConsoleProxy(),
   env: {
+    PROFILE_MEM: false,
     CDN_ENDPOINT: 'https://endpoint.example',
     BATCH_LIMIT: '100',
     CONCURRENCY_LIMIT: '4',

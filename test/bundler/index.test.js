@@ -19,6 +19,7 @@ import { promisify } from 'util';
 import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
 import {
   DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
+  sleep,
 } from '../util.js';
 
 const gzip = promisify(zlib.gzip);
@@ -215,16 +216,19 @@ describe('bundler Tests', () => {
     /** @type {import('../util.js').Nocker} */
     let nock;
     let ogUUID;
+    let ogSetTimeout;
     beforeEach(() => {
       nock = new Nock().env();
       ogUUID = crypto.randomUUID;
       crypto.randomUUID = () => 'test-new-key';
       mockDate();
+      ogSetTimeout = global.setTimeout;
     });
     afterEach(() => {
       crypto.randomUUID = ogUUID;
       nock.done();
       global.Date.reset();
+      global.setTimeout = ogSetTimeout;
     });
 
     it('throws 409 if logs are locked', async () => {
@@ -242,9 +246,18 @@ describe('bundler Tests', () => {
     });
 
     it('should bundle events from aws', async () => {
+      global.setTimeout = (fn, ...rest) => {
+        if (fn.name === 'saveDomainTable') {
+          // save immediately
+          return setImmediate(fn);
+        } else {
+          return ogSetTimeout(fn, ...rest);
+        }
+      };
       const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-single.xml'), 'utf-8');
       const mockEventResponseBody = mockEventLogFile('example.com');
       const bodies = {
+        lookupTable: [],
         subdomain: {
           manifest: undefined,
           bundle: undefined,
@@ -289,8 +302,16 @@ describe('bundler Tests', () => {
       // subdomain
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         // check if domain exists (no)
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(404)
         .head('/sub.example.com/.domainkey')
         .reply(404)
+        .put('/.domains/lookup.json?x-id=PutObject')
+        .times(2)
+        .reply((_, body) => {
+          bodies.lookupTable.push(body);
+          return [200];
+        })
         // create domainkey for new domain
         .put('/sub.example.com/.domainkey?x-id=PutObject')
         .reply(200, (_, body) => {
@@ -368,6 +389,12 @@ describe('bundler Tests', () => {
         env: { WRITE_PERF_LOGS: 'true' },
       });
       await bundleRUM(ctx);
+      await sleep(100);
+
+      assert.deepStrictEqual(bodies.lookupTable, [
+        { 'example.com': true },
+        { 'example.com': true, 'sub.example.com': true },
+      ]);
 
       const { subdomain, apex } = bodies;
       // one manifest/bundle update for subdomain, since one event exists
