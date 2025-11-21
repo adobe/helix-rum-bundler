@@ -1,3 +1,10 @@
+## [1.12.50](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.49...v1.12.50) (2025-11-21)
+
+
+### Bug Fixes
+
+* faster domain lookup ([#441](https://github.com/adobe/[secure]-rum-bundler/issues/441)) ([9531c37](https://github.com/adobe/[secure]-rum-bundler/commit/9531c372add21d5b0bb01c1ecb12ec78881c5554))
+
 ## [1.12.49](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.48...v1.12.49) (2025-11-21)
 
 
