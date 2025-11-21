@@ -19,9 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24.x'
       - run: npm install
       - run: npm test
       - uses: codecov/codecov-action@v5
@@ -36,13 +36,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24.x'
       - run: npm install
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: us-east-1
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
@@ -80,13 +80,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24.x'
       - run: npm install
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: us-east-1
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
