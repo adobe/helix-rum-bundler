@@ -34,7 +34,7 @@ export default class Profiler {
    * @returns {Profiler | null}
    */
   static fromContext(ctx) {
-    if (!process.env.PROFILE_MEM) {
+    if (!ctx.env.PROFILE_MEM) {
       return null;
     }
     if (ctx.attributes.profiler) {

@@ -203,6 +203,21 @@ describe('virtual tests', () => {
     });
 
     it('~1% of top events should be grouped to "all" virtual domain', async () => {
+      const ogSetTimeout = global.setTimeout;
+      // before(() => {
+      global.setTimeout = (fn, ...rest) => {
+        if (fn.name === 'saveDomainTable') {
+          // save immediately
+          return setImmediate(fn);
+        } else {
+          return ogSetTimeout(fn, ...rest);
+        }
+      };
+      // });
+      after(() => {
+        global.setTimeout = ogSetTimeout;
+      });
+
       const vals = [
         /** example.one doesn't hit threshold, excluded */
         1,
@@ -229,6 +244,10 @@ describe('virtual tests', () => {
         two: {},
         virtual: {},
       };
+      // let lookupTablePutCalled;
+      // const lookupTablePromise = new Promise((resolve) => {
+      //   lookupTablePutCalled = resolve;
+      // });
 
       nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
         // logs not locked
@@ -327,7 +346,8 @@ describe('virtual tests', () => {
         });
       const ctx = DEFAULT_CONTEXT();
       await bundleRUM(ctx);
-      await sleep(1000); // wait for lookup table to be saved
+      await sleep(10); // wait for lookup table to be saved
+      // await lookupTablePromise;
 
       assert.deepStrictEqual(bodies.one.manifest, {
         sessions: {
@@ -688,7 +708,13 @@ describe('virtual tests', () => {
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
         // check if domain exists (all yes)
         .get('/.domains/lookup.json?x-id=GetObject')
-        .reply(200, '{"main--helix-website--adobe.hlx.page":true, "foo--helix-website--adobe.hlx.live":true, "bar--helix-website--adobe.aem.page":true, "qux--helix-website--adobe.aem.live":true}')
+        .reply(200, JSON.stringify({
+          'main--helix-website--adobe.hlx.page': true,
+          'foo--helix-website--adobe.hlx.live': true,
+          'bar--helix-website--adobe.aem.page': true,
+          'qux--helix-website--adobe.aem.live': true,
+          'adobe.aem.live': true,
+        }))
         // get manifest
         .get('/main--helix-website--adobe.hlx.page/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)
@@ -769,8 +795,8 @@ describe('virtual tests', () => {
 
       // virtual domain bundling
       nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
-        .head('/adobe.aem.live/.domainkey')
-        .reply(200)
+        // .head('/adobe.aem.live/.domainkey')
+        // .reply(200)
         // get manifest (org)
         .get('/adobe.aem.live/1970/1/1/.manifest.json?x-id=GetObject')
         .reply(404)

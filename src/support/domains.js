@@ -82,11 +82,15 @@ export async function getDomainTable(ctx) {
         if (timeout) {
           clearTimeout(timeout);
         }
-        timeout = setTimeout(async () => {
+        // use named function to identify in tests
+        // eslint-disable-next-line prefer-arrow-callback
+        timeout = setTimeout(async function saveDomainTable() {
+          timeout = null;
+          const { domains } = ctx.attributes.domainTable;
           const { bundleBucket } = HelixStorage.fromContext(ctx);
-          const data = Object.fromEntries(this.domains.entries());
+          const data = Object.fromEntries(domains.entries());
           await bundleBucket.put('/.domains/lookup.json', JSON.stringify(data), 'application/json');
-          ctx.log.info(`saved ${this.domains.size} domains to lookup table`);
+          ctx.log.info(`saved ${domains.size} domains to lookup table`);
         }, 1000);
       },
       add(domain) {
