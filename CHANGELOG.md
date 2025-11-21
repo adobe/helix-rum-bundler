@@ -1,3 +1,10 @@
+## [1.12.49](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.48...v1.12.49) (2025-11-21)
+
+
+### Bug Fixes
+
+* domain lookup table ([#440](https://github.com/adobe/[secure]-rum-bundler/issues/440)) ([b0c2001](https://github.com/adobe/[secure]-rum-bundler/commit/b0c200198b3348b102107528cc4d61cd46176696))
+
 ## [1.12.48](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.47...v1.12.48) (2025-11-19)
 
 
