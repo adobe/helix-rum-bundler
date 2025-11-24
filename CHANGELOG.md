@@ -1,3 +1,10 @@
+## [1.12.51](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.50...v1.12.51) (2025-11-24)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#443](https://github.com/adobe/[secure]-rum-bundler/issues/443)) ([ad17aec](https://github.com/adobe/[secure]-rum-bundler/commit/ad17aec9546f5a7b0fc303b50289e06d9f3c55d5))
+
 ## [1.12.50](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.49...v1.12.50) (2025-11-21)
 
 
