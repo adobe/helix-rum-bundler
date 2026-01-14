@@ -1,3 +1,10 @@
+## [1.12.64](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.63...v1.12.64) (2026-01-14)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/[secure]-shared-process-queue to v3.1.5 ([#459](https://github.com/adobe/[secure]-rum-bundler/issues/459)) ([1737abb](https://github.com/adobe/[secure]-rum-bundler/commit/1737abb000ac08eb43d2886e6bd684b7b4e131ff))
+
 ## [1.12.63](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.62...v1.12.63) (2026-01-12)
 
 
