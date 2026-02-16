@@ -48,5 +48,40 @@ createTargets().forEach((target) => {
       const res = await fetch(target.url('/'));
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
+
+    it('rejects bedrock request without auth', async () => {
+      const res = await fetch(target.url('/bedrock'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
+          messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
+        }),
+      });
+      assert.strictEqual(res.status, 401);
+    }).timeout(50000);
+
+    it('calls bedrock converse API', async () => {
+      const res = await fetch(target.url('/bedrock'), {
+        method: 'POST',
+        headers: {
+          ...target.headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
+          messages: [{ role: 'user', content: [{ text: 'Say OK' }] }],
+          inferenceConfig: { maxTokens: 10 },
+        }),
+      });
+
+      assert.strictEqual(res.status, 200);
+      const json = await res.json();
+      assert.ok(json.output, 'response should have output');
+      assert.ok(json.stopReason, 'response should have stopReason');
+      assert.ok(json.usage, 'response should have usage');
+    }).timeout(60000);
   });
 });
