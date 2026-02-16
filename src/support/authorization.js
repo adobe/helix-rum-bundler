@@ -94,6 +94,35 @@ export async function assertOrgAdminAuthorized(req, ctx, org, key) {
 }
 
 /**
+ * Asserts that the bearer token is either superuser or any valid admin.
+ * Used for APIs that all admins can access without specific permissions.
+ *
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+export async function assertAdminOrSuperuserAuthorized(req, ctx) {
+  if (isSuperuserAuthorized(req, ctx)) {
+    return;
+  }
+
+  const actual = req.headers.get('authorization')?.slice(7); // bearer
+  if (!actual) {
+    throw errorWithResponse(401, 'missing auth');
+  }
+
+  if (actual.startsWith('admin:')) {
+    const id = actual.split(':')[1];
+    const admin = await retrieveAdmin(ctx, id);
+    if (admin) {
+      ctx.attributes.adminId = id;
+      return;
+    }
+  }
+
+  throw errorWithResponse(403, 'invalid auth');
+}
+
+/**
  * Asserts that the bearer token is allowed to CRUD the domainkey for the domain.
  *
  * @param {RRequest} req
