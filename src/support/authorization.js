@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { retrieveAdmin } from './admins.js';
+import { retrieveAdmin, retrieveAdminkey } from './admins.js';
 import { getDomainOrgkeyMap } from './orgs.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
@@ -111,11 +111,16 @@ export async function assertAdminOrSuperuserAuthorized(req, ctx) {
   }
 
   if (actual.startsWith('admin:')) {
-    const id = actual.split(':')[1];
+    const parts = actual.split(':');
+    const id = parts[1];
+    const key = parts.slice(2).join(':'); // key may contain colons
     const admin = await retrieveAdmin(ctx, id);
     if (admin) {
-      ctx.attributes.adminId = id;
-      return;
+      const storedKey = await retrieveAdminkey(ctx, id);
+      if (storedKey && key === storedKey) {
+        ctx.attributes.adminId = id;
+        return;
+      }
     }
   }
 
