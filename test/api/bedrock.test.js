@@ -143,24 +143,56 @@ describe('api/bedrock Tests', () => {
       it('allows valid admin key', async () => {
         nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
           .get('/admins/myuser/admin.json?x-id=GetObject')
-          .reply(200, JSON.stringify({ permissions: ['domainkeys:read'] }));
+          .reply(200, JSON.stringify({ permissions: ['domainkeys:read'] }))
+          .get('/admins/myuser/.adminkey?x-id=GetObject')
+          .reply(200, 'my-admin-key');
 
         const req = REQUEST({
           method: 'POST',
           token: 'admin:myuser:my-admin-key',
-          body: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
+          body: {
+            modelId: 'test-model',
+            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
+          },
         });
         const ctx = DEFAULT_CONTEXT({
           pathInfo: { suffix: '/bedrock' },
-          env: {
-            TMP_SUPERUSER_API_KEY: 'superkey',
-            BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
+          env: { TMP_SUPERUSER_API_KEY: 'superkey' },
+          data: {
+            modelId: 'test-model',
+            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
           },
-          data: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
         });
 
         const resp = await handleRequest(req, ctx);
         assert.strictEqual(resp.status, 200);
+      });
+
+      it('rejects admin with wrong key', async () => {
+        nock('https://helix-rum-users.s3.us-east-1.amazonaws.com')
+          .get('/admins/myuser/admin.json?x-id=GetObject')
+          .reply(200, JSON.stringify({ permissions: ['domainkeys:read'] }))
+          .get('/admins/myuser/.adminkey?x-id=GetObject')
+          .reply(200, 'correct-key');
+
+        const req = REQUEST({
+          method: 'POST',
+          token: 'admin:myuser:wrong-key',
+          body: {
+            modelId: 'test-model',
+            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
+          },
+        });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: { suffix: '/bedrock' },
+          env: { TMP_SUPERUSER_API_KEY: 'superkey' },
+          data: {
+            modelId: 'test-model',
+            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
+          },
+        });
+
+        await assertRejectsWithResponse(() => handleRequest(req, ctx), 403, 'invalid auth');
       });
     });
 
