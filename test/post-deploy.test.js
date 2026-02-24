@@ -28,6 +28,7 @@ createTargets().forEach((target) => {
       const res = await fetch(url, {
         headers: {
           ...target.headers,
+          authorization: undefined,
         },
       });
       assert.strictEqual(res.status, 200);
