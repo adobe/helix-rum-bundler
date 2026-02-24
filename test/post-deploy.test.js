@@ -74,7 +74,7 @@ createTargets().forEach((target) => {
         body: JSON.stringify({
           modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
           messages: [{ role: 'user', content: [{ text: 'Say OK' }] }],
-          inferenceConfig: { maxTokens: 10 },
+          max_tokens: 10,
         }),
       });
 
@@ -82,8 +82,8 @@ createTargets().forEach((target) => {
       const xError = res.headers.get('x-error') || '';
       assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${xError}`);
       const json = JSON.parse(body);
-      assert.ok(json.output, 'response should have output');
-      assert.ok(json.stopReason, 'response should have stopReason');
+      assert.ok(json.content, 'response should have content');
+      assert.ok(json.stop_reason, 'response should have stop_reason');
       assert.ok(json.usage, 'response should have usage');
     }).timeout(60000);
   });

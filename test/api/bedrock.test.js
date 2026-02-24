@@ -28,16 +28,12 @@ const REQUEST = ({ method, token = 'superkey', body = null }) => new Request('ht
   body: body ? JSON.stringify(body) : undefined,
 });
 
-const MOCK_CONVERSE_RESPONSE = {
-  output: {
-    message: {
-      role: 'assistant',
-      content: [{ text: 'Hello! How can I help you?' }],
-    },
-  },
-  stopReason: 'end_turn',
-  usage: { inputTokens: 10, outputTokens: 20 },
-  metrics: { latencyMs: 100 },
+const MOCK_INVOKE_RESPONSE = {
+  body: new TextEncoder().encode(JSON.stringify({
+    content: [{ type: 'text', text: 'Hello! How can I help you?' }],
+    stop_reason: 'end_turn',
+    usage: { input_tokens: 10, output_tokens: 20 },
+  })),
 };
 
 describe('api/bedrock Tests', () => {
@@ -51,21 +47,20 @@ describe('api/bedrock Tests', () => {
     nock = new Nock().env();
     converseCallArgs = null;
 
-    // Mock Bedrock client using function constructor pattern
     function MockBedrockRuntimeClient() {}
     MockBedrockRuntimeClient.prototype.send = function send(command) {
       converseCallArgs = command.input;
-      return Promise.resolve(MOCK_CONVERSE_RESPONSE);
+      return Promise.resolve(MOCK_INVOKE_RESPONSE);
     };
 
-    function MockConverseCommand(input) {
+    function MockInvokeModelCommand(input) {
       this.input = input;
     }
 
     handleRequest = (await esmock('../../src/api/bedrock.js', {
       '@aws-sdk/client-bedrock-runtime': {
         BedrockRuntimeClient: MockBedrockRuntimeClient,
-        ConverseCommand: MockConverseCommand,
+        InvokeModelCommand: MockInvokeModelCommand,
       },
     })).default;
   });
@@ -220,7 +215,7 @@ describe('api/bedrock Tests', () => {
       });
     });
 
-    describe('converse', () => {
+    describe('invokeModel', () => {
       it('returns response with correct structure', async () => {
         const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
         const req = REQUEST({ method: 'POST', body: { messages } });
@@ -235,8 +230,8 @@ describe('api/bedrock Tests', () => {
         assert.strictEqual(resp.headers.get('content-type'), 'application/json');
 
         const body = await resp.json();
-        assert.ok(body.output);
-        assert.strictEqual(body.stopReason, 'end_turn');
+        assert.ok(body.content);
+        assert.strictEqual(body.stop_reason, 'end_turn');
         assert.ok(body.usage);
       });
 
@@ -254,12 +249,12 @@ describe('api/bedrock Tests', () => {
         assert.strictEqual(converseCallArgs.modelId, requestModelId);
       });
 
-      it('passes system, inferenceConfig, and toolConfig', async () => {
+      it('passes optional parameters in request body', async () => {
         const requestData = {
           messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-          system: [{ text: 'You are helpful.' }],
-          inferenceConfig: { maxTokens: 1000, temperature: 0.7 },
-          toolConfig: { tools: [] },
+          system: 'You are helpful.',
+          temperature: 0.7,
+          max_tokens: 1000,
         };
         const req = REQUEST({ method: 'POST', body: requestData });
         const ctx = DEFAULT_CONTEXT({
@@ -270,13 +265,13 @@ describe('api/bedrock Tests', () => {
 
         await handleRequest(req, ctx);
 
-        assert.deepStrictEqual(converseCallArgs.system, requestData.system);
-        assert.deepStrictEqual(converseCallArgs.inferenceConfig, requestData.inferenceConfig);
-        assert.deepStrictEqual(converseCallArgs.toolConfig, requestData.toolConfig);
+        const sentBody = JSON.parse(converseCallArgs.body);
+        assert.strictEqual(sentBody.system, requestData.system);
+        assert.strictEqual(sentBody.temperature, requestData.temperature);
+        assert.strictEqual(sentBody.max_tokens, requestData.max_tokens);
       });
 
       it('returns 502 on Bedrock API error', async () => {
-        // Re-mock with error-throwing client
         function MockBedrockRuntimeClientError() {}
         MockBedrockRuntimeClientError.prototype.send = function send() {
           const error = new Error('Model not accessible');
@@ -284,14 +279,14 @@ describe('api/bedrock Tests', () => {
           return Promise.reject(error);
         };
 
-        function MockConverseCommandError(input) {
+        function MockInvokeModelCommandError(input) {
           this.input = input;
         }
 
         const handleRequestWithError = (await esmock('../../src/api/bedrock.js', {
           '@aws-sdk/client-bedrock-runtime': {
             BedrockRuntimeClient: MockBedrockRuntimeClientError,
-            ConverseCommand: MockConverseCommandError,
+            InvokeModelCommand: MockInvokeModelCommandError,
           },
         })).default;
 

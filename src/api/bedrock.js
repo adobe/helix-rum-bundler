@@ -11,40 +11,37 @@
  */
 
 import { Response } from '@adobe/fetch';
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
 
 /**
- * Proxy request to Bedrock Converse API.
- * Accepts the same request body format as direct Bedrock API calls.
- *
+ * Proxy request to Bedrock InvokeModel API (Claude Messages format).
  * @param {RRequest} req
  * @param {UniversalContext} ctx
  */
-async function converse(req, ctx) {
-  /** @type {any} */
+async function invokeModel(req, ctx) {
   const body = ctx.data;
-
-  if (!body || !body.messages) {
+  if (!body?.messages) {
     throw errorWithResponse(400, 'missing messages in request body');
   }
 
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
-  const client = new BedrockRuntimeClient({ region });
-
-  // Use model from request body, env, or error
   const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
   if (!modelId) {
     throw errorWithResponse(400, 'missing modelId in request body or environment');
   }
 
-  const command = new ConverseCommand({
+  const client = new BedrockRuntimeClient({ region: ctx.env.BEDROCK_REGION || 'us-east-1' });
+  const command = new InvokeModelCommand({
     modelId,
-    messages: body.messages,
-    system: body.system,
-    inferenceConfig: body.inferenceConfig,
-    toolConfig: body.toolConfig,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: body.max_tokens || 4096,
+      ...body,
+      modelId: undefined, // exclude from request body
+    }),
   });
 
   let response;
@@ -55,15 +52,8 @@ async function converse(req, ctx) {
     throw errorWithResponse(502, `bedrock error: ${err.name}`);
   }
 
-  return new Response(JSON.stringify({
-    output: response.output,
-    stopReason: response.stopReason,
-    usage: response.usage,
-    metrics: response.metrics,
-  }), {
-    headers: {
-      'content-type': 'application/json',
-    },
+  return new Response(new TextDecoder().decode(response.body), {
+    headers: { 'content-type': 'application/json' },
   });
 }
 
@@ -77,7 +67,7 @@ export default async function handleRequest(req, ctx) {
   await assertAdminOrSuperuserAuthorized(req, ctx);
 
   if (req.method === 'POST') {
-    return converse(req, ctx);
+    return invokeModel(req, ctx);
   }
 
   return new Response('method not allowed', { status: 405 });
