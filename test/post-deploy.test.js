@@ -79,7 +79,8 @@ createTargets().forEach((target) => {
       });
 
       const body = await res.text();
-      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${body}`);
+      const xError = res.headers.get('x-error') || '';
+      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${xError}`);
       const json = JSON.parse(body);
       assert.ok(json.output, 'response should have output');
       assert.ok(json.stopReason, 'response should have stopReason');
