@@ -78,8 +78,9 @@ createTargets().forEach((target) => {
         }),
       });
 
-      assert.strictEqual(res.status, 200);
-      const json = await res.json();
+      const body = await res.text();
+      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${body}`);
+      const json = JSON.parse(body);
       assert.ok(json.output, 'response should have output');
       assert.ok(json.stopReason, 'response should have stopReason');
       assert.ok(json.usage, 'response should have usage');

@@ -274,6 +274,37 @@ describe('api/bedrock Tests', () => {
         assert.deepStrictEqual(converseCallArgs.inferenceConfig, requestData.inferenceConfig);
         assert.deepStrictEqual(converseCallArgs.toolConfig, requestData.toolConfig);
       });
+
+      it('returns 502 on Bedrock API error', async () => {
+        // Re-mock with error-throwing client
+        function MockBedrockRuntimeClientError() {}
+        MockBedrockRuntimeClientError.prototype.send = function send() {
+          const error = new Error('Model not accessible');
+          error.name = 'AccessDeniedException';
+          return Promise.reject(error);
+        };
+
+        function MockConverseCommandError(input) {
+          this.input = input;
+        }
+
+        const handleRequestWithError = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': {
+            BedrockRuntimeClient: MockBedrockRuntimeClientError,
+            ConverseCommand: MockConverseCommandError,
+          },
+        })).default;
+
+        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
+        const req = REQUEST({ method: 'POST', body: { messages } });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: { suffix: '/bedrock' },
+          env: { BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
+          data: { messages },
+        });
+
+        await assertRejectsWithResponse(() => handleRequestWithError(req, ctx), 502, 'bedrock error: AccessDeniedException');
+      });
     });
   });
 

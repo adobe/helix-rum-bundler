@@ -47,7 +47,13 @@ async function converse(req, ctx) {
     toolConfig: body.toolConfig,
   });
 
-  const response = await client.send(command);
+  let response;
+  try {
+    response = await client.send(command);
+  } catch (err) {
+    ctx.log.error('Bedrock API error', err.name, err.message);
+    throw errorWithResponse(502, `bedrock error: ${err.name}`);
+  }
 
   return new Response(JSON.stringify({
     output: response.output,
