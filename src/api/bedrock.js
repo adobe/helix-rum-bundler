@@ -76,7 +76,7 @@ async function invokeModel(req, ctx) {
     });
   } catch (err) {
     ctx.log.error('Bedrock API error', err.name, err.message);
-    throw errorWithResponse(502, `bedrock error: ${err.name}`);
+    throw errorWithResponse(502, `bedrock error: ${err.name}: ${err.message}`);
   }
 }
 
