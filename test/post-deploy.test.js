@@ -57,7 +57,7 @@ createTargets().forEach((target) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
+          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
           messages: [{ role: 'user', content: 'Hi' }],
         }),
       });
@@ -72,7 +72,7 @@ createTargets().forEach((target) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
+          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
           messages: [{ role: 'user', content: 'Say OK' }],
           max_tokens: 10,
         }),
