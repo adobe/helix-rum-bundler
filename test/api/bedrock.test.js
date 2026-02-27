@@ -292,6 +292,44 @@ describe('api/bedrock Tests', () => {
         assert.strictEqual(sentBody.max_tokens, requestData.max_tokens);
       });
 
+      it('uses cross-account role when BEDROCK_ROLE_ARN is set', async () => {
+        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
+        const req = REQUEST({ method: 'POST', body: { messages } });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: { suffix: '/bedrock' },
+          env: {
+            BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
+            BEDROCK_ROLE_ARN: 'arn:aws:iam::123456789012:role/BedrockRole',
+          },
+          data: { messages },
+        });
+
+        const resp = await handleRequest(req, ctx);
+        assert.strictEqual(resp.status, 200);
+      });
+
+      it('returns 502 on STS AssumeRole error', async () => {
+        function MockSTSError() {}
+        MockSTSError.prototype.send = () => Promise.reject(Object.assign(new Error('denied'), { name: 'AccessDenied' }));
+        function MockBedrock() {}
+        function MockCmd() {}
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockBedrock, InvokeModelCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockSTSError, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
+        const req = REQUEST({ method: 'POST', body: { messages } });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: { suffix: '/bedrock' },
+          env: { BEDROCK_MODEL_ID: 'model', BEDROCK_ROLE_ARN: 'arn:aws:iam::123:role/R' },
+          data: { messages },
+        });
+
+        await assertRejectsWithResponse(() => handler(req, ctx), 502, 'sts error: AccessDenied');
+      });
+
       it('returns 502 on Bedrock API error', async () => {
         function MockBedrockRuntimeClientError() {}
         MockBedrockRuntimeClientError.prototype.send = function send() {
