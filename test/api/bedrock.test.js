@@ -329,7 +329,7 @@ describe('api/bedrock Tests', () => {
           data: { messages },
         });
 
-        await assertRejectsWithResponse(() => handleRequestWithError(req, ctx), 502, 'bedrock error: AccessDeniedException');
+        await assertRejectsWithResponse(() => handleRequestWithError(req, ctx), 502, 'bedrock error: AccessDeniedException: Model not accessible');
       });
     });
   });
