@@ -18,6 +18,7 @@ import bundles from './bundles.js';
 import orgs from './orgs.js';
 import domains from './domains.js';
 import admins from './admins.js';
+import bedrock from './bedrock.js';
 
 const handlers = {
   domains,
@@ -25,6 +26,7 @@ const handlers = {
   bundles,
   orgs,
   admins,
+  bedrock,
 };
 
 /**

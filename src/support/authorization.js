@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { retrieveAdmin } from './admins.js';
+import { retrieveAdmin, retrieveAdminkey } from './admins.js';
 import { getDomainOrgkeyMap } from './orgs.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
@@ -91,6 +91,40 @@ export async function assertOrgAdminAuthorized(req, ctx, org, key) {
       throw e;
     }
   }
+}
+
+/**
+ * Asserts that the bearer token is either superuser or any valid admin.
+ * Used for APIs that all admins can access without specific permissions.
+ *
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+export async function assertAdminOrSuperuserAuthorized(req, ctx) {
+  if (isSuperuserAuthorized(req, ctx)) {
+    return;
+  }
+
+  const actual = req.headers.get('authorization')?.slice(7); // bearer
+  if (!actual) {
+    throw errorWithResponse(401, 'missing auth');
+  }
+
+  if (actual.startsWith('admin:')) {
+    const parts = actual.split(':');
+    const id = parts[1];
+    const key = parts.slice(2).join(':'); // key may contain colons
+    const admin = await retrieveAdmin(ctx, id);
+    if (admin) {
+      const storedKey = await retrieveAdminkey(ctx, id);
+      if (storedKey && key === storedKey) {
+        ctx.attributes.adminId = id;
+        return;
+      }
+    }
+  }
+
+  throw errorWithResponse(403, 'invalid auth');
 }
 
 /**
