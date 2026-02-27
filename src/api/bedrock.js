@@ -76,7 +76,9 @@ async function invokeModel(req, ctx) {
     });
   } catch (err) {
     ctx.log.error('Bedrock API error', err.name, err.message);
-    throw errorWithResponse(502, `bedrock error: ${err.name}: ${err.message}`);
+    // Sanitize error message for HTTP header (remove control characters)
+    const sanitizedMessage = err.message?.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '') || '';
+    throw errorWithResponse(502, `bedrock error: ${err.name}: ${sanitizedMessage}`);
   }
 }
 
