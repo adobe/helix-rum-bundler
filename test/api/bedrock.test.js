@@ -36,6 +36,14 @@ const MOCK_INVOKE_RESPONSE = {
   })),
 };
 
+const MOCK_STS_CREDENTIALS = {
+  Credentials: {
+    AccessKeyId: 'mock-access-key-id',
+    SecretAccessKey: 'mock-secret-access-key',
+    SessionToken: 'mock-session-token',
+  },
+};
+
 describe('api/bedrock Tests', () => {
   /** @type {import('../util.js').Nocker} */
   let nock;
@@ -57,10 +65,23 @@ describe('api/bedrock Tests', () => {
       this.input = input;
     }
 
+    function MockSTSClient() {}
+    MockSTSClient.prototype.send = function send() {
+      return Promise.resolve(MOCK_STS_CREDENTIALS);
+    };
+
+    function MockAssumeRoleCommand(input) {
+      this.input = input;
+    }
+
     handleRequest = (await esmock('../../src/api/bedrock.js', {
       '@aws-sdk/client-bedrock-runtime': {
         BedrockRuntimeClient: MockBedrockRuntimeClient,
         InvokeModelCommand: MockInvokeModelCommand,
+      },
+      '@aws-sdk/client-sts': {
+        STSClient: MockSTSClient,
+        AssumeRoleCommand: MockAssumeRoleCommand,
       },
     })).default;
   });
@@ -283,10 +304,20 @@ describe('api/bedrock Tests', () => {
           this.input = input;
         }
 
+        function MockSTSClient() {}
+        MockSTSClient.prototype.send = () => Promise.resolve(MOCK_STS_CREDENTIALS);
+        function MockAssumeRoleCommand(input) {
+          this.input = input;
+        }
+
         const handleRequestWithError = (await esmock('../../src/api/bedrock.js', {
           '@aws-sdk/client-bedrock-runtime': {
             BedrockRuntimeClient: MockBedrockRuntimeClientError,
             InvokeModelCommand: MockInvokeModelCommandError,
+          },
+          '@aws-sdk/client-sts': {
+            STSClient: MockSTSClient,
+            AssumeRoleCommand: MockAssumeRoleCommand,
           },
         })).default;
 

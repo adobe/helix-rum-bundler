@@ -62,7 +62,7 @@
     "@adobe/helix-status": "10.1.5",
     "@aws-sdk/client-bedrock-runtime": "^3.990.0",
     "@aws-sdk/client-s3": "3.987.0",
-    "@aws-sdk/client-sts": "^3.990.0",
+    "@aws-sdk/client-sts": "^3.999.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.1.0"
   },

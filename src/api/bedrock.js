@@ -11,6 +11,7 @@
  */
 
 import { Response } from '@adobe/fetch';
+import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
@@ -31,7 +32,31 @@ async function invokeModel(req, ctx) {
     throw errorWithResponse(400, 'missing modelId in request body or environment');
   }
 
-  const client = new BedrockRuntimeClient({ region: ctx.env.BEDROCK_REGION || 'us-east-1' });
+  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
+  let credentials;
+
+  // If cross-account role is configured, assume it first
+  if (ctx.env.BEDROCK_ROLE_ARN) {
+    const stsClient = new STSClient({ region });
+    let assumeRoleResponse;
+    try {
+      assumeRoleResponse = await stsClient.send(new AssumeRoleCommand({
+        RoleArn: ctx.env.BEDROCK_ROLE_ARN,
+        RoleSessionName: 'helix-rum-bundler',
+        DurationSeconds: 900,
+      }));
+    } catch (err) {
+      ctx.log.error('STS AssumeRole error', err.name, err.message);
+      throw errorWithResponse(502, `sts error: ${err.name}`);
+    }
+    credentials = {
+      accessKeyId: assumeRoleResponse.Credentials.AccessKeyId,
+      secretAccessKey: assumeRoleResponse.Credentials.SecretAccessKey,
+      sessionToken: assumeRoleResponse.Credentials.SessionToken,
+    };
+  }
+
+  const client = new BedrockRuntimeClient({ region, credentials });
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
@@ -44,17 +69,15 @@ async function invokeModel(req, ctx) {
     }),
   });
 
-  let response;
   try {
-    response = await client.send(command);
+    const response = await client.send(command);
+    return new Response(new TextDecoder().decode(response.body), {
+      headers: { 'content-type': 'application/json' },
+    });
   } catch (err) {
     ctx.log.error('Bedrock API error', err.name, err.message);
     throw errorWithResponse(502, `bedrock error: ${err.name}`);
   }
-
-  return new Response(new TextDecoder().decode(response.body), {
-    headers: { 'content-type': 'application/json' },
-  });
 }
 
 /**
