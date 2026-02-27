@@ -58,13 +58,13 @@ createTargets().forEach((target) => {
         },
         body: JSON.stringify({
           modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
-          messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
+          messages: [{ role: 'user', content: 'Hi' }],
         }),
       });
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
 
-    it('calls bedrock converse API', async () => {
+    it('calls bedrock InvokeModel API', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
         headers: {
@@ -73,7 +73,7 @@ createTargets().forEach((target) => {
         },
         body: JSON.stringify({
           modelId: 'anthropic.claude-opus-4-5-20251101-v1:0',
-          messages: [{ role: 'user', content: [{ text: 'Say OK' }] }],
+          messages: [{ role: 'user', content: 'Say OK' }],
           max_tokens: 10,
         }),
       });
