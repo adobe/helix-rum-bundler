@@ -369,6 +369,27 @@ describe('api/bedrock Tests', () => {
 
         await assertRejectsWithResponse(() => handleRequestWithError(req, ctx), 502, 'bedrock error: AccessDeniedException: Model not accessible');
       });
+
+      it('returns 502 on Bedrock timeout', async () => {
+        function MockBedrockTimeout() {}
+        MockBedrockTimeout.prototype.send = () => Promise.reject(Object.assign(new Error('Socket timed out'), { name: 'TimeoutError' }));
+        function MockCmd() {}
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockBedrockTimeout, InvokeModelCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
+        const req = REQUEST({ method: 'POST', body: { messages } });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: { suffix: '/bedrock' },
+          env: { BEDROCK_MODEL_ID: 'model' },
+          data: { messages },
+        });
+
+        await assertRejectsWithResponse(() => handler(req, ctx), 502, 'bedrock error: TimeoutError: Socket timed out');
+      });
     });
   });
 
