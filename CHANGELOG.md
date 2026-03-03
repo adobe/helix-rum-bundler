@@ -1,3 +1,25 @@
+# [1.13.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.72...v1.13.0) (2026-03-03)
+
+
+### Bug Fixes
+
+* add error handling for Bedrock API errors ([23ce7a1](https://github.com/adobe/[secure]-rum-bundler/commit/23ce7a155073f9bbe8b50261385b93892cb2e6a8))
+* copyright ([c47cb1f](https://github.com/adobe/[secure]-rum-bundler/commit/c47cb1f353f44669af2ee04aa026c3f706944a1a))
+* include error message in bedrock error response ([8eb9cbc](https://github.com/adobe/[secure]-rum-bundler/commit/8eb9cbcb42c484a36e2d746ab876c272fe90d065))
+* read x-error header for bedrock error diagnostics ([3df44df](https://github.com/adobe/[secure]-rum-bundler/commit/3df44df5507a7b57041f334a95c87ba21ff7f1c7))
+* register bedrock route in PathInfo ([47c8336](https://github.com/adobe/[secure]-rum-bundler/commit/47c833631f5c9764df3c89759d0028e200a7c1e6))
+* remove authorization header from healthcheck test ([f611581](https://github.com/adobe/[secure]-rum-bundler/commit/f6115811b9ab2a173b9d3329a50e69d702af1b7a))
+* sanitize error message for x-error header ([baf55d5](https://github.com/adobe/[secure]-rum-bundler/commit/baf55d5574b13b079f9a106b13044c8d2e38fa67))
+* use inference profile for Opus model in post-deploy test ([a38961d](https://github.com/adobe/[secure]-rum-bundler/commit/a38961da8c4568c188e85cb6551462c9869a4629))
+* use Messages API format in post-deploy test ([217f5a3](https://github.com/adobe/[secure]-rum-bundler/commit/217f5a3047252bcf68b59fe669b4c225af6e60b8))
+* validate admin key in assertAdminOrSuperuserAuthorized ([22aa945](https://github.com/adobe/[secure]-rum-bundler/commit/22aa945b174b8f58e917c9c104c9e3933d9148ad))
+
+
+### Features
+
+* add Bedrock proxy endpoint for admin access ([170b6de](https://github.com/adobe/[secure]-rum-bundler/commit/170b6de5c7a88232a4c6c64e367e0aae7a3eb47e))
+* add cross-account role assumption for Bedrock API ([602b252](https://github.com/adobe/[secure]-rum-bundler/commit/602b2524044805e34480cc33b60d2eb4c1e758e7))
+
 ## [1.12.72](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.71...v1.12.72) (2026-03-03)
 
 
