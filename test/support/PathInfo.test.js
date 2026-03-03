@@ -21,6 +21,15 @@ describe('support/PathInfo tests', () => {
     await assertRejectsWithResponse(async () => new PathInfo('/bundles/domain/notanumber'), 404);
   });
 
+  it('parses bedrock route', () => {
+    const parsed = new PathInfo('/bedrock');
+    assert.strictEqual(parsed.route, 'bedrock');
+  });
+
+  it('rejects bedrock route with extra segments', async () => {
+    await assertRejectsWithResponse(async () => new PathInfo('/bedrock/extra'), 404);
+  });
+
   it('parses paths', () => {
     // with hour
     let parsed = new PathInfo('/bundles/domain/2024/01/01/0.json');

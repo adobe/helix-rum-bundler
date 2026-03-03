@@ -73,6 +73,9 @@ export class PathInfo {
       case 'admins':
         this.initAdminsRoute();
         break;
+      case 'bedrock':
+        this.initBedrockRoute();
+        break;
       default:
         throw errorWithResponse(404);
     }
@@ -138,6 +141,13 @@ export class PathInfo {
     this.subroute = subroute;
     if (subroute === 'permissions') {
       this.permission = subvalue;
+    }
+  }
+
+  initBedrockRoute() {
+    // No additional path parsing needed for /bedrock
+    if (this.segments.length > 1) {
+      throw errorWithResponse(404);
     }
   }
 

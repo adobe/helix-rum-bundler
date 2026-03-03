@@ -28,6 +28,7 @@ createTargets().forEach((target) => {
       const res = await fetch(url, {
         headers: {
           ...target.headers,
+          authorization: undefined,
         },
       });
       assert.strictEqual(res.status, 200);
@@ -48,5 +49,42 @@ createTargets().forEach((target) => {
       const res = await fetch(target.url('/'));
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
+
+    it('rejects bedrock request without auth', async () => {
+      const res = await fetch(target.url('/bedrock'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
+          messages: [{ role: 'user', content: 'Hi' }],
+        }),
+      });
+      assert.strictEqual(res.status, 401);
+    }).timeout(50000);
+
+    it('calls bedrock InvokeModel API', async () => {
+      const res = await fetch(target.url('/bedrock'), {
+        method: 'POST',
+        headers: {
+          ...target.headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
+          messages: [{ role: 'user', content: 'Say OK' }],
+          max_tokens: 10,
+        }),
+      });
+
+      const body = await res.text();
+      const xError = res.headers.get('x-error') || '';
+      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${xError}`);
+      const json = JSON.parse(body);
+      assert.ok(json.content, 'response should have content');
+      assert.ok(json.stop_reason, 'response should have stop_reason');
+      assert.ok(json.usage, 'response should have usage');
+    }).timeout(60000);
   });
 });
