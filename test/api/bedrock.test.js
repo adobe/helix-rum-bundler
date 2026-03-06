@@ -36,8 +36,30 @@ function createMockStreamBody(text = 'Hello! How can I help you?') {
   const events = [
     { type: 'message_start', message: { model: 'mock-model', usage: { input_tokens: 10 } } },
     { type: 'content_block_start', index: 0, content_block: { type: 'text' } },
-    { type: 'content_block_delta', index: 0, delta: { text } },
+    { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } },
     { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 20 } },
+  ];
+  return {
+    async* [Symbol.asyncIterator]() {
+      for (const event of events) {
+        yield { chunk: { bytes: enc.encode(JSON.stringify(event)) } };
+      }
+    },
+  };
+}
+
+function createMockToolUseStreamBody() {
+  const enc = new TextEncoder();
+  const events = [
+    { type: 'message_start', message: { model: 'mock-model', usage: { input_tokens: 10 } } },
+    {
+      type: 'content_block_start',
+      index: 0,
+      content_block: { type: 'tool_use', id: 'toolu_abc123', name: 'get_weather' },
+    },
+    { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"loc' } },
+    { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: 'ation":"NYC"}' } },
+    { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 15 } },
   ];
   return {
     async* [Symbol.asyncIterator]() {
@@ -311,7 +333,7 @@ describe('api/bedrock Tests', () => {
         await assertRejectsWithResponse(() => handler(req, ctx), 502, 'sts error: AccessDenied');
       });
 
-      it('returns 502 on Bedrock API error', async () => {
+      it('returns stream error on Bedrock API error', async () => {
         const handler = await esmockBedrockWithError('Model not accessible', 'AccessDeniedException');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -320,10 +342,15 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(() => handler(req, ctx), 502, 'bedrock error: AccessDeniedException: Model not accessible');
+        const resp = await handler(req, ctx);
+        assert.strictEqual(resp.status, 200);
+        await assert.rejects(
+          async () => resp.text(),
+          (err) => err.name === 'AccessDeniedException' && err.message === 'Model not accessible',
+        );
       });
 
-      it('returns 502 on Bedrock timeout', async () => {
+      it('returns stream error on Bedrock timeout', async () => {
         const handler = await esmockBedrockWithError('Socket timed out', 'TimeoutError');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -332,7 +359,44 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(() => handler(req, ctx), 502, 'bedrock error: TimeoutError: Socket timed out');
+        const resp = await handler(req, ctx);
+        assert.strictEqual(resp.status, 200);
+        await assert.rejects(
+          async () => resp.text(),
+          (err) => err.name === 'TimeoutError' && err.message === 'Socket timed out',
+        );
+      });
+
+      it('returns tool_use blocks with id, name, and parsed input', async () => {
+        function MockBedrockToolUse() {}
+        MockBedrockToolUse.prototype.send = () => Promise.resolve({
+          body: createMockToolUseStreamBody(),
+        });
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': {
+            BedrockRuntimeClient: MockBedrockToolUse,
+            InvokeModelWithResponseStreamCommand: MockCmd,
+          },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: 'model' },
+          data: { messages: MESSAGES },
+        });
+
+        const resp = await handler(req, ctx);
+        assert.strictEqual(resp.status, 200);
+
+        const body = await readStreamResponse(resp);
+        assert.strictEqual(body.content[0].type, 'tool_use');
+        assert.strictEqual(body.content[0].id, 'toolu_abc123');
+        assert.strictEqual(body.content[0].name, 'get_weather');
+        assert.deepStrictEqual(body.content[0].input, { location: 'NYC' });
+        assert.strictEqual(body.stop_reason, 'tool_use');
       });
     });
   });
