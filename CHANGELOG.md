@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.13.0...v1.14.0) (2026-03-06)
+
+
+### Features
+
+* **bedrock:** stream via InvokeModelWithResponseStream with STS cross-account support ([ce65b25](https://github.com/adobe/[secure]-rum-bundler/commit/ce65b251724efa6fd1d8d49516d2a94c87e291da))
+
 # [1.13.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.12.72...v1.13.0) (2026-03-03)
 
 
