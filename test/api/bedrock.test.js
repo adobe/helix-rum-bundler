@@ -19,6 +19,9 @@ import {
   assertRejectsWithResponse,
 } from '../util.js';
 
+const MESSAGES = [{ role: 'user', content: [{ text: 'Hello' }] }];
+const PATH_INFO = { suffix: '/bedrock' };
+
 const REQUEST = ({ method, token = 'superkey', body = null }) => new Request('https://localhost/', {
   method,
   headers: {
@@ -28,13 +31,26 @@ const REQUEST = ({ method, token = 'superkey', body = null }) => new Request('ht
   body: body ? JSON.stringify(body) : undefined,
 });
 
-const MOCK_INVOKE_RESPONSE = {
-  body: new TextEncoder().encode(JSON.stringify({
-    content: [{ type: 'text', text: 'Hello! How can I help you?' }],
-    stop_reason: 'end_turn',
-    usage: { input_tokens: 10, output_tokens: 20 },
-  })),
-};
+function createMockStreamBody(text = 'Hello! How can I help you?') {
+  const enc = new TextEncoder();
+  const events = [
+    { type: 'message_start', message: { model: 'mock-model', usage: { input_tokens: 10 } } },
+    { type: 'content_block_start', index: 0, content_block: { type: 'text' } },
+    { type: 'content_block_delta', index: 0, delta: { text } },
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 20 } },
+  ];
+  return {
+    async* [Symbol.asyncIterator]() {
+      for (const event of events) {
+        yield { chunk: { bytes: enc.encode(JSON.stringify(event)) } };
+      }
+    },
+  };
+}
+
+async function readStreamResponse(resp) {
+  return JSON.parse((await resp.text()).trim());
+}
 
 const MOCK_STS_CREDENTIALS = {
   Credentials: {
@@ -43,6 +59,22 @@ const MOCK_STS_CREDENTIALS = {
     SessionToken: 'mock-session-token',
   },
 };
+
+function MockCmd(input) {
+  this.input = input;
+}
+
+async function esmockBedrockWithError(errorMessage, errorName) {
+  function MockClient() {}
+  MockClient.prototype.send = () => Promise.reject(
+    Object.assign(new Error(errorMessage), { name: errorName }),
+  );
+
+  return (await esmock('../../src/api/bedrock.js', {
+    '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockClient, InvokeModelWithResponseStreamCommand: MockCmd },
+    '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+  })).default;
+}
 
 describe('api/bedrock Tests', () => {
   /** @type {import('../util.js').Nocker} */
@@ -58,30 +90,22 @@ describe('api/bedrock Tests', () => {
     function MockBedrockRuntimeClient() {}
     MockBedrockRuntimeClient.prototype.send = function send(command) {
       converseCallArgs = command.input;
-      return Promise.resolve(MOCK_INVOKE_RESPONSE);
+      return Promise.resolve({ body: createMockStreamBody() });
     };
-
-    function MockInvokeModelCommand(input) {
-      this.input = input;
-    }
 
     function MockSTSClient() {}
     MockSTSClient.prototype.send = function send() {
       return Promise.resolve(MOCK_STS_CREDENTIALS);
     };
 
-    function MockAssumeRoleCommand(input) {
-      this.input = input;
-    }
-
     handleRequest = (await esmock('../../src/api/bedrock.js', {
       '@aws-sdk/client-bedrock-runtime': {
         BedrockRuntimeClient: MockBedrockRuntimeClient,
-        InvokeModelCommand: MockInvokeModelCommand,
+        InvokeModelWithResponseStreamCommand: MockCmd,
       },
       '@aws-sdk/client-sts': {
         STSClient: MockSTSClient,
-        AssumeRoleCommand: MockAssumeRoleCommand,
+        AssumeRoleCommand: MockCmd,
       },
     })).default;
   });
@@ -99,20 +123,16 @@ describe('api/bedrock Tests', () => {
           body: JSON.stringify({ messages: [] }),
         });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { TMP_SUPERUSER_API_KEY: 'superkey' },
         });
         await assertRejectsWithResponse(() => handleRequest(req, ctx), 401, 'missing auth');
       });
 
       it('rejects invalid token', async () => {
-        const req = REQUEST({
-          method: 'POST',
-          token: 'invalid-key',
-          body: { messages: [] },
-        });
+        const req = REQUEST({ method: 'POST', token: 'invalid-key', body: { messages: [] } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { TMP_SUPERUSER_API_KEY: 'superkey' },
           data: { messages: [] },
         });
@@ -124,13 +144,9 @@ describe('api/bedrock Tests', () => {
           .get('/admins/unknown/admin.json?x-id=GetObject')
           .reply(404);
 
-        const req = REQUEST({
-          method: 'POST',
-          token: 'admin:unknown:some-key',
-          body: { messages: [] },
-        });
+        const req = REQUEST({ method: 'POST', token: 'admin:unknown:some-key', body: { messages: [] } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { TMP_SUPERUSER_API_KEY: 'superkey' },
           data: { messages: [] },
         });
@@ -138,18 +154,11 @@ describe('api/bedrock Tests', () => {
       });
 
       it('allows valid superuser', async () => {
-        const req = REQUEST({
-          method: 'POST',
-          token: 'superkey',
-          body: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
-        });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
-          env: {
-            TMP_SUPERUSER_API_KEY: 'superkey',
-            BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
-          },
-          data: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
+          pathInfo: PATH_INFO,
+          env: { TMP_SUPERUSER_API_KEY: 'superkey', BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
+          data: { messages: MESSAGES },
         });
 
         const resp = await handleRequest(req, ctx);
@@ -163,21 +172,12 @@ describe('api/bedrock Tests', () => {
           .get('/admins/myuser/.adminkey?x-id=GetObject')
           .reply(200, 'my-admin-key');
 
-        const req = REQUEST({
-          method: 'POST',
-          token: 'admin:myuser:my-admin-key',
-          body: {
-            modelId: 'test-model',
-            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
-          },
-        });
+        const data = { modelId: 'test-model', messages: MESSAGES };
+        const req = REQUEST({ method: 'POST', token: 'admin:myuser:my-admin-key', body: data });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { TMP_SUPERUSER_API_KEY: 'superkey' },
-          data: {
-            modelId: 'test-model',
-            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
-          },
+          data,
         });
 
         const resp = await handleRequest(req, ctx);
@@ -191,21 +191,12 @@ describe('api/bedrock Tests', () => {
           .get('/admins/myuser/.adminkey?x-id=GetObject')
           .reply(200, 'correct-key');
 
-        const req = REQUEST({
-          method: 'POST',
-          token: 'admin:myuser:wrong-key',
-          body: {
-            modelId: 'test-model',
-            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
-          },
-        });
+        const data = { modelId: 'test-model', messages: MESSAGES };
+        const req = REQUEST({ method: 'POST', token: 'admin:myuser:wrong-key', body: data });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { TMP_SUPERUSER_API_KEY: 'superkey' },
-          data: {
-            modelId: 'test-model',
-            messages: [{ role: 'user', content: [{ text: 'Hi' }] }],
-          },
+          data,
         });
 
         await assertRejectsWithResponse(() => handleRequest(req, ctx), 403, 'invalid auth');
@@ -215,22 +206,16 @@ describe('api/bedrock Tests', () => {
     describe('request validation', () => {
       it('rejects missing messages', async () => {
         const req = REQUEST({ method: 'POST', body: {} });
-        const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
-          data: {},
-        });
+        const ctx = DEFAULT_CONTEXT({ pathInfo: PATH_INFO, data: {} });
         await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing messages in request body');
       });
 
       it('rejects missing modelId when not in env', async () => {
-        const req = REQUEST({
-          method: 'POST',
-          body: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
-        });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: undefined },
-          data: { messages: [{ role: 'user', content: [{ text: 'Hi' }] }] },
+          data: { messages: MESSAGES },
         });
         await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing modelId in request body or environment');
       });
@@ -238,32 +223,32 @@ describe('api/bedrock Tests', () => {
 
     describe('invokeModel', () => {
       it('returns response with correct structure', async () => {
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
-        const req = REQUEST({ method: 'POST', body: { messages } });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
-          data: { messages },
+          data: { messages: MESSAGES },
         });
 
         const resp = await handleRequest(req, ctx);
         assert.strictEqual(resp.status, 200);
         assert.strictEqual(resp.headers.get('content-type'), 'application/json');
 
-        const body = await resp.json();
+        const body = await readStreamResponse(resp);
         assert.ok(body.content);
+        assert.strictEqual(body.content[0].text, 'Hello! How can I help you?');
         assert.strictEqual(body.stop_reason, 'end_turn');
-        assert.ok(body.usage);
+        assert.strictEqual(body.model, 'mock-model');
+        assert.deepStrictEqual(body.usage, { input_tokens: 10, output_tokens: 20 });
       });
 
       it('uses modelId from request body over env', async () => {
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
         const requestModelId = 'anthropic.claude-3-opus-20240229-v1:0';
-        const req = REQUEST({ method: 'POST', body: { messages, modelId: requestModelId } });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, modelId: requestModelId } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
-          data: { messages, modelId: requestModelId },
+          data: { messages: MESSAGES, modelId: requestModelId },
         });
 
         await handleRequest(req, ctx);
@@ -272,14 +257,14 @@ describe('api/bedrock Tests', () => {
 
       it('passes optional parameters in request body', async () => {
         const requestData = {
-          messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+          messages: MESSAGES,
           system: 'You are helpful.',
           temperature: 0.7,
           max_tokens: 1000,
         };
         const req = REQUEST({ method: 'POST', body: requestData });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
           data: requestData,
         });
@@ -293,15 +278,14 @@ describe('api/bedrock Tests', () => {
       });
 
       it('uses cross-account role when BEDROCK_ROLE_ARN is set', async () => {
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
-        const req = REQUEST({ method: 'POST', body: { messages } });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: {
             BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
             BEDROCK_ROLE_ARN: 'arn:aws:iam::123456789012:role/BedrockRole',
           },
-          data: { messages },
+          data: { messages: MESSAGES },
         });
 
         const resp = await handleRequest(req, ctx);
@@ -311,81 +295,41 @@ describe('api/bedrock Tests', () => {
       it('returns 502 on STS AssumeRole error', async () => {
         function MockSTSError() {}
         MockSTSError.prototype.send = () => Promise.reject(Object.assign(new Error('denied'), { name: 'AccessDenied' }));
-        function MockBedrock() {}
-        function MockCmd() {}
 
         const handler = (await esmock('../../src/api/bedrock.js', {
-          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockBedrock, InvokeModelCommand: MockCmd },
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockCmd, InvokeModelWithResponseStreamCommand: MockCmd },
           '@aws-sdk/client-sts': { STSClient: MockSTSError, AssumeRoleCommand: MockCmd },
         })).default;
 
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
-        const req = REQUEST({ method: 'POST', body: { messages } });
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: 'model', BEDROCK_ROLE_ARN: 'arn:aws:iam::123:role/R' },
-          data: { messages },
+          data: { messages: MESSAGES },
         });
 
         await assertRejectsWithResponse(() => handler(req, ctx), 502, 'sts error: AccessDenied');
       });
 
       it('returns 502 on Bedrock API error', async () => {
-        function MockBedrockRuntimeClientError() {}
-        MockBedrockRuntimeClientError.prototype.send = function send() {
-          const error = new Error('Model not accessible');
-          error.name = 'AccessDeniedException';
-          return Promise.reject(error);
-        };
-
-        function MockInvokeModelCommandError(input) {
-          this.input = input;
-        }
-
-        function MockSTSClient() {}
-        MockSTSClient.prototype.send = () => Promise.resolve(MOCK_STS_CREDENTIALS);
-        function MockAssumeRoleCommand(input) {
-          this.input = input;
-        }
-
-        const handleRequestWithError = (await esmock('../../src/api/bedrock.js', {
-          '@aws-sdk/client-bedrock-runtime': {
-            BedrockRuntimeClient: MockBedrockRuntimeClientError,
-            InvokeModelCommand: MockInvokeModelCommandError,
-          },
-          '@aws-sdk/client-sts': {
-            STSClient: MockSTSClient,
-            AssumeRoleCommand: MockAssumeRoleCommand,
-          },
-        })).default;
-
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
-        const req = REQUEST({ method: 'POST', body: { messages } });
+        const handler = await esmockBedrockWithError('Model not accessible', 'AccessDeniedException');
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
-          env: { BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0' },
-          data: { messages },
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: 'model' },
+          data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(() => handleRequestWithError(req, ctx), 502, 'bedrock error: AccessDeniedException: Model not accessible');
+        await assertRejectsWithResponse(() => handler(req, ctx), 502, 'bedrock error: AccessDeniedException: Model not accessible');
       });
 
       it('returns 502 on Bedrock timeout', async () => {
-        function MockBedrockTimeout() {}
-        MockBedrockTimeout.prototype.send = () => Promise.reject(Object.assign(new Error('Socket timed out'), { name: 'TimeoutError' }));
-        function MockCmd() {}
-
-        const handler = (await esmock('../../src/api/bedrock.js', {
-          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockBedrockTimeout, InvokeModelCommand: MockCmd },
-          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
-        })).default;
-
-        const messages = [{ role: 'user', content: [{ text: 'Hello' }] }];
-        const req = REQUEST({ method: 'POST', body: { messages } });
+        const handler = await esmockBedrockWithError('Socket timed out', 'TimeoutError');
+        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
-          pathInfo: { suffix: '/bedrock' },
+          pathInfo: PATH_INFO,
           env: { BEDROCK_MODEL_ID: 'model' },
-          data: { messages },
+          data: { messages: MESSAGES },
         });
 
         await assertRejectsWithResponse(() => handler(req, ctx), 502, 'bedrock error: TimeoutError: Socket timed out');
@@ -394,25 +338,13 @@ describe('api/bedrock Tests', () => {
   });
 
   describe('other methods', () => {
-    it('rejects GET', async () => {
-      const req = REQUEST({ method: 'GET' });
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/bedrock' } });
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 405);
-    });
-
-    it('rejects PUT', async () => {
-      const req = REQUEST({ method: 'PUT' });
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/bedrock' } });
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 405);
-    });
-
-    it('rejects DELETE', async () => {
-      const req = REQUEST({ method: 'DELETE' });
-      const ctx = DEFAULT_CONTEXT({ pathInfo: { suffix: '/bedrock' } });
-      const resp = await handleRequest(req, ctx);
-      assert.strictEqual(resp.status, 405);
+    ['GET', 'PUT', 'DELETE'].forEach((method) => {
+      it(`rejects ${method}`, async () => {
+        const req = REQUEST({ method });
+        const ctx = DEFAULT_CONTEXT({ pathInfo: PATH_INFO });
+        const resp = await handleRequest(req, ctx);
+        assert.strictEqual(resp.status, 405);
+      });
     });
   });
 });
