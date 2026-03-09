@@ -71,19 +71,22 @@ async function invokeModel(req, ctx) {
   });
 
   try {
-    const res = await client.send(command);
     const enc = new TextEncoder();
     const dec = new TextDecoder();
 
     const stream = new ReadableStream({
       async start(controller) {
-        const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 10000);
+        // Start keepalive BEFORE calling Bedrock to prevent CDN timeout during initial wait
+        const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
         try {
           const content = [];
           let stopReason = '';
           let model = '';
           let inputTokens = 0;
           let outputTokens = 0;
+
+          // Call Bedrock inside the stream so keepalive protects the wait time
+          const res = await client.send(command);
 
           for await (const event of res.body) {
             if (event.chunk?.bytes) {
@@ -95,10 +98,23 @@ async function invokeModel(req, ctx) {
                     inputTokens = e.message?.usage?.input_tokens || 0;
                     break;
                   case 'content_block_start':
-                    content[e.index] = { type: e.content_block?.type || 'text', text: '' };
+                    if (e.content_block?.type === 'tool_use') {
+                      content[e.index] = {
+                        type: 'tool_use',
+                        id: e.content_block.id,
+                        name: e.content_block.name,
+                        input: '',
+                      };
+                    } else {
+                      content[e.index] = { type: e.content_block?.type || 'text', text: '' };
+                    }
                     break;
                   case 'content_block_delta':
-                    if (e.delta?.text) content[e.index].text += e.delta.text;
+                    if (e.delta?.type === 'input_json_delta') {
+                      content[e.index].input += e.delta.partial_json || '';
+                    } else if (e.delta?.text) {
+                      content[e.index].text += e.delta.text;
+                    }
                     break;
                   case 'message_delta':
                     stopReason = e.delta?.stop_reason || stopReason;
@@ -111,6 +127,19 @@ async function invokeModel(req, ctx) {
           }
 
           clearInterval(keepalive);
+
+          // Parse accumulated JSON string for tool_use blocks
+          for (let i = 0; i < content.length; i += 1) {
+            const block = /** @type {any} */ (content[i]);
+            if (block.type === 'tool_use' && typeof block.input === 'string') {
+              try {
+                block.input = JSON.parse(block.input || '{}');
+              } catch (_e) {
+                block.input = {};
+              }
+            }
+          }
+
           const result = JSON.stringify({
             content,
             stop_reason: stopReason,
