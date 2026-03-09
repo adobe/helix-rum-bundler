@@ -1,3 +1,19 @@
+# [2.0.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.14.0...v2.0.0) (2026-03-09)
+
+
+### Features
+
+* **bedrock:** add tool use support and improve timeout resilience ([95ca6a3](https://github.com/adobe/[secure]-rum-bundler/commit/95ca6a31020fdf36b7b385ff2ac1a012913c1903))
+
+
+### BREAKING CHANGES
+
+* **bedrock:** Bedrock errors now manifest as stream errors
+instead of HTTP 502 responses, since keepalive starts before
+the API call completes.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
 # [1.14.0](https://github.com/adobe/[secure]-rum-bundler/compare/v1.13.0...v1.14.0) (2026-03-06)
 
 
