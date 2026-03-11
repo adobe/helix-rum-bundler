@@ -53,13 +53,8 @@ createTargets().forEach((target) => {
     it('rejects bedrock request without auth', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
-          messages: [{ role: 'user', content: 'Hi' }],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: 'us.anthropic.claude-opus-4-6-v1', messages: [{ role: 'user', content: 'Hi' }] }),
       });
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
@@ -67,24 +62,30 @@ createTargets().forEach((target) => {
     it('calls bedrock InvokeModel API', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
-        headers: {
-          ...target.headers,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: 'us.anthropic.claude-opus-4-6-v1', messages: [{ role: 'user', content: 'Say OK' }], max_tokens: 10 }),
+      });
+      const body = await res.text();
+      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${res.headers.get('x-error') || ''}`);
+      const json = JSON.parse(body);
+      assert.ok(json.content && json.stop_reason && json.usage, 'response should have content, stop_reason, usage');
+    }).timeout(60000);
+
+    it('handles large synthesis request (4k max_tokens)', async () => {
+      const res = await fetch(target.url('/bedrock'), {
+        method: 'POST',
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelId: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
-          messages: [{ role: 'user', content: 'Say OK' }],
-          max_tokens: 10,
+          modelId: 'us.anthropic.claude-opus-4-6-v1',
+          messages: [{ role: 'user', content: 'Write exactly 3 sentences about web performance.' }],
+          system: 'You are a web analyst. '.repeat(50),
+          max_tokens: 4096,
         }),
       });
-
       const body = await res.text();
-      const xError = res.headers.get('x-error') || '';
-      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${xError}`);
+      assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${res.headers.get('x-error') || ''}`);
       const json = JSON.parse(body);
-      assert.ok(json.content, 'response should have content');
-      assert.ok(json.stop_reason, 'response should have stop_reason');
-      assert.ok(json.usage, 'response should have usage');
-    }).timeout(60000);
+      assert.ok(json.content?.[0]?.text, 'response should have text content');
+    }).timeout(120000);
   });
 });

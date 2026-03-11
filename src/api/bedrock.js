@@ -97,18 +97,22 @@ async function invokeModel(req, ctx) {
                     model = e.message?.model || '';
                     inputTokens = e.message?.usage?.input_tokens || 0;
                     break;
-                  case 'content_block_start':
-                    if (e.content_block?.type === 'tool_use') {
+                  case 'content_block_start': {
+                    const blockType = e.content_block?.type;
+                    ctx.log.info(`[bedrock] content_block_start: ${JSON.stringify(e)}`);
+                    // Handle both snake_case (tool_use) and camelCase (toolUse) formats
+                    if (blockType === 'tool_use' || blockType === 'toolUse') {
                       content[e.index] = {
                         type: 'tool_use',
-                        id: e.content_block.id,
+                        id: e.content_block.id || e.content_block.toolUseId,
                         name: e.content_block.name,
                         input: '',
                       };
                     } else {
-                      content[e.index] = { type: e.content_block?.type || 'text', text: '' };
+                      content[e.index] = { type: blockType || 'text', text: '' };
                     }
                     break;
+                  }
                   case 'content_block_delta':
                     if (e.delta?.type === 'input_json_delta') {
                       content[e.index].input += e.delta.partial_json || '';

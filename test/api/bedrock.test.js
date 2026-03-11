@@ -31,10 +31,12 @@ const REQUEST = ({ method, token = 'superkey', body = null }) => new Request('ht
   body: body ? JSON.stringify(body) : undefined,
 });
 
+const OPUS_MODEL_ID = 'us.anthropic.claude-opus-4-6-v1';
+
 function createMockStreamBody(text = 'Hello! How can I help you?') {
   const enc = new TextEncoder();
   const events = [
-    { type: 'message_start', message: { model: 'mock-model', usage: { input_tokens: 10 } } },
+    { type: 'message_start', message: { model: 'claude-opus-4-6', usage: { input_tokens: 10 } } },
     { type: 'content_block_start', index: 0, content_block: { type: 'text' } },
     { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } },
     { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 20 } },
@@ -51,7 +53,7 @@ function createMockStreamBody(text = 'Hello! How can I help you?') {
 function createMockToolUseStreamBody() {
   const enc = new TextEncoder();
   const events = [
-    { type: 'message_start', message: { model: 'mock-model', usage: { input_tokens: 10 } } },
+    { type: 'message_start', message: { model: 'claude-opus-4-6', usage: { input_tokens: 10 } } },
     {
       type: 'content_block_start',
       index: 0,
@@ -65,6 +67,45 @@ function createMockToolUseStreamBody() {
     async* [Symbol.asyncIterator]() {
       for (const event of events) {
         yield { chunk: { bytes: enc.encode(JSON.stringify(event)) } };
+      }
+    },
+  };
+}
+
+function createMockMultipleToolUseStreamBody() {
+  const enc = new TextEncoder();
+  const events = [
+    { type: 'message_start', message: { model: 'claude-opus-4-6', usage: { input_tokens: 500 } } },
+    { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'toolu_first_001', name: 'analyze_metrics' } },
+    { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"metric":"page_views","operation":"analyze"}' } },
+    { type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 'toolu_second_002', name: 'navigate_source' } },
+    { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"source":"organic","filter":"last_7_days"}' } },
+    { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 90 } },
+  ];
+  return {
+    async* [Symbol.asyncIterator]() {
+      for (const e of events) {
+        yield { chunk: { bytes: enc.encode(JSON.stringify(e)) } };
+      }
+    },
+  };
+}
+
+function createMockLargeTextResponseStreamBody() {
+  const enc = new TextEncoder();
+  const largeText = '# Report\n## Metrics\nLCP: 2.3s, FID: 45ms, CLS: 0.08\n## Traffic: 1.2M views\n'.repeat(50);
+  const events = [
+    { type: 'message_start', message: { model: 'claude-opus-4-6', usage: { input_tokens: 2500 } } },
+    { type: 'content_block_start', index: 0, content_block: { type: 'text' } },
+    ...Array.from({ length: Math.ceil(largeText.length / 500) }, (_, i) => ({
+      type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: largeText.slice(i * 500, (i + 1) * 500) },
+    })),
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 4000 } },
+  ];
+  return {
+    async* [Symbol.asyncIterator]() {
+      for (const e of events) {
+        yield { chunk: { bytes: enc.encode(JSON.stringify(e)) } };
       }
     },
   };
@@ -374,29 +415,86 @@ describe('api/bedrock Tests', () => {
         });
 
         const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockBedrockToolUse, InvokeModelWithResponseStreamCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: { messages: MESSAGES },
+        });
+        const resp = await handler(
+          REQUEST({ method: 'POST', body: { messages: MESSAGES } }),
+          ctx,
+        );
+        const body = await readStreamResponse(resp);
+
+        assert.strictEqual(body.content[0].type, 'tool_use');
+        assert.strictEqual(body.content[0].id, 'toolu_abc123');
+        assert.strictEqual(body.content[0].name, 'get_weather');
+        assert.deepStrictEqual(body.content[0].input, { location: 'NYC' });
+      });
+
+      it('handles multiple tool_use blocks', async () => {
+        function Mock() {}
+        Mock.prototype.send = () => Promise.resolve({
+          body: createMockMultipleToolUseStreamBody(),
+        });
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
           '@aws-sdk/client-bedrock-runtime': {
-            BedrockRuntimeClient: MockBedrockToolUse,
+            BedrockRuntimeClient: Mock,
             InvokeModelWithResponseStreamCommand: MockCmd,
           },
           '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
         })).default;
 
-        const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
           pathInfo: PATH_INFO,
-          env: { BEDROCK_MODEL_ID: 'model' },
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
           data: { messages: MESSAGES },
         });
-
-        const resp = await handler(req, ctx);
-        assert.strictEqual(resp.status, 200);
-
+        const resp = await handler(
+          REQUEST({ method: 'POST', body: { messages: MESSAGES } }),
+          ctx,
+        );
         const body = await readStreamResponse(resp);
-        assert.strictEqual(body.content[0].type, 'tool_use');
-        assert.strictEqual(body.content[0].id, 'toolu_abc123');
-        assert.strictEqual(body.content[0].name, 'get_weather');
-        assert.deepStrictEqual(body.content[0].input, { location: 'NYC' });
-        assert.strictEqual(body.stop_reason, 'tool_use');
+
+        assert.strictEqual(body.content.length, 2);
+        assert.strictEqual(body.content[0].id, 'toolu_first_001');
+        assert.strictEqual(body.content[1].id, 'toolu_second_002');
+        assert.deepStrictEqual(body.content[0].input, { metric: 'page_views', operation: 'analyze' });
+      });
+
+      it('handles large synthesis response (4k tokens)', async () => {
+        function Mock() {}
+        Mock.prototype.send = () => Promise.resolve({
+          body: createMockLargeTextResponseStreamBody(),
+        });
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': {
+            BedrockRuntimeClient: Mock,
+            InvokeModelWithResponseStreamCommand: MockCmd,
+          },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const largeData = {
+          messages: MESSAGES,
+          system: 'Analyze data. '.repeat(100),
+          max_tokens: 4096,
+        };
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: largeData,
+        });
+        const body = await readStreamResponse(await handler(REQUEST({ method: 'POST', body: largeData }), ctx));
+
+        assert.ok(body.content[0].text.length > 3000);
+        assert.strictEqual(body.usage.output_tokens, 4000);
       });
     });
   });
