@@ -301,7 +301,7 @@ describe('api/bedrock Tests', () => {
         assert.ok(body.content);
         assert.strictEqual(body.content[0].text, 'Hello! How can I help you?');
         assert.strictEqual(body.stop_reason, 'end_turn');
-        assert.strictEqual(body.model, 'mock-model');
+        assert.strictEqual(body.model, 'claude-opus-4-6');
         assert.deepStrictEqual(body.usage, { input_tokens: 10, output_tokens: 20 });
       });
 
