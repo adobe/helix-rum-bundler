@@ -58,13 +58,19 @@ async function invokeModel(req, ctx) {
   }
 
   const client = new BedrockRuntimeClient({ region, credentials });
+  const maxTokens = body.max_tokens || 4096;
+  const msgCount = body.messages?.length || 0;
+  const sysLen = body.system?.length || 0;
+
+  ctx.log.info(`[bedrock] request: model=${modelId} messages=${msgCount} system_len=${sysLen} max_tokens=${maxTokens}`);
+
   const command = new InvokeModelWithResponseStreamCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: body.max_tokens || 4096,
+      max_tokens: maxTokens,
       ...body,
       modelId: undefined,
     }),
@@ -73,11 +79,13 @@ async function invokeModel(req, ctx) {
   try {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
+    const { log } = ctx;
 
     const stream = new ReadableStream({
       async start(controller) {
         // Start keepalive BEFORE calling Bedrock to prevent CDN timeout during initial wait
         const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
+        const startTime = Date.now();
         try {
           const content = [];
           let stopReason = '';
@@ -86,7 +94,9 @@ async function invokeModel(req, ctx) {
           let outputTokens = 0;
 
           // Call Bedrock inside the stream so keepalive protects the wait time
+          log.info('[bedrock] invoking Bedrock API...');
           const res = await client.send(command);
+          log.info('[bedrock] stream started, processing chunks...');
 
           for await (const event of res.body) {
             if (event.chunk?.bytes) {
@@ -127,6 +137,8 @@ async function invokeModel(req, ctx) {
           }
 
           clearInterval(keepalive);
+          const elapsed = Date.now() - startTime;
+          log.info(`[bedrock] stream complete: model=${model} input=${inputTokens} output=${outputTokens} stop=${stopReason} elapsed=${elapsed}ms`);
 
           // Parse accumulated JSON string for tool_use blocks
           for (let i = 0; i < content.length; i += 1) {
@@ -150,6 +162,8 @@ async function invokeModel(req, ctx) {
           controller.close();
         } catch (err) {
           clearInterval(keepalive);
+          const elapsed = Date.now() - startTime;
+          log.error(`[bedrock] stream error after ${elapsed}ms: ${err.name} ${err.message}`);
           controller.error(err);
         }
       },

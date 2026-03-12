@@ -71,21 +71,29 @@ createTargets().forEach((target) => {
       assert.ok(json.content && json.stop_reason && json.usage, 'response should have content, stop_reason, usage');
     }).timeout(60000);
 
-    it('handles large synthesis request (4k max_tokens)', async () => {
+    it('handles substantial synthesis request', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
         headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           modelId: 'us.anthropic.claude-opus-4-6-v1',
-          messages: [{ role: 'user', content: 'Write exactly 3 sentences about web performance.' }],
-          system: 'You are a web analyst. '.repeat(50),
+          messages: [{
+            role: 'user',
+            content: `Analyze this web performance data and write a 500-word report:
+- Page views: 272M, LCP: 2.4s, CLS: 0.012, INP: 64ms
+- Traffic: 45M from search, 12M from paid
+- Top pages: /home (50M), /products (30M), /checkout (10M)
+Include sections on performance, traffic patterns, and 3 specific recommendations.`,
+          }],
+          system: 'You are a senior web analytics consultant. Provide detailed, actionable analysis.',
           max_tokens: 4096,
         }),
       });
       const body = await res.text();
       assert.strictEqual(res.status, 200, `Expected 200 but got ${res.status}: ${res.headers.get('x-error') || ''}`);
       const json = JSON.parse(body);
-      assert.ok(json.content?.[0]?.text, 'response should have text content');
+      assert.ok(json.content?.[0]?.text?.length > 1500, 'response should be substantial (>1500 chars)');
+      assert.ok(json.usage?.output_tokens > 400, 'should generate significant output tokens');
     }).timeout(120000);
   });
 });
