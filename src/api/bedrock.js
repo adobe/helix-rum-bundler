@@ -17,6 +17,54 @@ import { BedrockRuntimeClient, InvokeModelWithResponseStreamCommand } from '@aws
 import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
 
+const MAX_RETRIES = 3;
+const RETRYABLE_ERRORS = ['ServiceUnavailableException', 'ThrottlingException', 'ModelStreamErrorException'];
+
+/**
+ * Format error details for logging and response headers
+ * @param {Error & {$metadata?: any}} err
+ * @param {number} attempt
+ * @param {number} elapsed
+ */
+function formatErrorDetails(err, attempt, elapsed) {
+  const requestId = err.$metadata?.requestId || 'unknown';
+  const code = err.$metadata?.httpStatusCode || 'unknown';
+  return `${err.name}: ${err.message} (requestId=${requestId}, code=${code}, attempt=${attempt}/${MAX_RETRIES}, elapsed=${elapsed}ms)`;
+}
+
+/**
+ * Send command to Bedrock with retry logic for transient errors
+ * @param {BedrockRuntimeClient} client
+ * @param {InvokeModelWithResponseStreamCommand} command
+ * @param {Function} log
+ * @param {number} startTime
+ * @param {number} attempt
+ */
+async function sendWithRetry(client, command, log, startTime, attempt = 1) {
+  try {
+    log.info(`[bedrock] invoking Bedrock API (attempt ${attempt}/${MAX_RETRIES})...`);
+    const res = await client.send(command);
+    log.info('[bedrock] stream started, processing chunks...');
+    return res;
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    const details = formatErrorDetails(err, attempt, elapsed);
+    if (RETRYABLE_ERRORS.includes(err.name) && attempt < MAX_RETRIES) {
+      const delayMs = attempt * 2000;
+      log.warn(`[bedrock] retryable error, waiting ${delayMs}ms: ${details}`);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          sendWithRetry(client, command, log, startTime, attempt + 1)
+            .then(resolve)
+            .catch(reject);
+        }, delayMs);
+      });
+    }
+    log.error(`[bedrock] non-retryable or max retries reached: ${details}`);
+    throw err;
+  }
+}
+
 /**
  * Proxy request to Bedrock API using streaming to prevent CDN timeouts.
  * Keepalive whitespace flows to Fastly while chunks are collected,
@@ -58,17 +106,38 @@ async function invokeModel(req, ctx) {
   }
 
   const client = new BedrockRuntimeClient({ region, credentials });
+  const maxTokens = body.max_tokens || 4096;
+  const msgCount = body.messages?.length || 0;
+  const sysLen = body.system?.length || 0;
+
+  ctx.log.info(`[bedrock] request: model=${modelId} messages=${msgCount} system_len=${sysLen} max_tokens=${maxTokens}`);
+
   const command = new InvokeModelWithResponseStreamCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: body.max_tokens || 4096,
+      max_tokens: maxTokens,
       ...body,
       modelId: undefined,
     }),
   });
+
+  const { log } = ctx;
+  const startTime = Date.now();
+
+  // Call Bedrock with retry BEFORE starting stream - enables proper error responses
+  let bedrockResponse;
+  try {
+    bedrockResponse = await sendWithRetry(client, command, log, startTime);
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    const details = formatErrorDetails(err, MAX_RETRIES, elapsed);
+    log.error(`[bedrock] API error: ${details}`);
+    const sanitized = details.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '');
+    throw errorWithResponse(502, sanitized);
+  }
 
   try {
     const enc = new TextEncoder();
@@ -76,7 +145,7 @@ async function invokeModel(req, ctx) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Start keepalive BEFORE calling Bedrock to prevent CDN timeout during initial wait
+        // Keepalive whitespace to prevent CDN timeout during streaming
         const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
         try {
           const content = [];
@@ -85,10 +154,7 @@ async function invokeModel(req, ctx) {
           let inputTokens = 0;
           let outputTokens = 0;
 
-          // Call Bedrock inside the stream so keepalive protects the wait time
-          const res = await client.send(command);
-
-          for await (const event of res.body) {
+          for await (const event of bedrockResponse.body) {
             if (event.chunk?.bytes) {
               try {
                 const e = JSON.parse(dec.decode(event.chunk.bytes));
@@ -127,6 +193,8 @@ async function invokeModel(req, ctx) {
           }
 
           clearInterval(keepalive);
+          const elapsed = Date.now() - startTime;
+          log.info(`[bedrock] stream complete: model=${model} input=${inputTokens} output=${outputTokens} stop=${stopReason} elapsed=${elapsed}ms`);
 
           // Parse accumulated JSON string for tool_use blocks
           for (let i = 0; i < content.length; i += 1) {
@@ -150,6 +218,8 @@ async function invokeModel(req, ctx) {
           controller.close();
         } catch (err) {
           clearInterval(keepalive);
+          const elapsed = Date.now() - startTime;
+          log.error(`[bedrock] stream processing error after ${elapsed}ms: ${err.name} ${err.message}`);
           controller.error(err);
         }
       },
@@ -159,9 +229,8 @@ async function invokeModel(req, ctx) {
       headers: { 'content-type': 'application/json' },
     });
   } catch (err) {
-    ctx.log.error('Bedrock API error', err.name, err.message);
-    const sanitizedMessage = err.message?.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '') || '';
-    throw errorWithResponse(502, `bedrock error: ${err.name}: ${sanitizedMessage}`);
+    ctx.log.error(`[bedrock] response error: ${err.name} ${err.message}`);
+    throw errorWithResponse(502, `bedrock error: ${err.name}`);
   }
 }
 
