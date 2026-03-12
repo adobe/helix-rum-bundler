@@ -374,7 +374,7 @@ describe('api/bedrock Tests', () => {
         await assertRejectsWithResponse(() => handler(req, ctx), 502, 'sts error: AccessDenied');
       });
 
-      it('returns stream error on Bedrock API error', async () => {
+      it('returns 502 on Bedrock API error with details', async () => {
         const handler = await esmockBedrockWithError('Model not accessible', 'AccessDeniedException');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -383,15 +383,14 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        const resp = await handler(req, ctx);
-        assert.strictEqual(resp.status, 200);
-        await assert.rejects(
-          async () => resp.text(),
-          (err) => err.name === 'AccessDeniedException' && err.message === 'Model not accessible',
+        await assertRejectsWithResponse(
+          () => handler(req, ctx),
+          502,
+          /AccessDeniedException: Model not accessible.*requestId=/,
         );
       });
 
-      it('returns stream error on Bedrock timeout', async () => {
+      it('returns 502 on Bedrock timeout with details', async () => {
         const handler = await esmockBedrockWithError('Socket timed out', 'TimeoutError');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -400,13 +399,68 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        const resp = await handler(req, ctx);
-        assert.strictEqual(resp.status, 200);
-        await assert.rejects(
-          async () => resp.text(),
-          (err) => err.name === 'TimeoutError' && err.message === 'Socket timed out',
+        await assertRejectsWithResponse(
+          () => handler(req, ctx),
+          502,
+          /TimeoutError: Socket timed out.*requestId=/,
         );
       });
+
+      it('retries on ServiceUnavailableException and succeeds', async () => {
+        let attempts = 0;
+        function MockRetry() {}
+        MockRetry.prototype.send = () => {
+          attempts += 1;
+          if (attempts < 2) {
+            const err = new Error('Service unavailable');
+            err.name = 'ServiceUnavailableException';
+            return Promise.reject(err);
+          }
+          return Promise.resolve({ body: createMockStreamBody() });
+        };
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockRetry, InvokeModelWithResponseStreamCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: { messages: MESSAGES },
+        });
+        const resp = await handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx);
+
+        assert.strictEqual(resp.status, 200);
+        assert.strictEqual(attempts, 2);
+      }).timeout(10000);
+
+      it('returns 502 after max retries on ServiceUnavailableException', async () => {
+        function MockAlwaysFail() {}
+        MockAlwaysFail.prototype.send = () => {
+          const err = new Error('Service unavailable');
+          err.name = 'ServiceUnavailableException';
+          err.$metadata = { requestId: 'test-req-123', httpStatusCode: 503 };
+          return Promise.reject(err);
+        };
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockAlwaysFail, InvokeModelWithResponseStreamCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: { messages: MESSAGES },
+        });
+
+        await assertRejectsWithResponse(
+          () => handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx),
+          502,
+          /ServiceUnavailableException.*requestId=test-req-123.*attempt=3\/3/,
+        );
+      }).timeout(20000);
 
       it('returns tool_use blocks with id, name, and parsed input', async () => {
         function MockBedrockToolUse() {}

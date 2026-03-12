@@ -124,16 +124,29 @@ async function invokeModel(req, ctx) {
     }),
   });
 
+  const { log } = ctx;
+  const startTime = Date.now();
+
+  // Call Bedrock with retry BEFORE starting stream - enables proper error responses
+  let bedrockResponse;
+  try {
+    bedrockResponse = await sendWithRetry(client, command, log, startTime);
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    const details = formatErrorDetails(err, MAX_RETRIES, elapsed);
+    log.error(`[bedrock] API error: ${details}`);
+    const sanitized = details.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '');
+    throw errorWithResponse(502, sanitized);
+  }
+
   try {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
-    const { log } = ctx;
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Start keepalive BEFORE calling Bedrock to prevent CDN timeout during initial wait
+        // Keepalive whitespace to prevent CDN timeout during streaming
         const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
-        const startTime = Date.now();
         try {
           const content = [];
           let stopReason = '';
@@ -141,10 +154,7 @@ async function invokeModel(req, ctx) {
           let inputTokens = 0;
           let outputTokens = 0;
 
-          // Call Bedrock with retry logic for transient errors
-          const res = await sendWithRetry(client, command, log, startTime);
-
-          for await (const event of res.body) {
+          for await (const event of bedrockResponse.body) {
             if (event.chunk?.bytes) {
               try {
                 const e = JSON.parse(dec.decode(event.chunk.bytes));
@@ -209,10 +219,7 @@ async function invokeModel(req, ctx) {
         } catch (err) {
           clearInterval(keepalive);
           const elapsed = Date.now() - startTime;
-          const details = formatErrorDetails(err, MAX_RETRIES, elapsed);
-          log.error(`[bedrock] stream error: ${details}`);
-          // Attach details to error for outer catch
-          err.bedrockDetails = details;
+          log.error(`[bedrock] stream processing error after ${elapsed}ms: ${err.name} ${err.message}`);
           controller.error(err);
         }
       },
@@ -222,10 +229,8 @@ async function invokeModel(req, ctx) {
       headers: { 'content-type': 'application/json' },
     });
   } catch (err) {
-    const details = err.bedrockDetails || `${err.name}: ${err.message}`;
-    ctx.log.error(`[bedrock] API error: ${details}`);
-    const sanitized = details.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '');
-    throw errorWithResponse(502, sanitized);
+    ctx.log.error(`[bedrock] response error: ${err.name} ${err.message}`);
+    throw errorWithResponse(502, `bedrock error: ${err.name}`);
   }
 }
 
