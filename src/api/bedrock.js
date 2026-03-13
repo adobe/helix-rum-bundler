@@ -133,7 +133,9 @@ async function invokeModel(req, ctx) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Start keepalive IMMEDIATELY to prevent Fastly 30s timeout
+        // Send first byte IMMEDIATELY to satisfy Fastly first-byte timeout
+        controller.enqueue(enc.encode(' '));
+        // Then continue sending keepalive every 5s
         const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
         try {
           // Call Bedrock with retry INSIDE stream so keepalive protects the wait
