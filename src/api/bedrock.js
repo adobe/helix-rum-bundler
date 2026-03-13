@@ -184,7 +184,11 @@ async function invokeModel(req, ctx) {
                     break;
                   }
                   case 'content_block_delta': {
-                    const curr = content[e.index] || {};
+                    // Ensure block exists (defensive: delta should follow start)
+                    if (!content[e.index]) {
+                      content[e.index] = { type: 'text', text: '' };
+                    }
+                    const curr = content[e.index];
                     if (e.delta?.type === 'input_json_delta') {
                       // Ensure input field exists for tool_use blocks
                       if (curr.input === undefined) curr.input = '';
