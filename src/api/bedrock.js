@@ -135,8 +135,8 @@ async function invokeModel(req, ctx) {
       async start(controller) {
         // Send first byte IMMEDIATELY to satisfy Fastly first-byte timeout
         controller.enqueue(enc.encode(' '));
-        // Then continue sending keepalive every 5s
-        const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
+        // Keepalive: send whitespace every 3s to prevent CDN timeout during long operations
+        const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 3000);
         try {
           // Call Bedrock with retry INSIDE stream so keepalive protects the wait
           const bedrockResponse = await sendWithRetry(client, command, log, startTime);
@@ -146,8 +146,15 @@ async function invokeModel(req, ctx) {
           let model = '';
           let inputTokens = 0;
           let outputTokens = 0;
+          let lastKeepalive = Date.now();
 
           for await (const event of bedrockResponse.body) {
+            // Send keepalive during stream processing to prevent timeout on long responses
+            const now = Date.now();
+            if (now - lastKeepalive > 3000) {
+              controller.enqueue(enc.encode(' '));
+              lastKeepalive = now;
+            }
             if (event.chunk?.bytes) {
               try {
                 const e = JSON.parse(dec.decode(event.chunk.bytes));
