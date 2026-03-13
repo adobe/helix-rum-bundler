@@ -243,7 +243,11 @@ async function invokeModel(req, ctx) {
     });
 
     return new Response(Readable.fromWeb(stream), {
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'cache-control': 'no-cache, no-store',
+        'x-accel-buffering': 'no',
+      },
     });
   } catch (err) {
     ctx.log.error(`[bedrock] response error: ${err.name} ${err.message}`);
