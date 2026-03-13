@@ -127,27 +127,18 @@ async function invokeModel(req, ctx) {
   const { log } = ctx;
   const startTime = Date.now();
 
-  // Call Bedrock with retry BEFORE starting stream - enables proper error responses
-  let bedrockResponse;
-  try {
-    bedrockResponse = await sendWithRetry(client, command, log, startTime);
-  } catch (err) {
-    const elapsed = Date.now() - startTime;
-    const details = formatErrorDetails(err, MAX_RETRIES, elapsed);
-    log.error(`[bedrock] API error: ${details}`);
-    const sanitized = details.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '');
-    throw errorWithResponse(502, sanitized);
-  }
-
   try {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Keepalive whitespace to prevent CDN timeout during streaming
+        // Start keepalive IMMEDIATELY to prevent Fastly 30s timeout
         const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
         try {
+          // Call Bedrock with retry INSIDE stream so keepalive protects the wait
+          const bedrockResponse = await sendWithRetry(client, command, log, startTime);
+
           const content = [];
           let stopReason = '';
           let model = '';

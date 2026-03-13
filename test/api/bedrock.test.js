@@ -374,7 +374,7 @@ describe('api/bedrock Tests', () => {
         await assertRejectsWithResponse(() => handler(req, ctx), 502, 'sts error: AccessDenied');
       });
 
-      it('returns 502 on Bedrock API error with details', async () => {
+      it('returns stream error on Bedrock API error', async () => {
         const handler = await esmockBedrockWithError('Model not accessible', 'AccessDeniedException');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -383,14 +383,12 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(
-          () => handler(req, ctx),
-          502,
-          /AccessDeniedException: Model not accessible.*requestId=/,
-        );
+        const resp = await handler(req, ctx);
+        assert.strictEqual(resp.status, 200);
+        await assert.rejects(async () => resp.text(), /AccessDeniedException/);
       });
 
-      it('returns 502 on Bedrock timeout with details', async () => {
+      it('returns stream error on Bedrock timeout', async () => {
         const handler = await esmockBedrockWithError('Socket timed out', 'TimeoutError');
         const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
         const ctx = DEFAULT_CONTEXT({
@@ -399,11 +397,9 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(
-          () => handler(req, ctx),
-          502,
-          /TimeoutError: Socket timed out.*requestId=/,
-        );
+        const resp = await handler(req, ctx);
+        assert.strictEqual(resp.status, 200);
+        await assert.rejects(async () => resp.text(), /TimeoutError/);
       });
 
       it('retries on ServiceUnavailableException and succeeds', async () => {
@@ -430,12 +426,14 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
         const resp = await handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx);
-
         assert.strictEqual(resp.status, 200);
+        // Read response to trigger stream execution (Bedrock call happens inside stream)
+        const body = await readStreamResponse(resp);
+        assert.ok(body.content);
         assert.strictEqual(attempts, 2);
       }).timeout(10000);
 
-      it('returns 502 after max retries on ServiceUnavailableException', async () => {
+      it('errors after max retries on ServiceUnavailableException', async () => {
         function MockAlwaysFail() {}
         MockAlwaysFail.prototype.send = () => {
           const err = new Error('Service unavailable');
@@ -455,11 +453,9 @@ describe('api/bedrock Tests', () => {
           data: { messages: MESSAGES },
         });
 
-        await assertRejectsWithResponse(
-          () => handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx),
-          502,
-          /ServiceUnavailableException.*requestId=test-req-123.*attempt=3\/3/,
-        );
+        const resp = await handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx);
+        assert.strictEqual(resp.status, 200);
+        await assert.rejects(async () => resp.text(), /ServiceUnavailableException/);
       }).timeout(20000);
 
       it('returns tool_use blocks with id, name, and parsed input', async () => {
@@ -549,6 +545,75 @@ describe('api/bedrock Tests', () => {
 
         assert.ok(body.content[0].text.length > 3000);
         assert.strictEqual(body.usage.output_tokens, 4000);
+      });
+
+      it('sends keepalive whitespace before Bedrock responds (prevents Fastly timeout)', async () => {
+        function MockDelayed() {}
+        MockDelayed.prototype.send = () => new Promise((resolve) => {
+          setTimeout(() => resolve({ body: createMockStreamBody() }), 6000);
+        });
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': { BedrockRuntimeClient: MockDelayed, InvokeModelWithResponseStreamCommand: MockCmd },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: { messages: MESSAGES },
+        });
+        const resp = await handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx);
+
+        assert.strictEqual(resp.status, 200);
+        const raw = await resp.text();
+        assert.ok(raw.startsWith(' '), 'response should start with keepalive whitespace');
+        assert.ok(JSON.parse(raw.trim()).content);
+      }).timeout(15000);
+
+      it('handles malformed tool_use input JSON gracefully', async () => {
+        const enc = new TextEncoder();
+        const events = [
+          { type: 'message_start', message: { model: 'claude-opus-4-6', usage: { input_tokens: 10 } } },
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'tool_use', id: 'toolu_bad', name: 'test' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'input_json_delta', partial_json: '{invalid json' },
+          },
+          { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 5 } },
+        ];
+        function Mock() {}
+        Mock.prototype.send = () => Promise.resolve({
+          body: {
+            async* [Symbol.asyncIterator]() {
+              for (const e of events) yield { chunk: { bytes: enc.encode(JSON.stringify(e)) } };
+            },
+          },
+        });
+
+        const handler = (await esmock('../../src/api/bedrock.js', {
+          '@aws-sdk/client-bedrock-runtime': {
+            BedrockRuntimeClient: Mock,
+            InvokeModelWithResponseStreamCommand: MockCmd,
+          },
+          '@aws-sdk/client-sts': { STSClient: MockCmd, AssumeRoleCommand: MockCmd },
+        })).default;
+
+        const ctx = DEFAULT_CONTEXT({
+          pathInfo: PATH_INFO,
+          env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+          data: { messages: MESSAGES },
+        });
+        const resp = await handler(REQUEST({ method: 'POST', body: { messages: MESSAGES } }), ctx);
+        const body = await readStreamResponse(resp);
+
+        assert.strictEqual(body.content[0].type, 'tool_use');
+        assert.deepStrictEqual(body.content[0].input, {}, 'malformed JSON should default to empty object');
       });
     });
   });
