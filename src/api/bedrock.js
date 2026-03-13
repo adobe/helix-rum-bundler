@@ -156,25 +156,38 @@ async function invokeModel(req, ctx) {
                     model = e.message?.model || '';
                     inputTokens = e.message?.usage?.input_tokens || 0;
                     break;
-                  case 'content_block_start':
-                    if (e.content_block?.type === 'tool_use') {
+                  case 'content_block_start': {
+                    const block = e.content_block || {};
+                    const blockType = block.type;
+                    // Detect tool_use by type OR presence of id/name fields
+                    const isToolUse = blockType === 'tool_use'
+                      || blockType === 'toolUse'
+                      || (block.id && block.name);
+                    log.info(`[bedrock] content_block_start: type="${blockType}" isToolUse=${isToolUse}`);
+                    if (isToolUse) {
                       content[e.index] = {
                         type: 'tool_use',
-                        id: e.content_block.id,
-                        name: e.content_block.name,
+                        id: block.id || block.toolUseId || '',
+                        name: block.name || '',
                         input: '',
                       };
                     } else {
-                      content[e.index] = { type: e.content_block?.type || 'text', text: '' };
+                      content[e.index] = { type: blockType || 'text', text: '' };
                     }
                     break;
-                  case 'content_block_delta':
+                  }
+                  case 'content_block_delta': {
+                    const curr = content[e.index] || {};
                     if (e.delta?.type === 'input_json_delta') {
-                      content[e.index].input += e.delta.partial_json || '';
-                    } else if (e.delta?.text) {
-                      content[e.index].text += e.delta.text;
+                      // Ensure input field exists for tool_use blocks
+                      if (curr.input === undefined) curr.input = '';
+                      curr.input += e.delta.partial_json || '';
+                    } else if (e.delta?.text !== undefined) {
+                      if (curr.text === undefined) curr.text = '';
+                      curr.text += e.delta.text;
                     }
                     break;
+                  }
                   case 'message_delta':
                     stopReason = e.delta?.stop_reason || stopReason;
                     outputTokens = e.usage?.output_tokens || outputTokens;
