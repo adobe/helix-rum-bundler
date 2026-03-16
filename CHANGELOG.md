@@ -1,3 +1,28 @@
+# [2.1.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.0.1...v2.1.0) (2026-03-16)
+
+
+### Bug Fixes
+
+* add headers to prevent proxy buffering of streaming response ([e61d0df](https://github.com/adobe/[secure]-rum-bundler/commit/e61d0dfff55f2c197d475b106c2461873a962f9e))
+* **bedrock:** move API call inside stream to prevent Fastly 30s timeout ([cfd3bb1](https://github.com/adobe/[secure]-rum-bundler/commit/cfd3bb1eb09ecd09e51318ac1194337d89e5cd38))
+* **bedrock:** return proper 502 errors with diagnostics before streaming ([5a010d1](https://github.com/adobe/[secure]-rum-bundler/commit/5a010d166298a6c93e338e20c214daaaaf4a8527))
+* **bedrock:** revert unnecessary camelCase toolUse handling ([37fa7c3](https://github.com/adobe/[secure]-rum-bundler/commit/37fa7c3ba487ee0366783448379ad84f79ca9cbe))
+* **bedrock:** send first keepalive byte immediately, not after 5s ([90e4a99](https://github.com/adobe/[secure]-rum-bundler/commit/90e4a998eff9ee76b113f36ab8ee1d7d7566a089))
+* ensure content block exists before appending delta data ([bd09b70](https://github.com/adobe/[secure]-rum-bundler/commit/bd09b70f1c5083d5199349abb85de5d3ab502cc4))
+* robust tool_use block detection in Bedrock streaming response ([7c18cd2](https://github.com/adobe/[secure]-rum-bundler/commit/7c18cd21e2c04c57ec38d8aaf89d0fc8eb3af0e7))
+* send keepalive during stream processing for long responses ([09c3080](https://github.com/adobe/[secure]-rum-bundler/commit/09c30807c597c8df03d463fb2a3a4e67b55899c4))
+* **test:** update model assertion to match mock ([29d2cf5](https://github.com/adobe/[secure]-rum-bundler/commit/29d2cf58296f9bc45bd4ca4bc077acfe48670efe))
+* use correct Lambda function name for async self-invocation ([3f46580](https://github.com/adobe/[secure]-rum-bundler/commit/3f465806b8a00f0a38d71c28bbfe292ea5cc5790))
+* use [secure]-rum-logs bucket for job state storage ([8aa02a1](https://github.com/adobe/[secure]-rum-bundler/commit/8aa02a151d38447ed9a8427144deda04265d518d))
+
+
+### Features
+
+* **bedrock:** add async job API for long-running requests ([0c59810](https://github.com/adobe/[secure]-rum-bundler/commit/0c59810b8d5b577fb5c0cbecc2424ae90fbe518c))
+* **bedrock:** add request/response logging and improve integration test ([41ebb55](https://github.com/adobe/[secure]-rum-bundler/commit/41ebb55cf128f2f9cfb79546d264f81e5c4dee89))
+* **bedrock:** add retry logic for 503 errors with detailed diagnostics ([26e7e64](https://github.com/adobe/[secure]-rum-bundler/commit/26e7e6439643fc3fb3a8c0858588c2ebfa85c657))
+* **bedrock:** support camelCase toolUse format and add comprehensive tests ([0ef3349](https://github.com/adobe/[secure]-rum-bundler/commit/0ef33490a26481db654fff03b2a5bbf5c468a898))
+
 ## [2.0.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.0.0...v2.0.1) (2026-03-09)
 
 
