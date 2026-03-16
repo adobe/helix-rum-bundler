@@ -20,7 +20,7 @@ import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
 import { PathInfo } from '../support/PathInfo.js';
 
-const JOBS_BUCKET = 'helix-rum-users';
+const JOBS_BUCKET = 'helix-rum-logs';
 const JOBS_PREFIX = 'bedrock-jobs';
 
 /**
