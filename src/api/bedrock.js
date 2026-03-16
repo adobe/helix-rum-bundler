@@ -221,7 +221,7 @@ async function submitJob(req, ctx) {
 
   // Invoke Lambda asynchronously
   const lambdaClient = new LambdaClient({ region });
-  const functionName = ctx.env.AWS_LAMBDA_FUNCTION_NAME || 'helix-services--rum-bundler';
+  const functionName = ctx.env.AWS_LAMBDA_FUNCTION_NAME || 'helix3--rum-bundler';
 
   try {
     await lambdaClient.send(new InvokeCommand({
