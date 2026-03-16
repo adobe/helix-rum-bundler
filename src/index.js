@@ -18,6 +18,7 @@ import { Response } from '@adobe/fetch';
 import bundleRUM from './bundler/index.js';
 import handleRequest from './api/index.js';
 import processCloudflareEvents from './tasks/cloudflare.js';
+import { processBedrockJob } from './api/bedrock.js';
 
 const TASK_HANDLERS = {
   'bundle-rum': bundleRUM,
@@ -86,7 +87,11 @@ async function run(request, context) {
 
   let resp;
   try {
-    if (shouldRunEventHandler(request, context)) {
+    // Handle async bedrock job processing
+    const event = context.invocation?.event;
+    if (event?.source === 'bedrock-job' && event?.jobId) {
+      resp = await processBedrockJob(context, event);
+    } else if (shouldRunEventHandler(request, context)) {
       resp = await TASK_HANDLERS[context.invocation.event.task](context);
     } else {
       resp = await handleRequest(request, context);

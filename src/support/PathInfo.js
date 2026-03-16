@@ -49,6 +49,9 @@ export class PathInfo {
   /** @type {string[]} */
   segments;
 
+  /** @type {string|undefined} */
+  jobId;
+
   constructor(path) {
     if (!path.endsWith('.json')) {
       // eslint-disable-next-line no-param-reassign
@@ -145,8 +148,20 @@ export class PathInfo {
   }
 
   initBedrockRoute() {
-    // No additional path parsing needed for /bedrock
-    if (this.segments.length > 1) {
+    // /bedrock - sync invoke (legacy)
+    // /bedrock/jobs - submit async job (POST) or list jobs (GET)
+    // /bedrock/jobs/{jobId} - get job status/result
+    if (this.segments.length === 1) {
+      // /bedrock - sync mode
+      this.subroute = 'sync';
+    } else if (this.segments.length === 2 && this.segments[1] === 'jobs') {
+      // /bedrock/jobs
+      this.subroute = 'jobs';
+    } else if (this.segments.length === 3 && this.segments[1] === 'jobs') {
+      // /bedrock/jobs/{jobId}
+      this.subroute = 'job';
+      [, , this.jobId] = this.segments;
+    } else {
       throw errorWithResponse(404);
     }
   }
