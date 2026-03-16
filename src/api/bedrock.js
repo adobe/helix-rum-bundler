@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
 import { Response } from '@adobe/fetch';
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
@@ -22,6 +21,22 @@ import { PathInfo } from '../support/PathInfo.js';
 
 const JOBS_BUCKET = 'helix-rum-logs';
 const JOBS_PREFIX = 'bedrock-jobs';
+
+function getRegion(ctx) {
+  return ctx.env.BEDROCK_REGION || 'us-east-1';
+}
+
+function validateRequest(ctx) {
+  const body = ctx.data;
+  if (!body?.messages) {
+    throw errorWithResponse(400, 'missing messages in request body');
+  }
+  const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
+  if (!modelId) {
+    throw errorWithResponse(400, 'missing modelId in request body or environment');
+  }
+  return { body, modelId };
+}
 
 /**
  * Get AWS credentials via STS AssumeRole
@@ -90,17 +105,8 @@ async function callBedrock(client, body, log) {
  * @param {UniversalContext} ctx
  */
 async function invokeModelSync(req, ctx) {
-  const body = ctx.data;
-  if (!body?.messages) {
-    throw errorWithResponse(400, 'missing messages in request body');
-  }
-
-  const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
-  if (!modelId) {
-    throw errorWithResponse(400, 'missing modelId in request body or environment');
-  }
-
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
+  const { body, modelId } = validateRequest(ctx);
+  const region = getRegion(ctx);
   const credentials = await getCredentials(ctx, region);
   const client = new BedrockRuntimeClient({ region, credentials });
 
@@ -119,7 +125,7 @@ async function invokeModelSync(req, ctx) {
 // ============ Async Job API ============
 
 function generateJobId() {
-  return `job_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
+  return `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function getJobKey(jobId) {
@@ -157,7 +163,7 @@ async function getJob(s3, jobId) {
  */
 async function processJob(ctx, jobId, requestBody) {
   const { log } = ctx;
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
+  const region = getRegion(ctx);
   const s3 = new S3Client({ region });
   const startTime = Date.now();
 
@@ -196,17 +202,8 @@ async function processJob(ctx, jobId, requestBody) {
  * @param {UniversalContext} ctx
  */
 async function submitJob(req, ctx) {
-  const body = ctx.data;
-  if (!body?.messages) {
-    throw errorWithResponse(400, 'missing messages in request body');
-  }
-
-  const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
-  if (!modelId) {
-    throw errorWithResponse(400, 'missing modelId in request body or environment');
-  }
-
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
+  const { body, modelId } = validateRequest(ctx);
+  const region = getRegion(ctx);
   const s3 = new S3Client({ region });
   const jobId = generateJobId();
 
@@ -261,7 +258,7 @@ async function getJobStatus(req, ctx) {
 
   if (!jobId) throw errorWithResponse(400, 'missing jobId');
 
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
+  const region = getRegion(ctx);
   const s3 = new S3Client({ region });
   const job = await getJob(s3, jobId);
 
