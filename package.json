@@ -61,6 +61,7 @@
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.1.5",
     "@aws-sdk/client-bedrock-runtime": "^3.990.0",
+    "@aws-sdk/client-lambda": "^3.1009.0",
     "@aws-sdk/client-s3": "3.996.0",
     "@aws-sdk/client-sts": "^3.999.0",
     "@aws-sdk/node-http-handler": "3.374.0",

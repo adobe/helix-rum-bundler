@@ -104,4 +104,30 @@ describe('Index Tests', () => {
     assert.strictEqual(resp.status, 200);
     assert.strictEqual(resp.headers.get('route'), 'handle-request');
   });
+
+  it('processes bedrock job when invoked with bedrock-job event', async () => {
+    const { main: mmain } = await esmock('../src/index.js', {
+      '../src/api/bedrock.js': {
+        processBedrockJob: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bedrock-job' } })),
+      },
+      '../src/bundler/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'bundle-rum' } })),
+      },
+      '../src/api/index.js': {
+        default: () => Promise.resolve(new Response('', { status: 200, headers: { route: 'handle-request' } })),
+      },
+    });
+
+    const resp = await mmain(
+      new Request('https://localhost/'),
+      {
+        log: console,
+        env: {},
+        attributes: { stats: {} },
+        invocation: { event: { source: 'bedrock-job', jobId: 'job_123' } },
+      },
+    );
+    assert.strictEqual(resp.status, 200);
+    assert.strictEqual(resp.headers.get('route'), 'bedrock-job');
+  });
 });

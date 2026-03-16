@@ -10,109 +10,73 @@
  * governing permissions and limitations under the License.
  */
 
-import { Readable } from 'stream';
 import { Response } from '@adobe/fetch';
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
-import { BedrockRuntimeClient, InvokeModelWithResponseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
+import { PathInfo } from '../support/PathInfo.js';
 
-const MAX_RETRIES = 3;
-const RETRYABLE_ERRORS = ['ServiceUnavailableException', 'ThrottlingException', 'ModelStreamErrorException'];
+const JOBS_BUCKET = 'helix-rum-logs';
+const JOBS_PREFIX = 'bedrock-jobs';
 
-/**
- * Format error details for logging and response headers
- * @param {Error & {$metadata?: any}} err
- * @param {number} attempt
- * @param {number} elapsed
- */
-function formatErrorDetails(err, attempt, elapsed) {
-  const requestId = err.$metadata?.requestId || 'unknown';
-  const code = err.$metadata?.httpStatusCode || 'unknown';
-  return `${err.name}: ${err.message} (requestId=${requestId}, code=${code}, attempt=${attempt}/${MAX_RETRIES}, elapsed=${elapsed}ms)`;
+function getRegion(ctx) {
+  return ctx.env.BEDROCK_REGION || 'us-east-1';
 }
 
-/**
- * Send command to Bedrock with retry logic for transient errors
- * @param {BedrockRuntimeClient} client
- * @param {InvokeModelWithResponseStreamCommand} command
- * @param {Function} log
- * @param {number} startTime
- * @param {number} attempt
- */
-async function sendWithRetry(client, command, log, startTime, attempt = 1) {
-  try {
-    log.info(`[bedrock] invoking Bedrock API (attempt ${attempt}/${MAX_RETRIES})...`);
-    const res = await client.send(command);
-    log.info('[bedrock] stream started, processing chunks...');
-    return res;
-  } catch (err) {
-    const elapsed = Date.now() - startTime;
-    const details = formatErrorDetails(err, attempt, elapsed);
-    if (RETRYABLE_ERRORS.includes(err.name) && attempt < MAX_RETRIES) {
-      const delayMs = attempt * 2000;
-      log.warn(`[bedrock] retryable error, waiting ${delayMs}ms: ${details}`);
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          sendWithRetry(client, command, log, startTime, attempt + 1)
-            .then(resolve)
-            .catch(reject);
-        }, delayMs);
-      });
-    }
-    log.error(`[bedrock] non-retryable or max retries reached: ${details}`);
-    throw err;
-  }
-}
-
-/**
- * Proxy request to Bedrock API using streaming to prevent CDN timeouts.
- * Keepalive whitespace flows to Fastly while chunks are collected,
- * then the assembled JSON is sent. Client receives standard JSON.
- * @param {RRequest} req
- * @param {UniversalContext} ctx
- */
-async function invokeModel(req, ctx) {
+function validateRequest(ctx) {
   const body = ctx.data;
   if (!body?.messages) {
     throw errorWithResponse(400, 'missing messages in request body');
   }
-
   const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
   if (!modelId) {
     throw errorWithResponse(400, 'missing modelId in request body or environment');
   }
+  return { body, modelId };
+}
 
-  const region = ctx.env.BEDROCK_REGION || 'us-east-1';
-  let credentials;
+/**
+ * Get AWS credentials via STS AssumeRole
+ * @param {UniversalContext} ctx
+ * @param {string} region
+ */
+async function getCredentials(ctx, region) {
+  if (!ctx.env.BEDROCK_ROLE_ARN) return undefined;
 
-  if (ctx.env.BEDROCK_ROLE_ARN) {
-    const stsClient = new STSClient({ region });
-    try {
-      const sts = await stsClient.send(new AssumeRoleCommand({
-        RoleArn: ctx.env.BEDROCK_ROLE_ARN,
-        RoleSessionName: 'helix-rum-bundler',
-        DurationSeconds: 900,
-      }));
-      credentials = {
-        accessKeyId: sts.Credentials.AccessKeyId,
-        secretAccessKey: sts.Credentials.SecretAccessKey,
-        sessionToken: sts.Credentials.SessionToken,
-      };
-    } catch (err) {
-      ctx.log.error('STS AssumeRole error', err.name, err.message);
-      throw errorWithResponse(502, `sts error: ${err.name}`);
-    }
+  const stsClient = new STSClient({ region });
+  try {
+    const sts = await stsClient.send(new AssumeRoleCommand({
+      RoleArn: ctx.env.BEDROCK_ROLE_ARN,
+      RoleSessionName: 'helix-rum-bundler',
+      DurationSeconds: 900,
+    }));
+    return {
+      accessKeyId: sts.Credentials.AccessKeyId,
+      secretAccessKey: sts.Credentials.SecretAccessKey,
+      sessionToken: sts.Credentials.SessionToken,
+    };
+  } catch (err) {
+    ctx.log.error('STS AssumeRole error', err.name, err.message);
+    throw errorWithResponse(502, `sts error: ${err.name}`);
   }
+}
 
-  const client = new BedrockRuntimeClient({ region, credentials });
+/**
+ * Call Bedrock API synchronously (non-streaming)
+ * @param {BedrockRuntimeClient} client
+ * @param {object} body
+ * @param {Function} log
+ */
+async function callBedrock(client, body, log) {
+  const { modelId } = body;
   const maxTokens = body.max_tokens || 4096;
-  const msgCount = body.messages?.length || 0;
-  const sysLen = body.system?.length || 0;
 
-  ctx.log.info(`[bedrock] request: model=${modelId} messages=${msgCount} system_len=${sysLen} max_tokens=${maxTokens}`);
+  log.info(`[bedrock] invoking model=${modelId} max_tokens=${maxTokens}`);
 
-  const command = new InvokeModelWithResponseStreamCommand({
+  const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
@@ -124,127 +88,225 @@ async function invokeModel(req, ctx) {
     }),
   });
 
-  const { log } = ctx;
   const startTime = Date.now();
+  const response = await client.send(command);
+  const elapsed = Date.now() - startTime;
 
-  // Call Bedrock with retry BEFORE starting stream - enables proper error responses
-  let bedrockResponse;
+  const result = JSON.parse(new TextDecoder().decode(response.body));
+  log.info(`[bedrock] completed in ${elapsed}ms, stop_reason=${result.stop_reason}`);
+
+  return result;
+}
+
+/**
+ * Handle sync POST /bedrock - direct invocation for quick requests
+ * Note: Will timeout for long-running requests. Use /bedrock/jobs for those.
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+async function invokeModelSync(req, ctx) {
+  const { body, modelId } = validateRequest(ctx);
+  const region = getRegion(ctx);
+  const credentials = await getCredentials(ctx, region);
+  const client = new BedrockRuntimeClient({ region, credentials });
+
   try {
-    bedrockResponse = await sendWithRetry(client, command, log, startTime);
-  } catch (err) {
-    const elapsed = Date.now() - startTime;
-    const details = formatErrorDetails(err, MAX_RETRIES, elapsed);
-    log.error(`[bedrock] API error: ${details}`);
-    const sanitized = details.replace(/[\r\n\t]/g, ' ').replace(/[^\x20-\x7E]/g, '');
-    throw errorWithResponse(502, sanitized);
-  }
-
-  try {
-    const enc = new TextEncoder();
-    const dec = new TextDecoder();
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        // Keepalive whitespace to prevent CDN timeout during streaming
-        const keepalive = setInterval(() => controller.enqueue(enc.encode(' ')), 5000);
-        try {
-          const content = [];
-          let stopReason = '';
-          let model = '';
-          let inputTokens = 0;
-          let outputTokens = 0;
-
-          for await (const event of bedrockResponse.body) {
-            if (event.chunk?.bytes) {
-              try {
-                const e = JSON.parse(dec.decode(event.chunk.bytes));
-                switch (e.type) {
-                  case 'message_start':
-                    model = e.message?.model || '';
-                    inputTokens = e.message?.usage?.input_tokens || 0;
-                    break;
-                  case 'content_block_start':
-                    if (e.content_block?.type === 'tool_use') {
-                      content[e.index] = {
-                        type: 'tool_use',
-                        id: e.content_block.id,
-                        name: e.content_block.name,
-                        input: '',
-                      };
-                    } else {
-                      content[e.index] = { type: e.content_block?.type || 'text', text: '' };
-                    }
-                    break;
-                  case 'content_block_delta':
-                    if (e.delta?.type === 'input_json_delta') {
-                      content[e.index].input += e.delta.partial_json || '';
-                    } else if (e.delta?.text) {
-                      content[e.index].text += e.delta.text;
-                    }
-                    break;
-                  case 'message_delta':
-                    stopReason = e.delta?.stop_reason || stopReason;
-                    outputTokens = e.usage?.output_tokens || outputTokens;
-                    break;
-                  default: break;
-                }
-              } catch { /* skip non-JSON chunks */ }
-            }
-          }
-
-          clearInterval(keepalive);
-          const elapsed = Date.now() - startTime;
-          log.info(`[bedrock] stream complete: model=${model} input=${inputTokens} output=${outputTokens} stop=${stopReason} elapsed=${elapsed}ms`);
-
-          // Parse accumulated JSON string for tool_use blocks
-          for (let i = 0; i < content.length; i += 1) {
-            const block = /** @type {any} */ (content[i]);
-            if (block.type === 'tool_use' && typeof block.input === 'string') {
-              try {
-                block.input = JSON.parse(block.input || '{}');
-              } catch (_e) {
-                block.input = {};
-              }
-            }
-          }
-
-          const result = JSON.stringify({
-            content,
-            stop_reason: stopReason,
-            model,
-            usage: { input_tokens: inputTokens, output_tokens: outputTokens },
-          });
-          controller.enqueue(enc.encode(result));
-          controller.close();
-        } catch (err) {
-          clearInterval(keepalive);
-          const elapsed = Date.now() - startTime;
-          log.error(`[bedrock] stream processing error after ${elapsed}ms: ${err.name} ${err.message}`);
-          controller.error(err);
-        }
-      },
-    });
-
-    return new Response(Readable.fromWeb(stream), {
+    const result = await callBedrock(client, { ...body, modelId }, ctx.log);
+    return new Response(JSON.stringify(result), {
+      status: 200,
       headers: { 'content-type': 'application/json' },
     });
   } catch (err) {
-    ctx.log.error(`[bedrock] response error: ${err.name} ${err.message}`);
+    ctx.log.error(`[bedrock] error: ${err.name} ${err.message}`);
     throw errorWithResponse(502, `bedrock error: ${err.name}`);
   }
 }
 
+// ============ Async Job API ============
+
+function generateJobId() {
+  return `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getJobKey(jobId) {
+  return `${JOBS_PREFIX}/${jobId}.json`;
+}
+
+async function saveJob(s3, jobId, data) {
+  await s3.send(new PutObjectCommand({
+    Bucket: JOBS_BUCKET,
+    Key: getJobKey(jobId),
+    Body: JSON.stringify(data),
+    ContentType: 'application/json',
+  }));
+}
+
+async function getJob(s3, jobId) {
+  try {
+    const result = await s3.send(new GetObjectCommand({
+      Bucket: JOBS_BUCKET,
+      Key: getJobKey(jobId),
+    }));
+    const body = await result.Body.transformToString();
+    return JSON.parse(body);
+  } catch (err) {
+    if (err.name === 'NoSuchKey') return null;
+    throw err;
+  }
+}
+
 /**
- * Handle /bedrock route
+ * Process job - called from async Lambda invocation
+ * @param {UniversalContext} ctx
+ * @param {string} jobId
+ * @param {object} requestBody
+ */
+async function processJob(ctx, jobId, requestBody) {
+  const { log } = ctx;
+  const region = getRegion(ctx);
+  const s3 = new S3Client({ region });
+  const startTime = Date.now();
+
+  log.info(`[bedrock-job] processing ${jobId}`);
+
+  try {
+    const credentials = await getCredentials(ctx, region);
+    const client = new BedrockRuntimeClient({ region, credentials });
+    const result = await callBedrock(client, requestBody, log);
+
+    const elapsed = Date.now() - startTime;
+    log.info(`[bedrock-job] ${jobId} completed in ${elapsed}ms`);
+
+    await saveJob(s3, jobId, {
+      status: 'completed',
+      result,
+      completedAt: new Date().toISOString(),
+      elapsed,
+    });
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    log.error(`[bedrock-job] ${jobId} failed after ${elapsed}ms: ${err.name} ${err.message}`);
+
+    await saveJob(s3, jobId, {
+      status: 'failed',
+      error: { name: err.name, message: err.message },
+      failedAt: new Date().toISOString(),
+      elapsed,
+    });
+  }
+}
+
+/**
+ * Submit async job - POST /bedrock/jobs
  * @param {RRequest} req
  * @param {UniversalContext} ctx
- * @returns {Promise<RResponse>}
+ */
+async function submitJob(req, ctx) {
+  const { body, modelId } = validateRequest(ctx);
+  const region = getRegion(ctx);
+  const s3 = new S3Client({ region });
+  const jobId = generateJobId();
+
+  ctx.log.info(`[bedrock-job] submitting ${jobId}`);
+
+  // Save initial state
+  await saveJob(s3, jobId, {
+    status: 'processing',
+    createdAt: new Date().toISOString(),
+    request: { modelId, max_tokens: body.max_tokens || 4096 },
+  });
+
+  // Invoke Lambda asynchronously
+  const lambdaClient = new LambdaClient({ region });
+  const functionName = ctx.env.AWS_LAMBDA_FUNCTION_NAME || 'helix3--rum-bundler';
+
+  try {
+    await lambdaClient.send(new InvokeCommand({
+      FunctionName: functionName,
+      InvocationType: 'Event',
+      Payload: JSON.stringify({
+        source: 'bedrock-job',
+        jobId,
+        request: { ...body, modelId },
+      }),
+    }));
+    ctx.log.info(`[bedrock-job] ${jobId} async invocation triggered`);
+  } catch (err) {
+    ctx.log.error(`[bedrock-job] ${jobId} invoke failed: ${err.message}`);
+    await saveJob(s3, jobId, {
+      status: 'failed',
+      error: { name: 'InvocationError', message: 'Failed to start job' },
+      failedAt: new Date().toISOString(),
+    });
+    throw errorWithResponse(502, 'failed to start job');
+  }
+
+  return new Response(JSON.stringify({ jobId, status: 'processing' }), {
+    status: 202,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+/**
+ * Get job status - GET /bedrock/jobs/{jobId}
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+async function getJobStatus(req, ctx) {
+  const info = PathInfo.fromContext(ctx);
+  const { jobId } = info;
+
+  if (!jobId) throw errorWithResponse(400, 'missing jobId');
+
+  const region = getRegion(ctx);
+  const s3 = new S3Client({ region });
+  const job = await getJob(s3, jobId);
+
+  if (!job) throw errorWithResponse(404, 'job not found');
+
+  return new Response(JSON.stringify(job), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+/**
+ * Process bedrock job from async Lambda invocation
+ * @param {UniversalContext} ctx
+ * @param {object} event
+ */
+export async function processBedrockJob(ctx, event) {
+  const { jobId, request } = event;
+  await processJob(ctx, jobId, request);
+  return new Response(JSON.stringify({ jobId, status: 'processed' }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+/**
+ * Handle /bedrock routes
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
  */
 export default async function handleRequest(req, ctx) {
   await assertAdminOrSuperuserAuthorized(req, ctx);
 
-  if (req.method === 'POST') {
-    return invokeModel(req, ctx);
+  const info = PathInfo.fromContext(ctx);
+
+  // POST /bedrock/jobs - submit async job
+  if (info.subroute === 'jobs' && req.method === 'POST') {
+    return submitJob(req, ctx);
+  }
+
+  // GET /bedrock/jobs/{jobId} - get job status
+  if (info.subroute === 'job' && req.method === 'GET') {
+    return getJobStatus(req, ctx);
+  }
+
+  // POST /bedrock - sync invocation (for quick requests only)
+  if (info.subroute === 'sync' && req.method === 'POST') {
+    return invokeModelSync(req, ctx);
   }
 
   return new Response('method not allowed', { status: 405 });
