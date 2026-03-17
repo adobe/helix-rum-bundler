@@ -80,7 +80,7 @@ export class PathInfo {
         this.initBedrockRoute();
         break;
       default:
-        throw errorWithResponse(404);
+        throw errorWithResponse(404, `unknown route: ${this.route}`);
     }
   }
 
@@ -162,7 +162,7 @@ export class PathInfo {
       this.subroute = 'job';
       [, , this.jobId] = this.segments;
     } else {
-      throw errorWithResponse(404);
+      throw errorWithResponse(404, `invalid bedrock path: segments=${JSON.stringify(this.segments)}`);
     }
   }
 
