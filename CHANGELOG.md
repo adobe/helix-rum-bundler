@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.1.0...v2.1.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* add debug logging for path routing ([826d621](https://github.com/adobe/[secure]-rum-bundler/commit/826d62186c74c3cba3bf9a61edbd50bd59a318d0))
+
 # [2.1.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.0.1...v2.1.0) (2026-03-16)
 
 
