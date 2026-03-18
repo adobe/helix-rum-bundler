@@ -21,6 +21,9 @@ import { PathInfo } from '../support/PathInfo.js';
 
 const JOBS_BUCKET = 'helix-rum-logs';
 const JOBS_PREFIX = 'bedrock-jobs';
+const USAGE_BUCKET = 'helix-rum-users';
+const USAGE_FILE = 'bedrock-usage.csv';
+const USAGE_HEADER = 'timestamp,user,model,input_tokens,output_tokens,total_tokens,report_id';
 
 function getRegion(ctx) {
   return ctx.env.BEDROCK_REGION || 'us-east-1';
@@ -96,6 +99,54 @@ async function callBedrock(client, body, log) {
   log.info(`[bedrock] completed in ${elapsed}ms, stop_reason=${result.stop_reason}`);
 
   return result;
+}
+
+/**
+ * Append usage record to CSV file
+ * Creates file with header if it doesn't exist
+ */
+async function appendUsageRecord(s3, record, log) {
+  const {
+    timestamp, user, model, inputTokens, outputTokens, reportId,
+  } = record;
+  const totalTokens = inputTokens + outputTokens;
+  const row = `${timestamp},${user},${model},${inputTokens},${outputTokens},${totalTokens},${reportId}`;
+
+  let existingContent = '';
+  try {
+    const result = await s3.send(new GetObjectCommand({
+      Bucket: USAGE_BUCKET,
+      Key: USAGE_FILE,
+    }));
+    existingContent = await result.Body.transformToString();
+  } catch (err) {
+    if (err.name === 'NoSuchKey') {
+      // File doesn't exist, will create with header
+      log.info('[bedrock-usage] creating new usage CSV file');
+    } else {
+      log.error(`[bedrock-usage] error reading CSV: ${err.message}`);
+      return false;
+    }
+  }
+
+  // Build new content: header + existing rows + new row
+  const newContent = existingContent
+    ? `${existingContent.trimEnd()}\n${row}`
+    : `${USAGE_HEADER}\n${row}`;
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: USAGE_BUCKET,
+      Key: USAGE_FILE,
+      Body: newContent,
+      ContentType: 'text/csv',
+    }));
+    log.info(`[bedrock-usage] recorded: user=${user} tokens=${totalTokens} report=${reportId}`);
+    return true;
+  } catch (err) {
+    log.error(`[bedrock-usage] error writing CSV: ${err.message}`);
+    return false;
+  }
 }
 
 /**
@@ -285,6 +336,46 @@ export async function processBedrockJob(ctx, event) {
 }
 
 /**
+ * Log usage summary - POST /bedrock/usage
+ * Called by client after report generation completes
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+async function logUsage(req, ctx) {
+  const body = ctx.data;
+
+  // Validate required fields
+  if (!body?.reportId) {
+    throw errorWithResponse(400, 'missing reportId');
+  }
+  if (typeof body.inputTokens !== 'number' || typeof body.outputTokens !== 'number') {
+    throw errorWithResponse(400, 'missing or invalid token counts');
+  }
+
+  const region = getRegion(ctx);
+  const s3 = new S3Client({ region });
+  const adminId = ctx.attributes.adminId || 'unknown';
+
+  const success = await appendUsageRecord(s3, {
+    timestamp: new Date().toISOString(),
+    user: adminId,
+    model: body.model || 'unknown',
+    inputTokens: body.inputTokens,
+    outputTokens: body.outputTokens,
+    reportId: body.reportId,
+  }, ctx.log);
+
+  if (!success) {
+    throw errorWithResponse(500, 'failed to log usage');
+  }
+
+  return new Response(JSON.stringify({ status: 'recorded' }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+/**
  * Handle /bedrock routes
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -307,6 +398,11 @@ export default async function handleRequest(req, ctx) {
   // POST /bedrock - sync invocation (for quick requests only)
   if (info.subroute === 'sync' && req.method === 'POST') {
     return invokeModelSync(req, ctx);
+  }
+
+  // POST /bedrock/usage - log usage summary
+  if (info.subroute === 'usage' && req.method === 'POST') {
+    return logUsage(req, ctx);
   }
 
   return new Response('method not allowed', { status: 405 });
