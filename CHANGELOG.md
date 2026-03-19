@@ -1,3 +1,16 @@
+# [2.2.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.1.2...v2.2.0) (2026-03-19)
+
+
+### Bug Fixes
+
+* add test coverage for bedrock usage CSV write error path ([638255b](https://github.com/adobe/[secure]-rum-bundler/commit/638255b20db13c992daaabc2c6bcaa6dc034adbe))
+* log bedrock usage to Coralogix instead of S3 CSV ([372e144](https://github.com/adobe/[secure]-rum-bundler/commit/372e144dbf13d369b7da311945ff15f5829ea5ed))
+
+
+### Features
+
+* **bedrock:** add /bedrock/usage endpoint for usage tracking ([2b42f30](https://github.com/adobe/[secure]-rum-bundler/commit/2b42f30c2e00eccf4363b9687c8a2f2ec42e6101))
+
 ## [2.1.2](https://github.com/adobe/[secure]-rum-bundler/compare/v2.1.1...v2.1.2) (2026-03-17)
 
 
