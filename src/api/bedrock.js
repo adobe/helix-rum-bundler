@@ -285,6 +285,43 @@ export async function processBedrockJob(ctx, event) {
 }
 
 /**
+ * Log usage summary - POST /bedrock/usage
+ * Called by client after report generation completes
+ * Logs to Coralogix via log.info for usage tracking
+ * @param {RRequest} req
+ * @param {UniversalContext} ctx
+ */
+async function logUsage(req, ctx) {
+  const body = ctx.data;
+
+  // Validate required fields
+  if (!body?.reportId) {
+    throw errorWithResponse(400, 'missing reportId');
+  }
+  if (typeof body.inputTokens !== 'number' || typeof body.outputTokens !== 'number') {
+    throw errorWithResponse(400, 'missing or invalid token counts');
+  }
+
+  const user = ctx.attributes.adminId || 'unknown';
+  const model = body.model || 'unknown';
+  const totalTokens = body.inputTokens + body.outputTokens;
+
+  ctx.log.info('[bedrock-usage]', {
+    user,
+    model,
+    inputTokens: body.inputTokens,
+    outputTokens: body.outputTokens,
+    totalTokens,
+    reportId: body.reportId,
+  });
+
+  return new Response(JSON.stringify({ status: 'recorded' }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+/**
  * Handle /bedrock routes
  * @param {RRequest} req
  * @param {UniversalContext} ctx
@@ -307,6 +344,11 @@ export default async function handleRequest(req, ctx) {
   // POST /bedrock - sync invocation (for quick requests only)
   if (info.subroute === 'sync' && req.method === 'POST') {
     return invokeModelSync(req, ctx);
+  }
+
+  // POST /bedrock/usage - log usage summary
+  if (info.subroute === 'usage' && req.method === 'POST') {
+    return logUsage(req, ctx);
   }
 
   return new Response('method not allowed', { status: 405 });

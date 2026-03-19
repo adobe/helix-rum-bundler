@@ -23,6 +23,7 @@ const MESSAGES = [{ role: 'user', content: [{ text: 'Hello' }] }];
 const PATH_INFO_SYNC = { suffix: '/bedrock' };
 const PATH_INFO_JOBS = { suffix: '/bedrock/jobs' };
 const PATH_INFO_JOB = (id) => ({ suffix: `/bedrock/jobs/${id}` });
+const PATH_INFO_USAGE = { suffix: '/bedrock/usage' };
 
 const REQUEST = ({ method, token = 'superkey', body = null }) => new Request('https://localhost/', {
   method,
@@ -272,7 +273,7 @@ describe('api/bedrock Tests', function testSuite() {
       const saved = JSON.parse(s3Storage[`bedrock-jobs/${jobId}.json`]);
       assert.strictEqual(saved.status, 'processing');
 
-      // Check Lambda
+      // Check Lambda payload
       assert.strictEqual(lambdaInvocations.length, 1);
       assert.strictEqual(lambdaInvocations[0].jobId, jobId);
     });
@@ -377,6 +378,76 @@ describe('api/bedrock Tests', function testSuite() {
       const saved = JSON.parse(s3Storage[`bedrock-jobs/${jobId}.json`]);
       assert.strictEqual(saved.status, 'failed');
       assert.strictEqual(saved.error.name, 'BedrockErr');
+    });
+  });
+
+  describe('POST /bedrock/usage', () => {
+    it('rejects missing reportId', async () => {
+      const req = REQUEST({ method: 'POST', body: { inputTokens: 100, outputTokens: 50 } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_USAGE,
+        data: { inputTokens: 100, outputTokens: 50 },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing reportId');
+    });
+
+    it('rejects missing token counts', async () => {
+      const req = REQUEST({ method: 'POST', body: { reportId: 'report_123' } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_USAGE,
+        data: { reportId: 'report_123' },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing or invalid token counts');
+    });
+
+    it('logs usage via log.info and returns 200', async () => {
+      const req = REQUEST({ method: 'POST', body: {} });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_USAGE,
+        data: {
+          reportId: 'report_abc123',
+          model: 'claude-opus-4-6',
+          inputTokens: 45000,
+          outputTokens: 12000,
+        },
+        attributes: { adminId: 'alice' },
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const body = await resp.json();
+      assert.strictEqual(body.status, 'recorded');
+
+      // Verify log.info was called with usage data
+      const infoCalls = ctx.log.calls.info;
+      const usageLog = infoCalls.find((call) => call[0] === '[bedrock-usage]');
+      assert.ok(usageLog, 'should log usage');
+      assert.strictEqual(usageLog[1].user, 'alice');
+      assert.strictEqual(usageLog[1].model, 'claude-opus-4-6');
+      assert.strictEqual(usageLog[1].inputTokens, 45000);
+      assert.strictEqual(usageLog[1].outputTokens, 12000);
+      assert.strictEqual(usageLog[1].totalTokens, 57000);
+      assert.strictEqual(usageLog[1].reportId, 'report_abc123');
+    });
+
+    it('uses unknown for missing admin ID and model', async () => {
+      const req = REQUEST({ method: 'POST', body: {} });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_USAGE,
+        data: {
+          reportId: 'report_anon',
+          inputTokens: 100,
+          outputTokens: 50,
+        },
+        attributes: {},
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+
+      const infoCalls = ctx.log.calls.info;
+      const usageLog = infoCalls.find((call) => call[0] === '[bedrock-usage]');
+      assert.ok(usageLog, 'should log usage');
+      assert.strictEqual(usageLog[1].user, 'unknown');
+      assert.strictEqual(usageLog[1].model, 'unknown');
     });
   });
 

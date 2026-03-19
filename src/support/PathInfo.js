@@ -151,6 +151,7 @@ export class PathInfo {
     // /bedrock - sync invoke (legacy)
     // /bedrock/jobs - submit async job (POST) or list jobs (GET)
     // /bedrock/jobs/{jobId} - get job status/result
+    // /bedrock/usage - log usage summary (POST)
     if (this.segments.length === 1) {
       // /bedrock - sync mode
       this.subroute = 'sync';
@@ -161,6 +162,9 @@ export class PathInfo {
       // /bedrock/jobs/{jobId}
       this.subroute = 'job';
       [, , this.jobId] = this.segments;
+    } else if (this.segments.length === 2 && this.segments[1] === 'usage') {
+      // /bedrock/usage
+      this.subroute = 'usage';
     } else {
       throw errorWithResponse(404, `invalid bedrock path: segments=${JSON.stringify(this.segments)}`);
     }
