@@ -54,8 +54,6 @@ let bedrockError = null;
 let stsError = null;
 let s3Error = null;
 let lambdaError = null;
-let usageReadError = null;
-let usageWriteError = null;
 
 function createMocks() {
   function MockBedrockClient() {}
@@ -81,14 +79,10 @@ function createMocks() {
   function MockS3Client() {}
   MockS3Client.prototype.send = (cmd) => {
     const key = cmd.input.Key;
-    const bucket = cmd.input.Bucket;
-    const isUsageBucket = bucket === 'helix-rum-users';
     if (cmd.input.Body !== undefined) {
-      if (isUsageBucket && usageWriteError) return Promise.reject(usageWriteError);
       s3Storage[key] = cmd.input.Body;
       return Promise.resolve({});
     }
-    if (isUsageBucket && usageReadError) return Promise.reject(usageReadError);
     if (s3Error) return Promise.reject(s3Error);
     if (s3Storage[key]) {
       return Promise.resolve({
@@ -149,8 +143,6 @@ describe('api/bedrock Tests', function testSuite() {
     stsError = null;
     s3Error = null;
     lambdaError = null;
-    usageReadError = null;
-    usageWriteError = null;
   });
 
   afterEach(() => {
@@ -408,7 +400,7 @@ describe('api/bedrock Tests', function testSuite() {
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing or invalid token counts');
     });
 
-    it('logs usage to CSV with admin ID', async () => {
+    it('logs usage via log.info and returns 200', async () => {
       const req = REQUEST({ method: 'POST', body: {} });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_USAGE,
@@ -422,72 +414,22 @@ describe('api/bedrock Tests', function testSuite() {
       });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 200);
+      const body = await resp.json();
+      assert.strictEqual(body.status, 'recorded');
 
-      const csv = s3Storage['bedrock-usage.csv'];
-      assert.ok(csv, 'CSV should be created');
-      assert.ok(csv.includes('alice'), 'should include admin ID');
-      assert.ok(csv.includes('report_abc123'), 'should include report ID');
-      assert.ok(csv.includes('45000'), 'should include input tokens');
-      assert.ok(csv.includes('12000'), 'should include output tokens');
-      assert.ok(csv.includes('57000'), 'should include total tokens');
+      // Verify log.info was called with usage data
+      const infoCalls = ctx.log.calls.info;
+      const usageLog = infoCalls.find((call) => call[0] === '[bedrock-usage]');
+      assert.ok(usageLog, 'should log usage');
+      assert.strictEqual(usageLog[1].user, 'alice');
+      assert.strictEqual(usageLog[1].model, 'claude-opus-4-6');
+      assert.strictEqual(usageLog[1].inputTokens, 45000);
+      assert.strictEqual(usageLog[1].outputTokens, 12000);
+      assert.strictEqual(usageLog[1].totalTokens, 57000);
+      assert.strictEqual(usageLog[1].reportId, 'report_abc123');
     });
 
-    it('appends to existing CSV', async () => {
-      s3Storage['bedrock-usage.csv'] = 'timestamp,user,model,input_tokens,output_tokens,total_tokens,report_id\n2024-01-01T00:00:00Z,bob,model1,1000,500,1500,report_old';
-
-      const req = REQUEST({ method: 'POST', body: {} });
-      const ctx = DEFAULT_CONTEXT({
-        pathInfo: PATH_INFO_USAGE,
-        data: {
-          reportId: 'report_new',
-          model: 'claude-opus-4-6',
-          inputTokens: 2000,
-          outputTokens: 1000,
-        },
-        attributes: { adminId: 'charlie' },
-      });
-      await handleRequest(req, ctx);
-
-      const csv = s3Storage['bedrock-usage.csv'];
-      const lines = csv.trim().split('\n');
-      assert.strictEqual(lines.length, 3, 'should have header + 2 rows');
-      assert.ok(lines[1].includes('bob'));
-      assert.ok(lines[2].includes('charlie'));
-    });
-
-    it('returns 500 if CSV read fails with non-NoSuchKey error', async () => {
-      usageReadError = new Error('Access Denied');
-      usageReadError.name = 'AccessDenied';
-
-      const req = REQUEST({ method: 'POST', body: {} });
-      const ctx = DEFAULT_CONTEXT({
-        pathInfo: PATH_INFO_USAGE,
-        data: {
-          reportId: 'report_fail',
-          inputTokens: 100,
-          outputTokens: 50,
-        },
-      });
-      await assertRejectsWithResponse(() => handleRequest(req, ctx), 500, 'failed to log usage');
-    });
-
-    it('returns 500 if CSV write fails', async () => {
-      usageWriteError = new Error('Write Failed');
-      usageWriteError.name = 'WriteError';
-
-      const req = REQUEST({ method: 'POST', body: {} });
-      const ctx = DEFAULT_CONTEXT({
-        pathInfo: PATH_INFO_USAGE,
-        data: {
-          reportId: 'report_write_fail',
-          inputTokens: 100,
-          outputTokens: 50,
-        },
-      });
-      await assertRejectsWithResponse(() => handleRequest(req, ctx), 500, 'failed to log usage');
-    });
-
-    it('uses unknown for missing admin ID', async () => {
+    it('uses unknown for missing admin ID and model', async () => {
       const req = REQUEST({ method: 'POST', body: {} });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_USAGE,
@@ -498,10 +440,14 @@ describe('api/bedrock Tests', function testSuite() {
         },
         attributes: {},
       });
-      await handleRequest(req, ctx);
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
 
-      const csv = s3Storage['bedrock-usage.csv'];
-      assert.ok(csv.includes('unknown'));
+      const infoCalls = ctx.log.calls.info;
+      const usageLog = infoCalls.find((call) => call[0] === '[bedrock-usage]');
+      assert.ok(usageLog, 'should log usage');
+      assert.strictEqual(usageLog[1].user, 'unknown');
+      assert.strictEqual(usageLog[1].model, 'unknown');
     });
   });
 
