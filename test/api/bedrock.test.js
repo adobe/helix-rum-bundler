@@ -455,7 +455,7 @@ describe('api/bedrock Tests', function testSuite() {
       assert.ok(lines[2].includes('charlie'));
     });
 
-    it('returns 500 if CSV write fails', async () => {
+    it('returns 500 if CSV read fails with non-NoSuchKey error', async () => {
       usageReadError = new Error('Access Denied');
       usageReadError.name = 'AccessDenied';
 
@@ -464,6 +464,22 @@ describe('api/bedrock Tests', function testSuite() {
         pathInfo: PATH_INFO_USAGE,
         data: {
           reportId: 'report_fail',
+          inputTokens: 100,
+          outputTokens: 50,
+        },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 500, 'failed to log usage');
+    });
+
+    it('returns 500 if CSV write fails', async () => {
+      usageWriteError = new Error('Write Failed');
+      usageWriteError.name = 'WriteError';
+
+      const req = REQUEST({ method: 'POST', body: {} });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_USAGE,
+        data: {
+          reportId: 'report_write_fail',
           inputTokens: 100,
           outputTokens: 50,
         },
