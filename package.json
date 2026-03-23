@@ -62,7 +62,7 @@
     "@adobe/helix-status": "10.1.5",
     "@aws-sdk/client-bedrock-runtime": "^3.990.0",
     "@aws-sdk/client-lambda": "^3.1009.0",
-    "@aws-sdk/client-s3": "3.1000.0",
+    "@aws-sdk/client-s3": "3.1005.0",
     "@aws-sdk/client-sts": "^3.999.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.1.0"
@@ -82,7 +82,7 @@
     "dotenv": "16.6.1",
     "eslint": "8.57.1",
     "esmock": "2.7.3",
-    "fs-extra": "11.3.3",
+    "fs-extra": "11.3.4",
     "googleapis": "148.0.0",
     "husky": "9.1.7",
     "junit-report-builder": "5.1.1",
