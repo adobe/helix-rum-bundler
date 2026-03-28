@@ -421,6 +421,20 @@ async function doBundling(ctx) {
   );
   performance.mark('end:get-logs');
 
+  // move all events into processed folder
+  performance.mark('start:move-logs');
+  const toRemove = [];
+  await processQueue(
+    objects.map(({ key }) => key),
+    async (key) => {
+      toRemove.push(key);
+      await logBucket.copy(key, key.replace('raw/', 'processed/'));
+    },
+    concurrency,
+  );
+  await logBucket.remove(toRemove);
+  performance.mark('end:move-logs');
+
   // each file is line-delimited JSON objects of events
   performance.mark('start:parse-logs');
   const rawEvents = files
@@ -473,20 +487,6 @@ async function doBundling(ctx) {
     importEventsByKey(ctx, rawEventMap).finally(() => performance.mark('end:import-events')),
     importEventsByKey(ctx, virtualMap, true).finally(() => performance.mark('end:import-virtual')),
   ]);
-
-  // move all events into processed folder
-  performance.mark('start:move-logs');
-  const toRemove = [];
-  await processQueue(
-    objects,
-    async ({ key }) => {
-      toRemove.push(key);
-      await logBucket.copy(key, key.replace('raw/', 'processed/'));
-    },
-    concurrency,
-  );
-  await logBucket.remove(toRemove);
-  performance.mark('end:move-logs');
 
   performance.mark('end:total');
   return !isTruncated;
