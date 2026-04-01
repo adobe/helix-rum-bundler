@@ -1,3 +1,12 @@
+## [2.2.3](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.2...v2.2.3) (2026-04-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/[secure]-shared-body-data to v2.2.4 ([#484](https://github.com/adobe/[secure]-rum-bundler/issues/484)) ([e7b8318](https://github.com/adobe/[secure]-rum-bundler/commit/e7b8318c866d2363a36780ee17720a8e4750977f))
+* **deps:** update dependency @adobe/[secure]-shared-process-queue to v3.1.7 ([#483](https://github.com/adobe/[secure]-rum-bundler/issues/483)) ([1f98a97](https://github.com/adobe/[secure]-rum-bundler/commit/1f98a97902c1d22909ccc90e31231808163e510e))
+* **deps:** update external fixes to v3.1010.0 ([#482](https://github.com/adobe/[secure]-rum-bundler/issues/482)) ([1b0d274](https://github.com/adobe/[secure]-rum-bundler/commit/1b0d2744458a17ac6e46b7b4e3e5deb23507010c))
+
 ## [2.2.2](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.1...v2.2.2) (2026-03-24)
 
 
