@@ -1,3 +1,10 @@
+## [2.2.7](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.6...v2.2.7) (2026-04-14)
+
+
+### Bug Fixes
+
+* even lower limit ([#489](https://github.com/adobe/[secure]-rum-bundler/issues/489)) ([66baadf](https://github.com/adobe/[secure]-rum-bundler/commit/66baadfd773dbb996a77a75fee1d8c6254728bd9))
+
 ## [2.2.6](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.5...v2.2.6) (2026-04-14)
 
 
