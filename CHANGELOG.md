@@ -1,3 +1,10 @@
+## [2.2.5](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.4...v2.2.5) (2026-04-14)
+
+
+### Bug Fixes
+
+* lower monthly event limit ([#487](https://github.com/adobe/[secure]-rum-bundler/issues/487)) ([34b719b](https://github.com/adobe/[secure]-rum-bundler/commit/34b719bdc4d99c66d6e589e6e95abbac66a8d92f))
+
 ## [2.2.4](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.3...v2.2.4) (2026-04-06)
 
 
