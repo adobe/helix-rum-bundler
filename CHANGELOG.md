@@ -1,3 +1,10 @@
+## [2.2.9](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.8...v2.2.9) (2026-04-14)
+
+
+### Bug Fixes
+
+* lower monthly limit 5% ([#491](https://github.com/adobe/[secure]-rum-bundler/issues/491)) ([bffa946](https://github.com/adobe/[secure]-rum-bundler/commit/bffa94648f12dfe8b6f145b335eac5e02eb1efbf))
+
 ## [2.2.8](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.7...v2.2.8) (2026-04-14)
 
 
