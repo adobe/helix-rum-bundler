@@ -1,3 +1,10 @@
+## [2.2.8](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.7...v2.2.8) (2026-04-14)
+
+
+### Bug Fixes
+
+* more lower more betterer ([#490](https://github.com/adobe/[secure]-rum-bundler/issues/490)) ([247a3df](https://github.com/adobe/[secure]-rum-bundler/commit/247a3df8ec330946177538623b7e4531408b77dc))
+
 ## [2.2.7](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.6...v2.2.7) (2026-04-14)
 
 
