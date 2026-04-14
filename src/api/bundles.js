@@ -38,7 +38,7 @@ const DEFAULT_HOURLY_FILE_MAX_SIZE = 30 * 1024 * 1024; // 30mb
 const MAX_EVENTS = {
   hourly: 300_000, // ~4mb compressed => 96mb/day (try to avoid downsampling when possible)
   daily: 7_500, // ~50kb compressed => 1.5mb/mo
-  monthly: 30_000, // ~700kb compressed => 2.25mb/yr
+  monthly: 25_000, // ~700kb compressed => 1.9mb/yr
 };
 
 /**
