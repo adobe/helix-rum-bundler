@@ -62,7 +62,7 @@
     "@adobe/helix-status": "10.1.5",
     "@aws-sdk/client-bedrock-runtime": "^3.990.0",
     "@aws-sdk/client-lambda": "^3.1009.0",
-    "@aws-sdk/client-s3": "3.1029.0",
+    "@aws-sdk/client-s3": "3.1032.0",
     "@aws-sdk/client-sts": "^3.999.0",
     "@aws-sdk/node-http-handler": "3.374.0",
     "mime": "4.1.0"
@@ -85,7 +85,7 @@
     "fs-extra": "11.3.4",
     "googleapis": "148.0.0",
     "husky": "9.1.7",
-    "junit-report-builder": "5.1.1",
+    "junit-report-builder": "5.1.2",
     "lint-staged": "15.5.2",
     "mocha": "11.7.5",
     "mocha-multi-reporters": "1.5.1",
