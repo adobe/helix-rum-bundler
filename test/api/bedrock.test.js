@@ -169,6 +169,39 @@ describe('api/bedrock Tests', function testSuite() {
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 403, 'invalid domainkey');
     });
 
+    it('rejects when domainkey not set', async () => {
+      nock.domainKey(TEST_DOMAIN, null);
+      const req = REQUEST({ method: 'POST', body: { messages: [] } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        data: { messages: [], domain: TEST_DOMAIN, domainkey: 'any-key' },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 401, 'domainkey not set');
+    });
+
+    it('rejects revoked domainkey', async () => {
+      nock.domainKey(TEST_DOMAIN, 'revoked');
+      const req = REQUEST({ method: 'POST', body: { messages: [] } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        data: { messages: [], domain: TEST_DOMAIN, domainkey: 'any-key' },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 401, 'domainkey revoked');
+    });
+
+    it('strips admin ident suffix from domainkey', async () => {
+      const fivePartKey = 'abcd-efgh-ijkl-mnop-qrst';
+      nock.domainKey(TEST_DOMAIN, fivePartKey);
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: `${fivePartKey}-admin` },
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+    });
+
     it('rejects missing messages', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       const req = REQUEST({ method: 'POST', body: {} });
