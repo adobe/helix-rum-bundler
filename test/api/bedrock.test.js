@@ -151,7 +151,6 @@ describe('api/bedrock Tests', function testSuite() {
 
   describe('POST /bedrock (sync)', () => {
     it('rejects missing domain or domainkey', async () => {
-      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       const req = REQUEST({ method: 'POST', body: { messages: [] } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
