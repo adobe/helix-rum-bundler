@@ -18,9 +18,12 @@ const OPUS_MODEL_ID = 'us.anthropic.claude-opus-4-6-v1';
 const POLL_INTERVAL = 3000;
 const MAX_POLL_TIME = 180000; // 3 minutes max for polling
 
-// Domain key auth for bedrock tests
-const { TEST_DOMAINKEY } = process.env;
-const TEST_DOMAIN = process.env.TEST_DOMAIN || 'www.thinktanked.org';
+// Domain key auth for bedrock tests (parsed from JSON secret)
+const domainkeyAuth = process.env.TEST_DOMAINKEY_AUTH
+  ? JSON.parse(process.env.TEST_DOMAINKEY_AUTH)
+  : {};
+const TEST_DOMAIN = domainkeyAuth.domain || 'thinktanked.org';
+const TEST_DOMAINKEY = domainkeyAuth.domainkey;
 
 /**
  * Poll job status until complete or timeout
