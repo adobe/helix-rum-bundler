@@ -111,9 +111,14 @@ async function invokeModelSync(req, ctx) {
   const credentials = await getCredentials(ctx, region);
   const client = new BedrockRuntimeClient({ region, credentials });
 
+  // Strip auth fields before sending to Bedrock
+  const bedrockBody = { ...body };
+  delete bedrockBody.domain;
+  delete bedrockBody.domainkey;
+
   ctx.log.info(`[bedrock] sync invocation for domain=${domain}`);
   try {
-    const result = await callBedrock(client, { ...body, modelId }, ctx.log);
+    const result = await callBedrock(client, { ...bedrockBody, modelId }, ctx.log);
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -210,13 +215,18 @@ async function submitJob(req, ctx) {
   const jobId = generateJobId();
   const domain = ctx.data?.domain || 'unknown';
 
+  // Strip auth fields before storing/sending to Bedrock
+  const bedrockBody = { ...body };
+  delete bedrockBody.domain;
+  delete bedrockBody.domainkey;
+
   ctx.log.info(`[bedrock-job] submitting ${jobId} for domain=${domain}`);
 
   // Save initial state
   await saveJob(s3, jobId, {
     status: 'processing',
     createdAt: new Date().toISOString(),
-    request: { modelId, max_tokens: body.max_tokens || 4096 },
+    request: { modelId, max_tokens: bedrockBody.max_tokens || 4096 },
   });
 
   // Invoke Lambda asynchronously
@@ -230,7 +240,7 @@ async function submitJob(req, ctx) {
       Payload: JSON.stringify({
         source: 'bedrock-job',
         jobId,
-        request: { ...body, modelId },
+        request: { ...bedrockBody, modelId },
       }),
     }));
     ctx.log.info(`[bedrock-job] ${jobId} async invocation triggered for domain=${domain}`);
