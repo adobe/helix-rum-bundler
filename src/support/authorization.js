@@ -12,6 +12,7 @@
 
 import { retrieveAdmin, retrieveAdminkey } from './admins.js';
 import { getDomainOrgkeyMap } from './orgs.js';
+import { fetchDomainKey } from './domains.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
 
@@ -125,6 +126,39 @@ export async function assertAdminOrSuperuserAuthorized(req, ctx) {
   }
 
   throw errorWithResponse(403, 'invalid auth');
+}
+
+/**
+ * Asserts authorization via domainkey for a domain.
+ * Used for APIs where callers can authenticate with a valid domainkey.
+ *
+ * @param {UniversalContext} ctx
+ * @param {string} domain
+ * @param {string} domainkey
+ */
+export async function assertDomainkeyAuthorized(ctx, domain, domainkey) {
+  if (!domain || !domainkey) {
+    throw errorWithResponse(401, 'missing domain or domainkey');
+  }
+
+  // if there's an admin ident, remove it
+  let actual = domainkey;
+  const spl = actual.split('-');
+  if (spl.length === 6) {
+    actual = spl.slice(0, 5).join('-');
+  }
+
+  const expected = await fetchDomainKey(ctx, domain);
+  if (expected === null) {
+    throw errorWithResponse(401, 'domainkey not set');
+  }
+  if (expected === 'revoked') {
+    throw errorWithResponse(401, 'domainkey revoked');
+  }
+  // empty string means no auth required
+  if (expected && actual !== expected) {
+    throw errorWithResponse(403, 'invalid domainkey');
+  }
 }
 
 /**

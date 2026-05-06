@@ -15,7 +15,7 @@ import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
-import { assertAdminOrSuperuserAuthorized } from '../support/authorization.js';
+import { assertDomainkeyAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
 import { PathInfo } from '../support/PathInfo.js';
 
@@ -106,10 +106,12 @@ async function callBedrock(client, body, log) {
  */
 async function invokeModelSync(req, ctx) {
   const { body, modelId } = validateRequest(ctx);
+  const domain = ctx.data?.domain || 'unknown';
   const region = getRegion(ctx);
   const credentials = await getCredentials(ctx, region);
   const client = new BedrockRuntimeClient({ region, credentials });
 
+  ctx.log.info(`[bedrock] sync invocation for domain=${domain}`);
   try {
     const result = await callBedrock(client, { ...body, modelId }, ctx.log);
     return new Response(JSON.stringify(result), {
@@ -206,8 +208,9 @@ async function submitJob(req, ctx) {
   const region = getRegion(ctx);
   const s3 = new S3Client({ region });
   const jobId = generateJobId();
+  const domain = ctx.data?.domain || 'unknown';
 
-  ctx.log.info(`[bedrock-job] submitting ${jobId}`);
+  ctx.log.info(`[bedrock-job] submitting ${jobId} for domain=${domain}`);
 
   // Save initial state
   await saveJob(s3, jobId, {
@@ -230,7 +233,7 @@ async function submitJob(req, ctx) {
         request: { ...body, modelId },
       }),
     }));
-    ctx.log.info(`[bedrock-job] ${jobId} async invocation triggered`);
+    ctx.log.info(`[bedrock-job] ${jobId} async invocation triggered for domain=${domain}`);
   } catch (err) {
     ctx.log.error(`[bedrock-job] ${jobId} invoke failed: ${err.message}`);
     await saveJob(s3, jobId, {
@@ -302,12 +305,12 @@ async function logUsage(req, ctx) {
     throw errorWithResponse(400, 'missing or invalid token counts');
   }
 
-  const user = ctx.attributes.adminId || 'unknown';
+  const domain = body.domain || 'unknown';
   const model = body.model || 'unknown';
   const totalTokens = body.inputTokens + body.outputTokens;
 
   ctx.log.info('[bedrock-usage]', {
-    user,
+    domain,
     model,
     inputTokens: body.inputTokens,
     outputTokens: body.outputTokens,
@@ -327,7 +330,8 @@ async function logUsage(req, ctx) {
  * @param {UniversalContext} ctx
  */
 export default async function handleRequest(req, ctx) {
-  await assertAdminOrSuperuserAuthorized(req, ctx);
+  const { domain, domainkey } = ctx.data || {};
+  await assertDomainkeyAuthorized(ctx, domain, domainkey);
 
   const info = PathInfo.fromContext(ctx);
 
