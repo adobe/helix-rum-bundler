@@ -18,11 +18,15 @@ const OPUS_MODEL_ID = 'us.anthropic.claude-opus-4-6-v1';
 const POLL_INTERVAL = 3000;
 const MAX_POLL_TIME = 180000; // 3 minutes max for polling
 
+// Domain key auth for bedrock tests
+const { TEST_DOMAINKEY } = process.env;
+const TEST_DOMAIN = process.env.TEST_DOMAIN || 'www.thinktanked.org';
+
 /**
  * Poll job status until complete or timeout
  */
 async function pollJobUntilComplete(fetch, url, headers, jobId) {
-  const jobUrl = `${url}/bedrock/jobs/${jobId}`;
+  const jobUrl = `${url}/bedrock/jobs/${jobId}?domain=${encodeURIComponent(TEST_DOMAIN)}&domainkey=${encodeURIComponent(TEST_DOMAINKEY)}`;
   const startTime = Date.now();
 
   while (Date.now() - startTime < MAX_POLL_TIME) {
@@ -34,7 +38,6 @@ async function pollJobUntilComplete(fetch, url, headers, jobId) {
     // eslint-disable-next-line no-await-in-loop
     const res = await fetch(jobUrl, {
       method: 'GET',
-      headers,
     });
 
     if (!res.ok) {
@@ -106,8 +109,10 @@ createTargets().forEach((target) => {
     it('calls bedrock sync API for quick request', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
-        headers: { ...target.headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          domain: TEST_DOMAIN,
+          domainkey: TEST_DOMAINKEY,
           modelId: OPUS_MODEL_ID,
           messages: [{ role: 'user', content: 'Say OK' }],
           max_tokens: 10,
@@ -135,8 +140,10 @@ createTargets().forEach((target) => {
     it('submits async job and returns jobId', async () => {
       const res = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { ...target.headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          domain: TEST_DOMAIN,
+          domainkey: TEST_DOMAINKEY,
           modelId: OPUS_MODEL_ID,
           messages: [{ role: 'user', content: 'Say hello' }],
           max_tokens: 50,
@@ -155,8 +162,10 @@ createTargets().forEach((target) => {
       // Submit job
       const submitRes = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { ...target.headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          domain: TEST_DOMAIN,
+          domainkey: TEST_DOMAINKEY,
           modelId: OPUS_MODEL_ID,
           messages: [{ role: 'user', content: 'Say hello in exactly 5 words' }],
           max_tokens: 50,
@@ -185,8 +194,10 @@ createTargets().forEach((target) => {
       // Submit large request as async job
       const submitRes = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { ...target.headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          domain: TEST_DOMAIN,
+          domainkey: TEST_DOMAINKEY,
           modelId: OPUS_MODEL_ID,
           messages: [{
             role: 'user',
@@ -219,9 +230,9 @@ Include sections on performance metrics and traffic patterns.`,
     }).timeout(240000);
 
     it('returns 404 for non-existent job', async () => {
-      const res = await fetch(target.url('/bedrock/jobs/job_nonexistent_12345'), {
+      const jobUrl = `${target.url('/bedrock/jobs/job_nonexistent_12345')}?domain=${encodeURIComponent(TEST_DOMAIN)}&domainkey=${encodeURIComponent(TEST_DOMAINKEY)}`;
+      const res = await fetch(jobUrl, {
         method: 'GET',
-        headers: target.headers,
       });
       assert.strictEqual(res.status, 404);
     }).timeout(30000);
