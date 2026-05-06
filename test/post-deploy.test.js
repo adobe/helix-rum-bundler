@@ -38,6 +38,7 @@ async function pollJobUntilComplete(fetch, url, headers, jobId) {
     // eslint-disable-next-line no-await-in-loop
     const res = await fetch(jobUrl, {
       method: 'GET',
+      headers,
     });
 
     if (!res.ok) {
@@ -109,7 +110,7 @@ createTargets().forEach((target) => {
     it('calls bedrock sync API for quick request', async () => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
@@ -140,7 +141,7 @@ createTargets().forEach((target) => {
     it('submits async job and returns jobId', async () => {
       const res = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
@@ -162,7 +163,7 @@ createTargets().forEach((target) => {
       // Submit job
       const submitRes = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
@@ -194,7 +195,7 @@ createTargets().forEach((target) => {
       // Submit large request as async job
       const submitRes = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...target.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
@@ -233,6 +234,7 @@ Include sections on performance metrics and traffic patterns.`,
       const jobUrl = `${target.url('/bedrock/jobs/job_nonexistent_12345')}?domain=${encodeURIComponent(TEST_DOMAIN)}&domainkey=${encodeURIComponent(TEST_DOMAINKEY)}`;
       const res = await fetch(jobUrl, {
         method: 'GET',
+        headers: target.headers,
       });
       assert.strictEqual(res.status, 404);
     }).timeout(30000);
