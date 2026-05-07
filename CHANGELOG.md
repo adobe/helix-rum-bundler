@@ -1,3 +1,20 @@
+# [2.3.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.14...v2.3.0) (2026-05-07)
+
+
+### Bug Fixes
+
+* **ci:** add TEST_DOMAINKEY_AUTH to release job ([93bb046](https://github.com/adobe/[secure]-rum-bundler/commit/93bb0464db2f6c69194ce0142edf0d99425ceeff))
+* include target.headers for API Gateway auth in post-deploy tests ([3d4efc6](https://github.com/adobe/[secure]-rum-bundler/commit/3d4efc69a7d4ac8c98b0cc36eaf7ba1e6a9cfb68))
+* read domainkey auth from TEST_DOMAINKEY_AUTH secret ([ac9a258](https://github.com/adobe/[secure]-rum-bundler/commit/ac9a258d41ffe9397a56436bcf9497f0eb092447))
+* remove unused nock mock from early rejection test ([6e71a0c](https://github.com/adobe/[secure]-rum-bundler/commit/6e71a0ce25343478548f017ed1e3fcd44ab7c4fa))
+* strip domain/domainkey from body before sending to Bedrock ([204a515](https://github.com/adobe/[secure]-rum-bundler/commit/204a515a842c852c8966d92d92dbc1950413ac88))
+* update post-deploy tests for domain key authentication ([dc83b0f](https://github.com/adobe/[secure]-rum-bundler/commit/dc83b0f8979018af8fb6d46092df0633e88e786e))
+
+
+### Features
+
+* **bedrock:** switch from admin token to domain key authentication ([7b49f79](https://github.com/adobe/[secure]-rum-bundler/commit/7b49f7926789980deaed6ca2ed6e095fbb2b7170))
+
 ## [2.2.14](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.13...v2.2.14) (2026-05-04)
 
 
