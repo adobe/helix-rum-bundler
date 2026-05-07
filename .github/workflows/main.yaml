@@ -109,3 +109,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
+          TEST_DOMAINKEY_AUTH: ${{ secrets.TEST_DOMAINKEY_AUTH }}
