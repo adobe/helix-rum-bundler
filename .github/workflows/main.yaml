@@ -66,6 +66,7 @@ jobs:
         run: npm run test-postdeploy
         env:
           HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
+          TEST_DOMAINKEY_AUTH: ${{ secrets.TEST_DOMAINKEY_AUTH }}
       - name: Semantic Release (Dry Run)
         run: npm run semantic-release-dry
         env:
