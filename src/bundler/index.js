@@ -325,7 +325,11 @@ export function sortRawEvents(rawEvents, log) {
     }
 
     try {
-      if (!url.hostname.includes('.') && url.hostname !== 'localhost') {
+      if (
+        !url.hostname.includes('.')
+        && url.hostname !== 'localhost'
+        && url.protocol !== 'chrome-extension:'
+      ) {
         log.info('ignoring event with invalid url (no tld): ', event.url, event.id);
         return;
       }
