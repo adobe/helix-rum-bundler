@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.0...v2.3.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* bundle events from chrome-extension:// URLs ([746e989](https://github.com/adobe/[secure]-rum-bundler/commit/746e9895038aca9dd39b4c6963e534491c22b846))
+
 # [2.3.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.2.14...v2.3.0) (2026-05-07)
 
 
