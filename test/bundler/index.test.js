@@ -153,6 +153,38 @@ describe('bundler Tests', () => {
       });
     });
 
+    it('allows chrome-extension urls', () => {
+      const sorted = sortRawEvents([{
+        url: 'chrome-extension://akjjllgokmbgpbdbmafpiefnhidlmbgf/index.html',
+        id: 'a',
+        time: 0,
+      }], log);
+      assert.deepStrictEqual(sorted, {
+        domains: [
+          'akjjllgokmbgpbdbmafpiefnhidlmbgf',
+        ],
+        rawEventMap: {
+          '/akjjllgokmbgpbdbmafpiefnhidlmbgf/1970/1/1/0.json': {
+            events: [
+              {
+                id: 'a',
+                time: 0,
+                url: 'chrome-extension://akjjllgokmbgpbdbmafpiefnhidlmbgf/index.html',
+              },
+            ],
+            info: {
+              day: 1,
+              domain: 'akjjllgokmbgpbdbmafpiefnhidlmbgf',
+              hour: 0,
+              month: 1,
+              year: 1970,
+            },
+          },
+        },
+        virtualMap: {},
+      });
+    });
+
     it('ignores urls with relative hosts', () => {
       const sorted = sortRawEvents([{ url: 'https://..' }], log);
       assert.deepStrictEqual(sorted, { rawEventMap: {}, domains: [], virtualMap: {} });
