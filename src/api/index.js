@@ -36,7 +36,7 @@ const handlers = {
  * @returns {Promise<RResponse>}
  */
 export default async function handleRequest(req, ctx) {
-  ctx.log.info(`[request] ${req.method} suffix=${ctx.pathInfo.suffix}`);
+  ctx.log.info(`[request] ${req.method} suffix=${ctx.pathInfo.suffix} ip=${req.headers.get('x-forwarded-for') || 'unknown'}`);
   const info = PathInfo.fromContext(ctx);
   const handler = handlers[info.route];
   /* c8 ignore next 3 */
