@@ -1,3 +1,10 @@
+## [2.3.4](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.3...v2.3.4) (2026-05-16)
+
+
+### Bug Fixes
+
+* log ip ([#503](https://github.com/adobe/[secure]-rum-bundler/issues/503)) ([4006aa8](https://github.com/adobe/[secure]-rum-bundler/commit/4006aa8b39d35fbae9fdcabea17b4b16f10c10f5))
+
 ## [2.3.3](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.2...v2.3.3) (2026-05-12)
 
 
