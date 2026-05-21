@@ -1,3 +1,10 @@
+## [2.3.7](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.6...v2.3.7) (2026-05-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/[secure]-shared-secrets to v2.3.3 ([#507](https://github.com/adobe/[secure]-rum-bundler/issues/507)) ([9acdc6b](https://github.com/adobe/[secure]-rum-bundler/commit/9acdc6b19ea5266c541502fb2e5751dbe4c000a8))
+
 ## [2.3.6](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.5...v2.3.6) (2026-05-19)
 
 
