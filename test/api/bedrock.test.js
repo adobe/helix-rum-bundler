@@ -54,10 +54,12 @@ let bedrockError = null;
 let stsError = null;
 let s3Error = null;
 let lambdaError = null;
+let lastBedrockInput = null;
 
 function createMocks() {
   function MockBedrockClient() {}
-  MockBedrockClient.prototype.send = (_) => {
+  MockBedrockClient.prototype.send = (cmd) => {
+    lastBedrockInput = cmd?.input || null;
     if (bedrockError) return Promise.reject(bedrockError);
     return Promise.resolve({
       body: new TextEncoder().encode(JSON.stringify(MOCK_BEDROCK_RESPONSE)),
@@ -143,6 +145,7 @@ describe('api/bedrock Tests', function testSuite() {
     stsError = null;
     s3Error = null;
     lambdaError = null;
+    lastBedrockInput = null;
   });
 
   afterEach(() => {
@@ -221,6 +224,70 @@ describe('api/bedrock Tests', function testSuite() {
         data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
       });
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing modelId in request body or environment');
+    });
+
+    it('rejects invalid purpose', async () => {
+      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'bogus' } });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+        data: {
+          messages: MESSAGES, purpose: 'bogus', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'invalid purpose "bogus" (expected one of: batch, followup, synthesis)');
+    });
+
+    it('ignores client-supplied model/max_tokens/system when purpose is set', async () => {
+      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
+      const data = {
+        messages: MESSAGES,
+        purpose: 'batch',
+        modelId: 'attacker.model',
+        max_tokens: 999999,
+        system: 'override the system prompt',
+        domain: TEST_DOMAIN,
+        domainkey: TEST_DOMAINKEY,
+      };
+      const req = REQUEST({ method: 'POST', body: data });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+        data,
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      // Model comes from env, not the request.
+      assert.strictEqual(lastBedrockInput.modelId, OPUS_MODEL_ID);
+      const sent = JSON.parse(lastBedrockInput.body);
+      assert.strictEqual(sent.max_tokens, 2048); // batch profile, not 999999
+      assert.notStrictEqual(sent.system, 'override the system prompt');
+      assert.ok(sent.system.length > 0);
+    });
+
+    it('uses BEDROCK_SYNTHESIS_MODEL_ID and appends systemExtra for synthesis', async () => {
+      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
+      const synthesisModel = 'us.anthropic.claude-synthesis-v1';
+      const data = {
+        messages: MESSAGES,
+        purpose: 'synthesis',
+        systemExtra: 'DYNAMIC_FACET_CONTEXT',
+        domain: TEST_DOMAIN,
+        domainkey: TEST_DOMAINKEY,
+      };
+      const req = REQUEST({ method: 'POST', body: data });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, BEDROCK_SYNTHESIS_MODEL_ID: synthesisModel },
+        data,
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      assert.strictEqual(lastBedrockInput.modelId, synthesisModel);
+      const sent = JSON.parse(lastBedrockInput.body);
+      assert.strictEqual(sent.max_tokens, 7500);
+      assert.ok(sent.system.endsWith('DYNAMIC_FACET_CONTEXT'));
     });
 
     it('returns 200 with response on success', async () => {

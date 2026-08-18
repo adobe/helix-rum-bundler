@@ -18,19 +18,86 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { assertDomainkeyAuthorized } from '../support/authorization.js';
 import { errorWithResponse } from '../support/util.js';
 import { PathInfo } from '../support/PathInfo.js';
+import { SYSTEM_PROMPT, OVERVIEW_TEMPLATE } from './bedrock-prompts.js';
 
 const JOBS_BUCKET = 'helix-rum-logs';
 const JOBS_PREFIX = 'bedrock-jobs';
+
+/**
+ * Server-owned inference profiles for the OpTel report generator.
+ *
+ * The model id, token limit, temperature, and base system prompt are fixed
+ * here per `purpose` so they cannot be overridden by the HTTP request. The
+ * client selects a `purpose` and may only add dynamic, per-request facet
+ * context via `systemExtra` (appended to the server-owned system prompt).
+ */
+const PURPOSE_PROFILES = {
+  batch: { maxTokens: 2048, temperature: 0.35, system: SYSTEM_PROMPT },
+  followup: { maxTokens: 3072, temperature: 0.3, system: SYSTEM_PROMPT },
+  synthesis: { maxTokens: 7500, temperature: 0.35, system: `${SYSTEM_PROMPT}\n\n${OVERVIEW_TEMPLATE}` },
+};
 
 function getRegion(ctx) {
   return ctx.env.BEDROCK_REGION || 'us-east-1';
 }
 
+/** Resolve the model id for a purpose from environment (never from the request). */
+function resolveModelId(ctx, purpose) {
+  if (purpose === 'synthesis') {
+    return ctx.env.BEDROCK_SYNTHESIS_MODEL_ID || ctx.env.BEDROCK_MODEL_ID;
+  }
+  return ctx.env.BEDROCK_MODEL_ID;
+}
+
+/**
+ * Validate the request and derive the Bedrock invocation parameters.
+ *
+ * When `purpose` is present (current client), the model, token limit,
+ * temperature, and base system prompt are taken from server-owned profiles and
+ * any client-supplied `modelId`/`max_tokens`/`temperature`/`system` are ignored.
+ *
+ * When `purpose` is absent (legacy client), the previous behaviour is kept for
+ * backwards compatibility during rollout. TODO: remove the legacy branch once
+ * the website is deployed with `purpose`.
+ * @param {UniversalContext} ctx
+ */
 function validateRequest(ctx) {
   const body = ctx.data;
   if (!body?.messages) {
     throw errorWithResponse(400, 'missing messages in request body');
   }
+
+  const { purpose } = body;
+  if (purpose) {
+    const profile = PURPOSE_PROFILES[purpose];
+    if (!profile) {
+      throw errorWithResponse(400, `invalid purpose "${purpose}" (expected one of: ${Object.keys(PURPOSE_PROFILES).join(', ')})`);
+    }
+    const modelId = resolveModelId(ctx, purpose);
+    if (!modelId) {
+      throw errorWithResponse(400, 'missing modelId in environment');
+    }
+
+    const system = body.systemExtra
+      ? `${profile.system}\n\n${body.systemExtra}`
+      : profile.system;
+
+    // Reconstruct a clean body: only server-owned parameters plus the caller's
+    // messages/tools reach Bedrock. modelId/max_tokens/temperature/system from
+    // the request are intentionally dropped.
+    const safeBody = {
+      messages: body.messages,
+      max_tokens: profile.maxTokens,
+      temperature: profile.temperature,
+      system,
+    };
+    if (Array.isArray(body.tools) && body.tools.length) {
+      safeBody.tools = body.tools;
+    }
+    return { body: safeBody, modelId };
+  }
+
+  // Legacy path (deprecated).
   const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
   if (!modelId) {
     throw errorWithResponse(400, 'missing modelId in request body or environment');
