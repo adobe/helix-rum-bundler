@@ -290,6 +290,38 @@ describe('api/bedrock Tests', function testSuite() {
       assert.ok(sent.system.endsWith('DYNAMIC_FACET_CONTEXT'));
     });
 
+    it('rejects a valid purpose when no model is configured in the environment', async () => {
+      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
+      const data = {
+        messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+      };
+      const req = REQUEST({ method: 'POST', body: data });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: undefined },
+        data,
+      });
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing modelId in environment');
+    });
+
+    it('forwards tools to bedrock when purpose is set', async () => {
+      nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
+      const tools = [{ name: 'get_data', description: 'gets data', input_schema: { type: 'object' } }];
+      const data = {
+        messages: MESSAGES, purpose: 'batch', tools, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+      };
+      const req = REQUEST({ method: 'POST', body: data });
+      const ctx = DEFAULT_CONTEXT({
+        pathInfo: PATH_INFO_SYNC,
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
+        data,
+      });
+      const resp = await handleRequest(req, ctx);
+      assert.strictEqual(resp.status, 200);
+      const sent = JSON.parse(lastBedrockInput.body);
+      assert.deepStrictEqual(sent.tools, tools);
+    });
+
     it('returns 200 with response on success', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
