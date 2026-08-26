@@ -1,3 +1,10 @@
+## [2.3.10](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.9...v2.3.10) (2026-08-26)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#511](https://github.com/adobe/[secure]-rum-bundler/issues/511)) ([901426d](https://github.com/adobe/[secure]-rum-bundler/commit/901426d8788003f690388614952511c72941e730))
+
 ## [2.3.9](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.8...v2.3.9) (2026-05-25)
 
 
