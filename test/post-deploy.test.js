@@ -14,7 +14,6 @@ import assert from 'assert';
 import { h1NoCache } from '@adobe/fetch';
 import { createTargets } from './post-deploy-utils.js';
 
-const OPUS_MODEL_ID = 'us.anthropic.claude-opus-4-6-v1';
 const POLL_INTERVAL = 3000;
 const MAX_POLL_TIME = 180000; // 3 minutes max for polling
 
@@ -105,7 +104,7 @@ createTargets().forEach((target) => {
       const res = await fetch(target.url('/bedrock'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: OPUS_MODEL_ID, messages: [{ role: 'user', content: 'Hi' }] }),
+        body: JSON.stringify({ purpose: 'batch', messages: [{ role: 'user', content: 'Hi' }] }),
       });
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
@@ -117,9 +116,8 @@ createTargets().forEach((target) => {
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
-          modelId: OPUS_MODEL_ID,
+          purpose: 'batch',
           messages: [{ role: 'user', content: 'Say OK' }],
-          max_tokens: 10,
         }),
       });
       const body = await res.text();
@@ -136,7 +134,7 @@ createTargets().forEach((target) => {
       const res = await fetch(target.url('/bedrock/jobs'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: OPUS_MODEL_ID, messages: [{ role: 'user', content: 'Hi' }] }),
+        body: JSON.stringify({ purpose: 'batch', messages: [{ role: 'user', content: 'Hi' }] }),
       });
       assert.strictEqual(res.status, 401);
     }).timeout(50000);
@@ -148,9 +146,8 @@ createTargets().forEach((target) => {
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
-          modelId: OPUS_MODEL_ID,
+          purpose: 'batch',
           messages: [{ role: 'user', content: 'Say hello' }],
-          max_tokens: 50,
         }),
       });
       const body = await res.text();
@@ -170,9 +167,8 @@ createTargets().forEach((target) => {
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
-          modelId: OPUS_MODEL_ID,
+          purpose: 'batch',
           messages: [{ role: 'user', content: 'Say hello in exactly 5 words' }],
-          max_tokens: 50,
         }),
       });
 
@@ -202,7 +198,7 @@ createTargets().forEach((target) => {
         body: JSON.stringify({
           domain: TEST_DOMAIN,
           domainkey: TEST_DOMAINKEY,
-          modelId: OPUS_MODEL_ID,
+          purpose: 'synthesis',
           messages: [{
             role: 'user',
             content: `Analyze this web performance data and write a detailed 300-word report:
@@ -211,8 +207,7 @@ createTargets().forEach((target) => {
 - Top pages: /home (50M), /products (30M), /checkout (10M)
 Include sections on performance metrics and traffic patterns.`,
           }],
-          system: 'You are a web analytics expert. Provide detailed analysis.',
-          max_tokens: 2048,
+          systemExtra: 'You are a web analytics expert. Provide detailed analysis.',
         }),
       });
 
