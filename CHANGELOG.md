@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.0...v2.4.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **bedrock:** require purpose, remove legacy modelId-in-body path ([fd34431](https://github.com/adobe/[secure]-rum-bundler/commit/fd34431d72d8815aa00344425e819db1da7f7411)), closes [#512](https://github.com/adobe/[secure]-rum-bundler/issues/512)
+
 # [2.4.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.12...v2.4.0) (2026-09-02)
 
 
