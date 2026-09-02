@@ -195,11 +195,13 @@ describe('api/bedrock Tests', function testSuite() {
     it('strips admin ident suffix from domainkey', async () => {
       const fivePartKey = 'abcd-efgh-ijkl-mnop-qrst';
       nock.domainKey(TEST_DOMAIN, fivePartKey);
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: `${fivePartKey}-admin` },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: `${fivePartKey}-admin`,
+        },
       });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 200);
@@ -215,15 +217,15 @@ describe('api/bedrock Tests', function testSuite() {
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing messages in request body');
     });
 
-    it('rejects missing modelId', async () => {
+    it('rejects missing purpose', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
-        env: { BEDROCK_MODEL_ID: undefined },
+        env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
         data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
       });
-      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing modelId in request body or environment');
+      await assertRejectsWithResponse(() => handleRequest(req, ctx), 400, 'missing purpose (expected one of: batch, followup, synthesis)');
     });
 
     it('rejects invalid purpose', async () => {
@@ -324,11 +326,13 @@ describe('api/bedrock Tests', function testSuite() {
 
     it('returns 200 with response on success', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 200);
@@ -340,11 +344,13 @@ describe('api/bedrock Tests', function testSuite() {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       bedrockError = new Error('Model error');
       bedrockError.name = 'ModelError';
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 502, 'bedrock error: ModelError');
     });
@@ -353,22 +359,26 @@ describe('api/bedrock Tests', function testSuite() {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       stsError = new Error('STS failed');
       stsError.name = 'STSError';
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, BEDROCK_ROLE_ARN: 'arn:aws:iam::123:role/test' },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 502, 'sts error: STSError');
     });
 
     it('uses STS credentials when BEDROCK_ROLE_ARN is set', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_SYNC,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, BEDROCK_ROLE_ARN: 'arn:aws:iam::123:role/test' },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 200);
@@ -388,11 +398,13 @@ describe('api/bedrock Tests', function testSuite() {
 
     it('returns 202 with jobId on success', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_JOBS,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, AWS_LAMBDA_FUNCTION_NAME: 'test' },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       const resp = await handleRequest(req, ctx);
       assert.strictEqual(resp.status, 202);
@@ -403,11 +415,13 @@ describe('api/bedrock Tests', function testSuite() {
 
     it('saves job to S3 and invokes Lambda', async () => {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_JOBS,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, AWS_LAMBDA_FUNCTION_NAME: 'test' },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       const resp = await handleRequest(req, ctx);
       const { jobId } = await resp.json();
@@ -425,11 +439,13 @@ describe('api/bedrock Tests', function testSuite() {
       nock.domainKey(TEST_DOMAIN, TEST_DOMAINKEY);
       lambdaError = new Error('Lambda invoke failed');
       lambdaError.name = 'ServiceException';
-      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES } });
+      const req = REQUEST({ method: 'POST', body: { messages: MESSAGES, purpose: 'batch' } });
       const ctx = DEFAULT_CONTEXT({
         pathInfo: PATH_INFO_JOBS,
         env: { BEDROCK_MODEL_ID: OPUS_MODEL_ID, AWS_LAMBDA_FUNCTION_NAME: 'test' },
-        data: { messages: MESSAGES, domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY },
+        data: {
+          messages: MESSAGES, purpose: 'batch', domain: TEST_DOMAIN, domainkey: TEST_DOMAINKEY,
+        },
       });
       await assertRejectsWithResponse(() => handleRequest(req, ctx), 502, 'failed to start job');
 

@@ -52,13 +52,11 @@ function resolveModelId(ctx, purpose) {
 /**
  * Validate the request and derive the Bedrock invocation parameters.
  *
- * When `purpose` is present (current client), the model, token limit,
- * temperature, and base system prompt are taken from server-owned profiles and
- * any client-supplied `modelId`/`max_tokens`/`temperature`/`system` are ignored.
- *
- * When `purpose` is absent (legacy client), the previous behaviour is kept for
- * backwards compatibility during rollout. TODO: remove the legacy branch once
- * the website is deployed with `purpose`.
+ * A request must carry a valid `purpose` (`batch`/`followup`/`synthesis`). The
+ * model, token limit, temperature, and base system prompt are taken from
+ * server-owned profiles; any client-supplied `modelId`/`max_tokens`/
+ * `temperature`/`system` are ignored. The client may only add dynamic,
+ * per-request facet context via `systemExtra`.
  * @param {UniversalContext} ctx
  */
 function validateRequest(ctx) {
@@ -68,41 +66,33 @@ function validateRequest(ctx) {
   }
 
   const { purpose } = body;
-  if (purpose) {
-    const profile = PURPOSE_PROFILES[purpose];
-    if (!profile) {
-      throw errorWithResponse(400, `invalid purpose "${purpose}" (expected one of: ${Object.keys(PURPOSE_PROFILES).join(', ')})`);
-    }
-    const modelId = resolveModelId(ctx, purpose);
-    if (!modelId) {
-      throw errorWithResponse(400, 'missing modelId in environment');
-    }
-
-    const system = body.systemExtra
-      ? `${profile.system}\n\n${body.systemExtra}`
-      : profile.system;
-
-    // Reconstruct a clean body: only server-owned parameters plus the caller's
-    // messages/tools reach Bedrock. modelId/max_tokens/temperature/system from
-    // the request are intentionally dropped.
-    const safeBody = {
-      messages: body.messages,
-      max_tokens: profile.maxTokens,
-      temperature: profile.temperature,
-      system,
-    };
-    if (Array.isArray(body.tools) && body.tools.length) {
-      safeBody.tools = body.tools;
-    }
-    return { body: safeBody, modelId };
+  if (!purpose) {
+    throw errorWithResponse(400, `missing purpose (expected one of: ${Object.keys(PURPOSE_PROFILES).join(', ')})`);
   }
-
-  // Legacy path (deprecated).
-  const modelId = body.modelId || ctx.env.BEDROCK_MODEL_ID;
+  const profile = PURPOSE_PROFILES[purpose];
+  if (!profile) {
+    throw errorWithResponse(400, `invalid purpose "${purpose}" (expected one of: ${Object.keys(PURPOSE_PROFILES).join(', ')})`);
+  }
+  const modelId = resolveModelId(ctx, purpose);
   if (!modelId) {
-    throw errorWithResponse(400, 'missing modelId in request body or environment');
+    throw errorWithResponse(400, 'missing modelId in environment');
   }
-  return { body, modelId };
+
+  const system = body.systemExtra
+    ? `${profile.system}\n\n${body.systemExtra}`
+    : profile.system;
+
+  // Only server-owned parameters plus the caller's messages/tools reach Bedrock.
+  const safeBody = {
+    messages: body.messages,
+    max_tokens: profile.maxTokens,
+    temperature: profile.temperature,
+    system,
+  };
+  if (Array.isArray(body.tools) && body.tools.length) {
+    safeBody.tools = body.tools;
+  }
+  return { body: safeBody, modelId };
 }
 
 /**
@@ -135,7 +125,7 @@ async function getCredentials(ctx, region) {
  * Call Bedrock API synchronously (non-streaming)
  * @param {BedrockRuntimeClient} client
  * @param {object} body
- * @param {Function} log
+ * @param {UniversalContext['log']} log
  */
 async function callBedrock(client, body, log) {
   const { modelId } = body;
@@ -178,14 +168,10 @@ async function invokeModelSync(req, ctx) {
   const credentials = await getCredentials(ctx, region);
   const client = new BedrockRuntimeClient({ region, credentials });
 
-  // Strip auth fields before sending to Bedrock
-  const bedrockBody = { ...body };
-  delete bedrockBody.domain;
-  delete bedrockBody.domainkey;
-
+  // validateRequest already returns a clean server-owned body (no auth fields).
   ctx.log.info(`[bedrock] sync invocation for domain=${domain}`);
   try {
-    const result = await callBedrock(client, { ...bedrockBody, modelId }, ctx.log);
+    const result = await callBedrock(client, { ...body, modelId }, ctx.log);
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -282,18 +268,14 @@ async function submitJob(req, ctx) {
   const jobId = generateJobId();
   const domain = ctx.data?.domain || 'unknown';
 
-  // Strip auth fields before storing/sending to Bedrock
-  const bedrockBody = { ...body };
-  delete bedrockBody.domain;
-  delete bedrockBody.domainkey;
-
+  // validateRequest already returns a clean server-owned body (no auth fields).
   ctx.log.info(`[bedrock-job] submitting ${jobId} for domain=${domain}`);
 
   // Save initial state
   await saveJob(s3, jobId, {
     status: 'processing',
     createdAt: new Date().toISOString(),
-    request: { modelId, max_tokens: bedrockBody.max_tokens || 4096 },
+    request: { modelId, max_tokens: body.max_tokens || 4096 },
   });
 
   // Invoke Lambda asynchronously
@@ -307,7 +289,7 @@ async function submitJob(req, ctx) {
       Payload: JSON.stringify({
         source: 'bedrock-job',
         jobId,
-        request: { ...bedrockBody, modelId },
+        request: { ...body, modelId },
       }),
     }));
     ctx.log.info(`[bedrock-job] ${jobId} async invocation triggered for domain=${domain}`);
