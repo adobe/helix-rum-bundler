@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.12...v2.4.0) (2026-09-02)
+
+
+### Features
+
+* **bedrock:** make model/tokens/prompt server-authoritative via purpose ([0968c91](https://github.com/adobe/[secure]-rum-bundler/commit/0968c91317487a0d3faced085148791cb5b96073))
+
 ## [2.3.12](https://github.com/adobe/[secure]-rum-bundler/compare/v2.3.11...v2.3.12) (2026-09-01)
 
 
