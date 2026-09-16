@@ -1,3 +1,10 @@
+## [2.4.3](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.2...v2.4.3) (2026-09-16)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes to v3.1124.0 ([#518](https://github.com/adobe/[secure]-rum-bundler/issues/518)) ([0dfc786](https://github.com/adobe/[secure]-rum-bundler/commit/0dfc7864c9487d2f3f0a4928000b3deba80799c7))
+
 ## [2.4.2](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.1...v2.4.2) (2026-09-08)
 
 
