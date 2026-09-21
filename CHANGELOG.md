@@ -1,3 +1,15 @@
+# [2.6.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.5.1...v2.6.0) (2026-09-21)
+
+
+### Bug Fixes
+
+* bound the manifests and bundle groups held dirty per domain ([69efd5c](https://github.com/adobe/[secure]-rum-bundler/commit/69efd5cf94e8c732f731718d807707ac1368d90b))
+
+
+### Features
+
+* make manifest and bundle cache limits configurable ([3d03cb9](https://github.com/adobe/[secure]-rum-bundler/commit/3d03cb9d3fb8e8cc095fda9664df69cfef3afc69))
+
 ## [2.5.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.5.0...v2.5.1) (2026-09-21)
 
 
