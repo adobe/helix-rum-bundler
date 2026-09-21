@@ -1,3 +1,10 @@
+## [2.7.3](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.2...v2.7.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* raise BYTE_LIMIT to 290MB ([c7b99b9](https://github.com/adobe/[secure]-rum-bundler/commit/c7b99b9588107d3f41c1fbe25bb798096d75748e))
+
 ## [2.7.2](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.1...v2.7.2) (2026-09-21)
 
 
