@@ -360,6 +360,92 @@ describe('bundler Tests', () => {
       assert.strictEqual(perfLogs.length, 2);
     });
 
+    it('consumes log files it cannot read', async () => {
+      global.setTimeout = (fn, ...rest) => (
+        fn.name === 'saveDomainTable' ? setImmediate(fn) : ogSetTimeout(fn, ...rest)
+      );
+      const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-multiple.xml'), 'utf-8');
+      const copied = '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>';
+      Date.stub('2024-01-01T00:00:00Z');
+
+      let deleted;
+      nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
+        .head('/.lock')
+        .reply(404)
+        .put('/.lock?x-id=PutObject')
+        .reply(200)
+        .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+        .reply(200, logsBody)
+        .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
+        .reply(200, makeEventFile({
+          id: 0, url: 'https://example.com/', time: 0, checkpoint: 1,
+        }))
+        // vanished between listing and reading
+        .get('/raw/2024-01-01T00_00_00.000-2.log?x-id=GetObject')
+        .reply(404)
+        // unreadable
+        .get('/raw/2024-01-01T00_00_00.000-3.log?x-id=GetObject')
+        .reply(403)
+        // empty
+        .get('/raw/2024-01-01T00_00_00.000-4.log?x-id=GetObject')
+        .reply(200, '')
+        .get('/raw/2024-01-01T00_00_00.000-5.log?x-id=GetObject')
+        .reply(200, makeEventFile({
+          id: 1, url: 'https://example.com/', time: 0, checkpoint: 2,
+        }))
+        // all five are moved out of `raw/`, readable or not, so none is retried forever
+        .put(/^\/processed\/2024-01-01T00_00_00\.000-[1-5]\.log\?x-id=CopyObject$/)
+        .times(5)
+        .reply(200, copied)
+        .post('/?delete=', (body) => {
+          deleted = body;
+          return true;
+        })
+        .reply(200)
+        .delete('/.lock?x-id=DeleteObject')
+        .reply(200);
+
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(404)
+        .put('/.domains/lookup.json?x-id=PutObject')
+        .reply(200)
+        .head('/example.com/.domainkey')
+        .reply(200)
+        .get('/example.com/1970/1/1/.manifest.json?x-id=GetObject')
+        .reply(404)
+        .get('/example.com/1969/12/31/.manifest.json?x-id=GetObject')
+        .reply(404)
+        .get('/example.com/1970/1/1/0.json?x-id=GetObject')
+        .reply(404)
+        .put('/example.com/1970/1/1/.manifest.json?x-id=PutObject')
+        .reply(200)
+        .put('/example.com/1970/1/1/0.json?x-id=PutObject')
+        .reply(200);
+
+      const ctx = DEFAULT_CONTEXT({
+        invocation: { event: { task: 'bundle-rum' } },
+        env: { CONCURRENCY: '1' },
+      });
+      await bundleRUM(ctx);
+      await sleep(100);
+
+      [1, 2, 3, 4, 5].forEach((n) => {
+        assert.match(deleted, new RegExp(`2024-01-01T00_00_00\\.000-${n}\\.log`));
+      });
+      assert.ok(
+        ctx.log.calls.warn.some(([msg]) => typeof msg === 'string' && msg.startsWith('failed to read log file')),
+        'expected a warning for the unreadable file',
+      );
+
+      const [perfLog] = ctx.log.calls.info.find((args) => args?.[0]?.startsWith?.('{"metric":"bundler-performance"'));
+      const { stats } = JSON.parse(perfLog);
+      // the readable files still bundled
+      assert.strictEqual(stats.rawEvents, 2);
+      assert.strictEqual(stats.logFiles, 5);
+      assert.strictEqual(stats.skippedLogFiles, 0);
+    });
+
     it('should bundle events from aws', async () => {
       global.setTimeout = (fn, ...rest) => {
         if (fn.name === 'saveDomainTable') {
