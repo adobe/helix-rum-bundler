@@ -277,6 +277,89 @@ describe('bundler Tests', () => {
       await assertRejectsWithResponse(bundleRUM(ctx), 409);
     });
 
+    it('stops reading once the decoded byte budget is spent', async () => {
+      global.setTimeout = (fn, ...rest) => (
+        fn.name === 'saveDomainTable' ? setImmediate(fn) : ogSetTimeout(fn, ...rest)
+      );
+      // 5 log files, but the budget is spent by the first one
+      const logsBody = await fs.readFile(path.resolve(__dirname, 'fixtures', 'list-logs-multiple.xml'), 'utf-8');
+      const emptyLogsBody = `<?xml version="1.0" encoding="UTF-8"?>
+        <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+          <Name>helix-rum-logs</Name><Prefix>raw/</Prefix><KeyCount>0</KeyCount>
+          <MaxKeys>100</MaxKeys><IsTruncated>false</IsTruncated>
+        </ListBucketResult>`;
+      Date.stub('2024-01-01T00:00:00Z');
+
+      let deleted;
+      nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
+        .head('/.lock')
+        .reply(404)
+        .put('/.lock?x-id=PutObject')
+        .reply(200)
+        .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+        .reply(200, logsBody)
+        /**
+         * Only the first file may be read. The other four have no interceptor, so if the
+         * budget fails to hold them back the request is refused and the test fails.
+         */
+        .get('/raw/2024-01-01T00_00_00.000-1.log?x-id=GetObject')
+        .reply(200, makeEventFile({
+          id: 0, url: 'https://example.com/', time: 0, checkpoint: 1,
+        }))
+        // ...and only the first file may be moved out of `raw/`
+        .put('/processed/2024-01-01T00_00_00.000-1.log?x-id=CopyObject')
+        .reply(200, '<?xml version="1.0" encoding="UTF-8"?><CopyObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LastModified>2024-01-01T00:00:01.000Z</LastModified><ETag>"2"</ETag></CopyObjectResult>')
+        .post('/?delete=', (body) => {
+          deleted = body;
+          return true;
+        })
+        .reply(200)
+        // skipped files are left behind, so the loop runs again
+        .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+        .reply(200, emptyLogsBody)
+        .delete('/.lock?x-id=DeleteObject')
+        .reply(200);
+
+      nock('https://helix-rum-bundles.s3.us-east-1.amazonaws.com')
+        .get('/.domains/lookup.json?x-id=GetObject')
+        .reply(404)
+        .put('/.domains/lookup.json?x-id=PutObject')
+        .reply(200)
+        .head('/example.com/.domainkey')
+        .reply(200)
+        .get('/example.com/1970/1/1/.manifest.json?x-id=GetObject')
+        .reply(404)
+        .get('/example.com/1969/12/31/.manifest.json?x-id=GetObject')
+        .reply(404)
+        .get('/example.com/1970/1/1/0.json?x-id=GetObject')
+        .reply(404)
+        .put('/example.com/1970/1/1/.manifest.json?x-id=PutObject')
+        .reply(200)
+        .put('/example.com/1970/1/1/0.json?x-id=PutObject')
+        .reply(200);
+
+      const ctx = DEFAULT_CONTEXT({
+        invocation: { event: { task: 'bundle-rum' } },
+        // serial reads, so the budget is checked between files rather than in parallel
+        env: { CONCURRENCY: '1', DECODED_BYTE_LIMIT: '1' },
+      });
+      await bundleRUM(ctx);
+      await sleep(100);
+
+      // only the file that was actually read is removed from `raw/`
+      assert.match(deleted, /2024-01-01T00_00_00\.000-1\.log/);
+      assert.doesNotMatch(deleted, /2024-01-01T00_00_00\.000-2\.log/);
+
+      const perfLogs = ctx.log.calls.info
+        .filter((args) => args?.[0]?.startsWith?.('{"metric":"bundler-performance"'))
+        .map(([line]) => JSON.parse(line));
+      assert.strictEqual(perfLogs[0].stats.logFiles, 5);
+      assert.strictEqual(perfLogs[0].stats.skippedLogFiles, 4);
+      assert.ok(perfLogs[0].stats.decodedBytes > 0);
+      // skipped files kept the loop going for a second pass
+      assert.strictEqual(perfLogs.length, 2);
+    });
+
     it('should bundle events from aws', async () => {
       global.setTimeout = (fn, ...rest) => {
         if (fn.name === 'saveDomainTable') {
@@ -597,6 +680,8 @@ describe('bundler Tests', () => {
       perfLogObj.measures = undefined;
       perfLogObj.stats.importGroups = undefined;
       perfLogObj.stats.importGroupsVirtual = undefined;
+      assert.strictEqual(typeof perfLogObj.stats.decodedBytes, 'number');
+      perfLogObj.stats.decodedBytes = undefined;
       Object.values(measures).forEach((m) => {
         assert.strictEqual(typeof m, 'number');
       });
@@ -612,7 +697,6 @@ describe('bundler Tests', () => {
         'import-events',
         'import-virtual',
         'move-logs',
-        'parse-logs',
         'sort-events',
         'total',
       ]);
@@ -624,6 +708,8 @@ describe('bundler Tests', () => {
         stats: {
           rawEvents: 10,
           logFiles: 1,
+          decodedBytes: undefined,
+          skippedLogFiles: 0,
           domains: 2,
           importGroupsCount: 2,
           importGroupsCountVirtual: 0,
