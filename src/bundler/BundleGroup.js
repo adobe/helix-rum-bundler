@@ -12,9 +12,10 @@
 
 import LRUCache from '../support/LRUCache.js';
 import { HelixStorage } from '../support/storage.js';
-import { getCWVEventType, pruneUndefined } from '../support/util.js';
+import { getCWVEventType, getEnvVar, pruneUndefined } from '../support/util.js';
 
 const BUNDLE_EVENT_LIMIT = 1024;
+const DEFAULT_CACHE_LIMIT = 600;
 
 /**
  * @param {RawRUMEvent} event
@@ -157,7 +158,10 @@ export default class BundleGroup {
     const key = `${domain}/${year}/${month}/${day}/${hour}`;
 
     if (!ctx.attributes.rumBundleGroups) {
-      ctx.attributes.rumBundleGroups = new LRUCache({ name: 'BundleGroup' });
+      ctx.attributes.rumBundleGroups = new LRUCache({
+        name: 'BundleGroup',
+        limit: getEnvVar(ctx, 'BUNDLE_CACHE_LIMIT', DEFAULT_CACHE_LIMIT, 'integer'),
+      });
     }
 
     if (ctx.attributes.rumBundleGroups.has(key)) {
