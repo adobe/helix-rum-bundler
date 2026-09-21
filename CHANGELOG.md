@@ -1,3 +1,10 @@
+## [2.7.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.0...v2.7.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* cap the V8 heap below the container limit, shrink the caches ([53f69c3](https://github.com/adobe/[secure]-rum-bundler/commit/53f69c3eff9b961b4ea6f4069ed9674134fde6c5)), closes [#523](https://github.com/adobe/[secure]-rum-bundler/issues/523)
+
 # [2.7.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.6.0...v2.7.0) (2026-09-21)
 
 
