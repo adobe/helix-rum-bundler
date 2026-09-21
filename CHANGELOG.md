@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/adobe/[secure]-rum-bundler/compare/v2.5.0...v2.5.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* make the decoded byte limit actually bind ([948ac72](https://github.com/adobe/[secure]-rum-bundler/commit/948ac7290b698a2db489732ea392cf2abe630ed4))
+
 # [2.5.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.5...v2.5.0) (2026-09-21)
 
 
