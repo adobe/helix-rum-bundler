@@ -12,6 +12,7 @@
 
 /* eslint-disable no-await-in-loop */
 
+import v8 from 'node:v8';
 import Profiler from './Profiler.js';
 import { HelixStorage } from './storage.js';
 import { errorWithResponse } from './util.js';
@@ -89,11 +90,22 @@ export const loop = (fn, ctx, opts) => {
         return acc;
       }, {});
       const { task } = ctx.invocation?.event || {};
+      /**
+       * Reported every iteration so a container-level OOM can be attributed: `heapUsed` growing
+       * across iterations means retained JS objects (caches), while `external`/`arrayBuffers`
+       * growing means buffers. `heapLimit` is what V8 will actually allow, which is derived from
+       * the container's memory and is not the same as the configured lambda memory.
+       */
+      const memory = {
+        ...process.memoryUsage(),
+        heapLimit: v8.getHeapStatistics().heap_size_limit,
+      };
       ctx.log.info(JSON.stringify({
         metric: 'bundler-performance',
         task,
         loop: state.times.length,
         measures,
+        memory,
         stats: ctx.attributes.stats,
       }));
       if ([true, 'true'].includes(ctx.env.WRITE_PERF_LOGS)) {
@@ -101,6 +113,7 @@ export const loop = (fn, ctx, opts) => {
           time: new Date().toISOString(),
           task,
           measures,
+          memory,
           stats: ctx.attributes.stats,
         });
       }
