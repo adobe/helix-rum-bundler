@@ -1,3 +1,15 @@
+# [2.7.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.6.0...v2.7.0) (2026-09-21)
+
+
+### Features
+
+* stamp the build onto the lock file ([a2558da](https://github.com/adobe/[secure]-rum-bundler/commit/a2558da8ebf2e7c69ec0ad7f56dd5461be4729f2))
+
+
+### Reverts
+
+* drop the pending-save flush, keep the store race fix ([7d63bce](https://github.com/adobe/[secure]-rum-bundler/commit/7d63bce71a2aba6e4ca3c610405a7c1de91ac76f))
+
 # [2.6.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.5.1...v2.6.0) (2026-09-21)
 
 
