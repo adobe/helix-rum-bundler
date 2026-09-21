@@ -1,3 +1,10 @@
+## [2.4.5](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.4...v2.4.5) (2026-09-21)
+
+
+### Bug Fixes
+
+* limit bundling batches by decoded size instead of file count ([#520](https://github.com/adobe/[secure]-rum-bundler/issues/520)) ([94306a3](https://github.com/adobe/[secure]-rum-bundler/commit/94306a33b200e27b82b9f38d529da7ded9f69e13)), closes [#337](https://github.com/adobe/[secure]-rum-bundler/issues/337)
+
 ## [2.4.4](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.3...v2.4.4) (2026-09-21)
 
 
