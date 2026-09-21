@@ -1,3 +1,10 @@
+## [2.4.4](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.3...v2.4.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* purge least recently used cache entries, not most recently used ([#519](https://github.com/adobe/[secure]-rum-bundler/issues/519)) ([d909155](https://github.com/adobe/[secure]-rum-bundler/commit/d9091557217b2c3d32a412bfcb2d604b446601f6))
+
 ## [2.4.3](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.2...v2.4.3) (2026-09-16)
 
 
