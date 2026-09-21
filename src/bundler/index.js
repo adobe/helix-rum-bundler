@@ -30,7 +30,14 @@ import Profiler from '../support/Profiler.js';
  * }>} RawEventMap
  */
 
-const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb
+const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb, compressed
+/**
+ * Anchored to BYTE_LIMIT at a typical gzip ratio for line-delimited event JSON, so that in the
+ * normal case the compressed limit still binds first and this one never triggers. It exists to
+ * catch the batches that compress far better than usual, where the same compressed budget buys
+ * several times as many events.
+ */
+const DEFAULT_DECODED_BYTE_LIMIT = DEFAULT_BYTE_LIMIT * 8;
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
@@ -404,6 +411,7 @@ async function doBundling(ctx) {
   const concurrency = getEnvVar(ctx, 'CONCURRENCY', DEFAULT_CONCURRENCY_LIMIT, 'integer');
   const batchLimit = getEnvVar(ctx, 'BATCH_LIMIT', DEFAULT_BATCH_LIMIT, 'integer');
   const byteLimit = getEnvVar(ctx, 'BYTE_LIMIT', DEFAULT_BYTE_LIMIT, 'integer');
+  const decodedByteLimit = getEnvVar(ctx, 'DECODED_BYTE_LIMIT', DEFAULT_DECODED_BYTE_LIMIT, 'integer');
 
   // list files in log bucket
   performance.mark('start:get-logs');
@@ -411,43 +419,66 @@ async function doBundling(ctx) {
   /* c8 ignore next */
   log.info(`processing ${objects.length} RUM log files (${isTruncated ? 'more to process' : 'last batch'})`);
 
-  const files = await processQueue(
+  /**
+   * Read the log files and parse them into events.
+   *
+   * The listing limits (BATCH_LIMIT/BYTE_LIMIT) only see the compressed object sizes, which
+   * vary a lot per file, while peak memory is driven by the decoded content. So spend a budget
+   * of decoded bytes and stop reading once it's gone; the files left over stay in `raw/` and
+   * are picked up by the next iteration.
+   *
+   * Each file is parsed as soon as it's read so its text can be collected right away, instead
+   * of holding every file's content in memory alongside the events parsed out of it.
+   */
+  /** @type {RawRUMEvent[]} */
+  const rawEvents = [];
+  /** @type {Set<string>} */
+  const skipped = new Set();
+  let decodedBytes = 0;
+
+  await processQueue(
     objects.filter((o) => !!o.contentType),
     async ({ key }) => {
-      const buf = await logBucket.get(key);
-      if (!buf) {
-        return '';
+      if (decodedBytes >= decodedByteLimit) {
+        skipped.add(key);
+        return;
       }
-      const txt = new TextDecoder('utf8').decode(buf);
-      return txt;
+
+      let buf;
+      try {
+        buf = await logBucket.get(key);
+      } catch (e) {
+        log.warn(`failed to read log file ${key}: `, e);
+        return;
+      }
+      if (!buf) {
+        return;
+      }
+      decodedBytes += buf.length;
+
+      // each file is line-delimited JSON objects of events
+      const lines = new TextDecoder('utf8').decode(buf).split('\n');
+      for (const line of lines) {
+        try {
+          const event = JSON.parse(line);
+          if (event) {
+            rawEvents.push(event);
+          }
+        } catch { /* invalid, ignored */ }
+      }
     },
     concurrency,
   );
   performance.mark('end:get-logs');
 
-  // each file is line-delimited JSON objects of events
-  performance.mark('start:parse-logs');
-  const rawEvents = files
-    .filter((e) => !!e)
-    .reduce((events, txt) => {
-      const lines = txt.split('\n');
-      lines.forEach((line) => {
-        try {
-          const event = JSON.parse(line);
-          if (event) {
-            events.push(event);
-          }
-        } catch { /* invalid, ignored */ }
-      });
-      return events;
-    }, []);
-  performance.mark('end:parse-logs');
   stats.rawEvents = rawEvents.length;
   stats.logFiles = objects.length;
+  stats.decodedBytes = decodedBytes;
+  stats.skippedLogFiles = skipped.size;
 
-  log.info(`processing ${rawEvents.length} RUM events from ${objects.length} files`);
+  log.info(`processing ${rawEvents.length} RUM events from ${objects.length - skipped.size} files (${decodedBytes} bytes decoded)`);
   if (rawEvents.length === 0) {
-    return !isTruncated;
+    return !isTruncated && skipped.size === 0;
   }
 
   performance.mark('start:sort-events');
@@ -482,7 +513,7 @@ async function doBundling(ctx) {
   performance.mark('start:move-logs');
   const toRemove = [];
   await processQueue(
-    objects,
+    objects.filter((o) => !skipped.has(o.key)),
     async ({ key }) => {
       toRemove.push(key);
       await logBucket.copy(key, key.replace('raw/', 'processed/'));
@@ -493,7 +524,7 @@ async function doBundling(ctx) {
   performance.mark('end:move-logs');
 
   performance.mark('end:total');
-  return !isTruncated;
+  return !isTruncated && skipped.size === 0;
 }
 
 /**
