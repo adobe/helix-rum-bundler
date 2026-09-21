@@ -30,8 +30,14 @@ import Profiler from '../support/Profiler.js';
  * }>} RawEventMap
  */
 
-const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb
-const DEFAULT_DECODED_BYTE_LIMIT = 512 * 1024 * 1024; // 512mb, uncompressed
+const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb, compressed
+/**
+ * Anchored to BYTE_LIMIT at a typical gzip ratio for line-delimited event JSON, so that in the
+ * normal case the compressed limit still binds first and this one never triggers. It exists to
+ * catch the batches that compress far better than usual, where the same compressed budget buys
+ * several times as many events.
+ */
+const DEFAULT_DECODED_BYTE_LIMIT = DEFAULT_BYTE_LIMIT * 8;
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
