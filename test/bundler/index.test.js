@@ -271,7 +271,7 @@ describe('bundler Tests', () => {
      * Records the order of key processing and object writes, so we can tell whether anything was
      * persisted before the domain finished or only afterwards.
      */
-    const runImport = async (pendingSaveLimit, { failPuts = false } = {}) => {
+    const runImport = async ({ failPuts = false } = {}) => {
       /** @type {string[]} */
       const timeline = [];
       /**
@@ -293,7 +293,7 @@ describe('bundler Tests', () => {
           error: () => {},
         },
         // serial, so the ordering is deterministic
-        env: { PENDING_SAVE_LIMIT: pendingSaveLimit, CONCURRENCY_LIMIT: '1' },
+        env: { CONCURRENCY_LIMIT: '1' },
         attributes: {
           stats: {},
           storage: {
@@ -314,28 +314,36 @@ describe('bundler Tests', () => {
       return timeline;
     };
 
-    it('flushes pending saves before the domain is finished', async () => {
-      const timeline = await runImport('2');
+    /**
+     * Everything a domain touches is stored once, after every key of that domain has been
+     * processed. Storing part way through would re-dirty the manifest that later keys touch and
+     * cost an extra JSON.stringify + gzip of a whole day of sessions, for no memory saved -
+     * `toSave` holds references to objects the LRU cache is holding anyway.
+     */
+    it('stores what a domain touched once its keys are done', async () => {
+      const timeline = await runImport();
 
       const keys = timeline.filter((e) => e.startsWith('key '));
       const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
       const firstPut = timeline.findIndex((e) => e.startsWith('put '));
 
       assert.strictEqual(keys.length, 10, 'sanity: every hour was processed');
-      assert.ok(firstPut >= 0, 'sanity: objects were written');
-      assert.ok(
-        firstPut < lastKey,
-        'expected a flush before the last key of the domain was processed',
-      );
-      // every hour still ends up stored
+      assert.ok(firstPut > lastKey, 'nothing is written until the domain is done');
+      // one write per hour, plus the manifests, each written once
       assert.strictEqual(
         timeline.filter((e) => e.startsWith('put ') && !e.includes('.manifest.')).length,
         10,
       );
+      // only the day's own manifest is dirtied; yesterday's is read but never written
+      assert.strictEqual(
+        timeline.filter((e) => e.startsWith('put ') && e.includes('.manifest.')).length,
+        1,
+        'the manifest is written exactly once, not once per flush',
+      );
     });
 
-    it('keeps going when a flushed object cannot be stored', async () => {
-      const timeline = await runImport('2', { failPuts: true });
+    it('keeps going when an object cannot be stored', async () => {
+      const timeline = await runImport({ failPuts: true });
 
       // the import completes rather than rejecting, and the failure is reported
       assert.ok(
@@ -347,16 +355,6 @@ describe('bundler Tests', () => {
         10,
         'every hour is still processed',
       );
-    });
-
-    it('holds them to the end of the domain when the limit is not reached', async () => {
-      const timeline = await runImport('1000');
-
-      const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
-      const firstPut = timeline.findIndex((e) => e.startsWith('put '));
-
-      assert.strictEqual(lastKey, 9, 'sanity: keys were recorded');
-      assert.ok(firstPut > lastKey, 'nothing should be written until the domain is done');
     });
   });
 

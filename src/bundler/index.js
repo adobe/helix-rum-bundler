@@ -45,11 +45,6 @@ const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb, compressed
 const DEFAULT_DECODED_BYTE_LIMIT = 256 * 1024 * 1024; // 256mb, uncompressed
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
-/**
- * Dirty manifests/bundle groups held per domain before they are flushed. Total pinned memory is
- * roughly this times CONCURRENCY_LIMIT, since that many domains are in flight at once.
- */
-const DEFAULT_PENDING_SAVE_LIMIT = 25;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
 const KNOWN_VIRTUAL_DOMAINS = VIRTUAL_DOMAIN_RULES.reduce((acc, rule) => {
   if (rule.domain) {
@@ -156,7 +151,6 @@ async function addEventsToBundle(ctx, info, eventsBySessionId, manifest, yManife
 export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
   const { log, attributes: { stats } } = ctx;
   const concurrency = getEnvVar(ctx, 'CONCURRENCY_LIMIT', DEFAULT_CONCURRENCY_LIMIT, 'integer');
-  const pendingSaveLimit = getEnvVar(ctx, 'PENDING_SAVE_LIMIT', DEFAULT_PENDING_SAVE_LIMIT, 'integer');
   const entries = Object.entries(rawEventMap);
   let totalEvents = 0;
 
@@ -196,31 +190,7 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
 
   await processQueue(groups, async (group) => {
     /** @type {Set<{store: () => Promise<any>}>} */
-    let toSave = new Set();
-
-    /**
-     * Persist what has accumulated so far and let go of it.
-     *
-     * A manifest or bundle group stays `dirty` until it is stored, and the LRU cache can only
-     * evict entries that are not dirty. So everything a domain touches is pinned in memory for
-     * as long as the domain is in flight. That is fine when a batch covers an hour or two, but
-     * while catching up on a backlog the events in one batch span several days, and a single
-     * domain can touch a bundle group for every hour of every one of them.
-     */
-    const flush = async () => {
-      if (!toSave.size) {
-        return;
-      }
-      const pending = [...toSave];
-      toSave = new Set();
-      await processQueue(pending, async (bundle) => {
-        try {
-          await bundle.store();
-        } catch (e) {
-          log.warn('failed to store bundle: ', e);
-        }
-      }, concurrency);
-    };
+    const toSave = new Set();
 
     await processQueue(
       group,
@@ -269,16 +239,18 @@ export async function importEventsByKey(ctx, rawEventMap, isVirtual = false) {
         }
         touchedBundles.forEach((b) => toSave.add(b));
         log.debug(`toSave now contains ${toSave.size} items`);
-
-        if (toSave.size >= pendingSaveLimit) {
-          await flush();
-        }
       },
       concurrency,
     );
 
-    // save whatever the last keys of the group touched
-    await flush();
+    // save touched manifests and bundles
+    await processQueue([...toSave], async (bundle) => {
+      try {
+        await bundle.store();
+      } catch (e) {
+        log.warn('failed to store bundle: ', e);
+      }
+    }, concurrency);
   }, concurrency);
 }
 
