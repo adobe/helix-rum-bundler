@@ -300,27 +300,25 @@ export function sortRawEvents(rawEvents, log) {
   // const now = new Date();
   // const dayMs = 1000 * 60 * 60 * 24;
 
-  rawEvents.forEach((pevent) => {
-    if (!pevent.url) {
+  // NOTE: events are sanitized in place. They are parsed fresh out of the log files and are not
+  // referenced anywhere else, so copying each one just doubles peak memory for no benefit.
+  rawEvents.forEach((event) => {
+    if (!event.url) {
       log.info('ignoring event with invalid data (missing url)');
       return;
     }
-    if (typeof pevent.url !== 'string') {
-      log.warn('ignoring event with invalid url (non-string): ', typeof pevent.url, pevent.id);
+    if (typeof event.url !== 'string') {
+      log.warn('ignoring event with invalid url (non-string): ', typeof event.url, event.id);
       return;
     }
-    if (pevent.url.length > 2048) {
+    if (event.url.length > 2048) {
       log.info('ignoring event with invalid url (too long)');
       return;
     }
-    if (pevent.url.startsWith('/')) {
-      log.info('ignoring event with invalid url (absolute path): ', pevent.url, pevent.id);
+    if (event.url.startsWith('/')) {
+      log.info('ignoring event with invalid url (absolute path): ', event.url, event.id);
       return;
     }
-
-    const event = {
-      ...pevent,
-    };
 
     /** @type {URL} */
     let url;
@@ -358,6 +356,7 @@ export function sortRawEvents(rawEvents, log) {
       // remove query/search params
       url.search = '';
       url.hash = '';
+      // eslint-disable-next-line no-param-reassign -- sanitized in place, see note above
       event.url = url.toString();
 
       const year = date.getUTCFullYear();
