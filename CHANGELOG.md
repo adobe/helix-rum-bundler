@@ -1,3 +1,15 @@
+# [2.5.0](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.5...v2.5.0) (2026-09-21)
+
+
+### Bug Fixes
+
+* sample memory during the iteration, not only after it ([72609d4](https://github.com/adobe/[secure]-rum-bundler/commit/72609d422159216f5f56bd974d086d4c7de2b2a4))
+
+
+### Features
+
+* report memory usage per bundling iteration ([c1f853e](https://github.com/adobe/[secure]-rum-bundler/commit/c1f853eb7297ba553bfc43a986b5919eaaf53bd1))
+
 ## [2.4.5](https://github.com/adobe/[secure]-rum-bundler/compare/v2.4.4...v2.4.5) (2026-09-21)
 
 
