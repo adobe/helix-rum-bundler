@@ -762,11 +762,13 @@ describe('bundler Tests', () => {
       // check that performance was measured and logged correctly
       const [perfLog] = ctx.log.calls.info.find((args) => args && args[0] && args[0].startsWith('{"metric":"bundler-performance"'));
       const perfLogObj = JSON.parse(perfLog);
-      const { measures, memory } = perfLogObj;
+      const { measures, memory, peakMemory } = perfLogObj;
       perfLogObj.measures = undefined;
       assert.strictEqual(typeof memory.heapUsed, 'number');
       assert.strictEqual(typeof memory.heapLimit, 'number');
+      assert.ok(peakMemory.rss >= memory.rss);
       perfLogObj.memory = undefined;
+      perfLogObj.peakMemory = undefined;
       perfLogObj.stats.importGroups = undefined;
       perfLogObj.stats.importGroupsVirtual = undefined;
       assert.strictEqual(typeof perfLogObj.stats.decodedBytes, 'number');
@@ -795,6 +797,7 @@ describe('bundler Tests', () => {
         loop: 0,
         measures: undefined,
         memory: undefined,
+        peakMemory: undefined,
         stats: {
           rawEvents: 10,
           logFiles: 1,
