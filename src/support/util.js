@@ -109,6 +109,24 @@ export const pruneUndefined = (obj) => {
 };
 
 /**
+ * Identify the build handling this invocation.
+ *
+ * A scheduled invocation resolves through whatever alias its EventBridge target names, and
+ * nothing in the logs says which one, so a run can silently execute older code than the last
+ * deploy published. `func.version` is the alias taken from the invoked ARN ('2.6.0', 'v2' or
+ * '$LATEST'), and AWS_LAMBDA_FUNCTION_VERSION is the published version it resolved to.
+ *
+ * @param {UniversalContext} ctx
+ * @returns {Record<string, string|undefined>}
+ */
+export const getBuildInfo = (ctx) => pruneUndefined({
+  invocationId: ctx.invocation?.id,
+  functionVersion: ctx.func?.version,
+  lambdaVersion: process.env.AWS_LAMBDA_FUNCTION_VERSION,
+  fqn: ctx.func?.fqn,
+});
+
+/**
  * Conditionally compress response body
  * @param {UniversalContext} ctx
  * @param {RRequest} req

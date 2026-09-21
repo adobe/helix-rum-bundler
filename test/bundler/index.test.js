@@ -19,7 +19,7 @@ import { promisify } from 'util';
 import bundleRUM, { importEventsByKey, sortRawEvents } from '../../src/bundler/index.js';
 import {
   DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
-  sleep,
+  sleep, ungzip,
 } from '../util.js';
 
 const gzip = promisify(zlib.gzip);
@@ -271,7 +271,7 @@ describe('bundler Tests', () => {
      * Records the order of key processing and object writes, so we can tell whether anything was
      * persisted before the domain finished or only afterwards.
      */
-    const runImport = async (pendingSaveLimit, { failPuts = false } = {}) => {
+    const runImport = async ({ failPuts = false } = {}) => {
       /** @type {string[]} */
       const timeline = [];
       /**
@@ -293,7 +293,7 @@ describe('bundler Tests', () => {
           error: () => {},
         },
         // serial, so the ordering is deterministic
-        env: { PENDING_SAVE_LIMIT: pendingSaveLimit, CONCURRENCY_LIMIT: '1' },
+        env: { CONCURRENCY_LIMIT: '1' },
         attributes: {
           stats: {},
           storage: {
@@ -314,28 +314,36 @@ describe('bundler Tests', () => {
       return timeline;
     };
 
-    it('flushes pending saves before the domain is finished', async () => {
-      const timeline = await runImport('2');
+    /**
+     * Everything a domain touches is stored once, after every key of that domain has been
+     * processed. Storing part way through would re-dirty the manifest that later keys touch and
+     * cost an extra JSON.stringify + gzip of a whole day of sessions, for no memory saved -
+     * `toSave` holds references to objects the LRU cache is holding anyway.
+     */
+    it('stores what a domain touched once its keys are done', async () => {
+      const timeline = await runImport();
 
       const keys = timeline.filter((e) => e.startsWith('key '));
       const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
       const firstPut = timeline.findIndex((e) => e.startsWith('put '));
 
       assert.strictEqual(keys.length, 10, 'sanity: every hour was processed');
-      assert.ok(firstPut >= 0, 'sanity: objects were written');
-      assert.ok(
-        firstPut < lastKey,
-        'expected a flush before the last key of the domain was processed',
-      );
-      // every hour still ends up stored
+      assert.ok(firstPut > lastKey, 'nothing is written until the domain is done');
+      // one write per hour, plus the manifests, each written once
       assert.strictEqual(
         timeline.filter((e) => e.startsWith('put ') && !e.includes('.manifest.')).length,
         10,
       );
+      // only the day's own manifest is dirtied; yesterday's is read but never written
+      assert.strictEqual(
+        timeline.filter((e) => e.startsWith('put ') && e.includes('.manifest.')).length,
+        1,
+        'the manifest is written exactly once, not once per flush',
+      );
     });
 
-    it('keeps going when a flushed object cannot be stored', async () => {
-      const timeline = await runImport('2', { failPuts: true });
+    it('keeps going when an object cannot be stored', async () => {
+      const timeline = await runImport({ failPuts: true });
 
       // the import completes rather than rejecting, and the failure is reported
       assert.ok(
@@ -347,16 +355,6 @@ describe('bundler Tests', () => {
         10,
         'every hour is still processed',
       );
-    });
-
-    it('holds them to the end of the domain when the limit is not reached', async () => {
-      const timeline = await runImport('1000');
-
-      const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
-      const firstPut = timeline.findIndex((e) => e.startsWith('put '));
-
-      assert.strictEqual(lastKey, 9, 'sanity: keys were recorded');
-      assert.ok(firstPut > lastKey, 'nothing should be written until the domain is done');
     });
   });
 
@@ -391,6 +389,64 @@ describe('bundler Tests', () => {
       });
 
       await assertRejectsWithResponse(bundleRUM(ctx), 409);
+    });
+
+    /**
+     * The lock is only removed on a clean exit, so after a crash it is the record of which build
+     * was running - a scheduled invocation resolves through whatever alias its target names, and
+     * nothing else says which one that was.
+     */
+    it('stamps the build onto the lock', async () => {
+      /** @type {string|Record<string, string>} */
+      let lockBody;
+      /** @type {Record<string, string>} */
+      let lockHeaders;
+
+      nock('https://helix-rum-logs.s3.us-east-1.amazonaws.com')
+        .head('/.lock')
+        .reply(404)
+        .put('/.lock?x-id=PutObject')
+        // eslint-disable-next-line func-names
+        .reply(function (_, body) {
+          lockBody = body;
+          lockHeaders = this.req.headers;
+          return [200];
+        })
+        .get('/?list-type=2&max-keys=100&prefix=raw%2F')
+        .reply(200, `<?xml version="1.0" encoding="UTF-8"?>
+          <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+            <Name>helix-rum-logs</Name><Prefix>raw/</Prefix><KeyCount>0</KeyCount>
+            <MaxKeys>100</MaxKeys><IsTruncated>false</IsTruncated>
+          </ListBucketResult>`)
+        .delete('/.lock?x-id=DeleteObject')
+        .reply(200);
+
+      const ctx = DEFAULT_CONTEXT({
+        invocation: { event: { task: 'bundle-rum' }, id: 'test-invocation' },
+        func: { version: '2.6.0', fqn: 'arn:aws:lambda:us-east-1:1:function:helix3--rum-bundler:2_6_0' },
+      });
+      await bundleRUM(ctx);
+
+      // nock hands back a hex string for the gzipped body, or the decoded object
+      const stamped = typeof lockBody === 'string'
+        ? JSON.parse(await ungzip(lockBody))
+        : lockBody;
+      assert.strictEqual(stamped.invocationId, 'test-invocation');
+      assert.strictEqual(stamped.functionVersion, '2.6.0');
+      assert.strictEqual(stamped.fqn, 'arn:aws:lambda:us-east-1:1:function:helix3--rum-bundler:2_6_0');
+      assert.ok(!Number.isNaN(Date.parse(stamped.start)), 'start is an ISO timestamp');
+
+      // also on the metadata, so a HEAD is enough to read it
+      assert.strictEqual(lockHeaders['x-amz-meta-x-invocation-id'], 'test-invocation');
+      assert.strictEqual(lockHeaders['x-amz-meta-x-function-version'], '2.6.0');
+
+      // and logged, so a run that exits cleanly is identifiable too
+      assert.ok(
+        ctx.log.calls.info.some(([line]) => typeof line === 'string'
+          && line.startsWith('{"metric":"bundler-start"')
+          && line.includes('"functionVersion":"2.6.0"')),
+        'expected the build to be logged at startup',
+      );
     });
 
     it('stops reading once the decoded byte budget is spent', async () => {
