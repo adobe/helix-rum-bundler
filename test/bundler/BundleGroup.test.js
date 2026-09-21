@@ -148,6 +148,75 @@ describe('BundleGroup Tests', () => {
     });
   });
 
+  describe('store()', () => {
+    /**
+     * @param {(data: string) => Promise<void>|void} onPut
+     */
+    const ctxWithBucket = (onPut) => ({
+      log: { debug: () => {}, error: () => {} },
+      attributes: {
+        storage: {
+          bundleBucket: { put: (_key, data) => onPut(data) },
+        },
+      },
+    });
+
+    it('stays dirty when the write fails, so it is retried', async () => {
+      const ctx = ctxWithBucket(() => {
+        throw Error('nope');
+      });
+      const group = new BundleGroup(ctx, 'key');
+      group.push('sessionId', mockRawEvent({ id: 1 }));
+      assert.strictEqual(group.active(), true);
+
+      await assert.rejects(group.store(), /nope/);
+      assert.strictEqual(group.active(), true, 'unsaved group must stay dirty');
+    });
+
+    /**
+     * Pending saves are now flushed part way through a domain, so a store can be in flight
+     * while more events are still arriving for the same group.
+     */
+    it('does not drop an event pushed while the write is in flight', async () => {
+      /** @type {string[]} */
+      const written = [];
+      let release;
+      const inFlight = new Promise((resolve) => {
+        release = resolve;
+      });
+
+      const group = new BundleGroup(ctxWithBucket(async (data) => {
+        written.push(data);
+        await inFlight;
+      }), 'key');
+
+      group.push('sessionId', mockRawEvent({ id: 1, checkpoint: 'first' }));
+      const storing = group.store();
+
+      // lands after the data for this store was serialized
+      group.push('sessionId', mockRawEvent({ id: 2, checkpoint: 'second' }));
+      release();
+      await storing;
+
+      assert.strictEqual(group.active(), true, 'the later event leaves the group dirty');
+      assert.ok(!written[0].includes('second'), 'first write could not have included it');
+
+      // ...and the next store picks it up
+      await group.store();
+      assert.ok(written[1].includes('second'), 'second write must include the late event');
+      assert.strictEqual(group.active(), false);
+    });
+
+    it('is a no-op when not dirty', async () => {
+      let puts = 0;
+      const group = new BundleGroup(ctxWithBucket(() => {
+        puts += 1;
+      }), 'key');
+      await group.store();
+      assert.strictEqual(puts, 0);
+    });
+  });
+
   describe('push()', () => {
     it('skips events after limit reached', () => {
       const events = Array.from({ length: 1023 }, (_, i) => mockRawEvent({ id: i }));
