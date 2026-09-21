@@ -12,6 +12,9 @@
 
 import LRUCache from '../support/LRUCache.js';
 import { HelixStorage } from '../support/storage.js';
+import { getEnvVar } from '../support/util.js';
+
+const DEFAULT_CACHE_LIMIT = 600;
 
 export default class Manifest {
   /**
@@ -131,7 +134,10 @@ export default class Manifest {
     const key = `${domain}/${year}/${month}/${day}`;
 
     if (!ctx.attributes.rumManifests) {
-      ctx.attributes.rumManifests = new LRUCache({ name: 'Manifest' });
+      ctx.attributes.rumManifests = new LRUCache({
+        name: 'Manifest',
+        limit: getEnvVar(ctx, 'MANIFEST_CACHE_LIMIT', DEFAULT_CACHE_LIMIT, 'integer'),
+      });
     }
 
     if (ctx.attributes.rumManifests.has(key)) {
