@@ -32,12 +32,17 @@ import Profiler from '../support/Profiler.js';
 
 const DEFAULT_BYTE_LIMIT = 100 * 1024 * 1024; // 100mb, compressed
 /**
- * Anchored to BYTE_LIMIT at a typical gzip ratio for line-delimited event JSON, so that in the
- * normal case the compressed limit still binds first and this one never triggers. It exists to
- * catch the batches that compress far better than usual, where the same compressed budget buys
- * several times as many events.
+ * This has to sit BELOW what a normal batch decodes to, not above it.
+ *
+ * It was previously anchored to BYTE_LIMIT at a typical gzip ratio, which made it a no-op in the
+ * normal case by construction - the compressed limit bound first and this one only caught
+ * unusually compressible batches. The lambda then ran out of memory on a batch that was not
+ * unusual, so the limit never engaged. Peak memory measures at >5x the decoded size, since the
+ * parsed events, the bundles built from them and the bundle groups hydrated from storage are all
+ * live at once, so the decoded budget must be a fraction of the memory ceiling rather than a
+ * translation of the compressed one.
  */
-const DEFAULT_DECODED_BYTE_LIMIT = DEFAULT_BYTE_LIMIT * 8;
+const DEFAULT_DECODED_BYTE_LIMIT = 256 * 1024 * 1024; // 256mb, uncompressed
 const DEFAULT_BATCH_LIMIT = 100;
 const DEFAULT_CONCURRENCY_LIMIT = 4;
 const DEFAULT_DURATION_LIMIT = 9 * 60 * 1000;
