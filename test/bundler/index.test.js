@@ -16,7 +16,7 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import zlib from 'zlib';
 import { promisify } from 'util';
-import bundleRUM, { sortRawEvents } from '../../src/bundler/index.js';
+import bundleRUM, { importEventsByKey, sortRawEvents } from '../../src/bundler/index.js';
 import {
   DEFAULT_CONTEXT, Nock, assertRejectsWithResponse, mockDate,
   sleep,
@@ -241,6 +241,122 @@ describe('bundler Tests', () => {
           hour: 1,
         },
       });
+    });
+  });
+
+  describe('importEventsByKey()', () => {
+    /**
+     * One domain across many hours, ie. the shape a backlog produces: every hour is a separate
+     * bundle group, and all of them stay dirty until stored.
+     */
+    const hourlyMap = (hours) => Object.fromEntries(
+      Array.from({ length: hours }, (_, hour) => [
+        `/example.com/2024/1/2/${hour}.json`,
+        {
+          info: {
+            domain: 'example.com', year: 2024, month: 1, day: 2, hour,
+          },
+          events: [{
+            id: `event-${hour}`,
+            url: 'https://example.com/',
+            time: Date.UTC(2024, 0, 2, hour),
+            checkpoint: 'top',
+            weight: 100,
+          }],
+        },
+      ]),
+    );
+
+    /**
+     * Records the order of key processing and object writes, so we can tell whether anything was
+     * persisted before the domain finished or only afterwards.
+     */
+    const runImport = async (pendingSaveLimit, { failPuts = false } = {}) => {
+      /** @type {string[]} */
+      const timeline = [];
+      /**
+       * NOTE: built by hand rather than with DEFAULT_CONTEXT. Its log is a Proxy whose `get`
+       * trap always returns the recorder, so assigning `ctx.log.debug` is silently ignored and
+       * the ordering below would never be captured.
+       */
+      const ctx = {
+        log: {
+          debug: (...args) => {
+            if (typeof args[0] === 'string' && args[0].startsWith('processing ')) {
+              timeline.push(`key ${args[0]}`);
+            }
+          },
+          info: () => {},
+          warn: (...args) => {
+            timeline.push(`warn ${args[0]}`);
+          },
+          error: () => {},
+        },
+        // serial, so the ordering is deterministic
+        env: { PENDING_SAVE_LIMIT: pendingSaveLimit, CONCURRENCY_LIMIT: '1' },
+        attributes: {
+          stats: {},
+          storage: {
+            bundleBucket: {
+              get: async () => null,
+              put: async (key) => {
+                timeline.push(`put ${key}`);
+                if (failPuts) {
+                  throw Error('storage is down');
+                }
+              },
+            },
+          },
+        },
+      };
+
+      await importEventsByKey(ctx, hourlyMap(10));
+      return timeline;
+    };
+
+    it('flushes pending saves before the domain is finished', async () => {
+      const timeline = await runImport('2');
+
+      const keys = timeline.filter((e) => e.startsWith('key '));
+      const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
+      const firstPut = timeline.findIndex((e) => e.startsWith('put '));
+
+      assert.strictEqual(keys.length, 10, 'sanity: every hour was processed');
+      assert.ok(firstPut >= 0, 'sanity: objects were written');
+      assert.ok(
+        firstPut < lastKey,
+        'expected a flush before the last key of the domain was processed',
+      );
+      // every hour still ends up stored
+      assert.strictEqual(
+        timeline.filter((e) => e.startsWith('put ') && !e.includes('.manifest.')).length,
+        10,
+      );
+    });
+
+    it('keeps going when a flushed object cannot be stored', async () => {
+      const timeline = await runImport('2', { failPuts: true });
+
+      // the import completes rather than rejecting, and the failure is reported
+      assert.ok(
+        timeline.some((e) => e.startsWith('warn failed to store bundle')),
+        'expected the store failure to be logged',
+      );
+      assert.strictEqual(
+        timeline.filter((e) => e.startsWith('key ')).length,
+        10,
+        'every hour is still processed',
+      );
+    });
+
+    it('holds them to the end of the domain when the limit is not reached', async () => {
+      const timeline = await runImport('1000');
+
+      const lastKey = timeline.findLastIndex((e) => e.startsWith('key '));
+      const firstPut = timeline.findIndex((e) => e.startsWith('put '));
+
+      assert.strictEqual(lastKey, 9, 'sanity: keys were recorded');
+      assert.ok(firstPut > lastKey, 'nothing should be written until the domain is done');
     });
   });
 
