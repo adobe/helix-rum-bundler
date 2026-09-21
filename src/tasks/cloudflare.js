@@ -17,7 +17,7 @@
 import { Response } from '@adobe/fetch';
 import processQueue from '@adobe/helix-shared-process-queue';
 import { HelixStorage } from '../support/storage.js';
-import { errorWithResponse, getEnvVar } from '../support/util.js';
+import { errorWithResponse, getBuildInfo, getEnvVar } from '../support/util.js';
 import { loop } from '../support/loop.js';
 
 const DEFAULT_BATCH_LIMIT = 1000;
@@ -39,7 +39,20 @@ async function lockOrThrow(ctx) {
   if (head) {
     throw errorWithResponse(409, 'processing in progress', `processing started at ${head.LastModified}`);
   }
-  await cloudflareLogBucket.put('.lock', '', 'text/plain', undefined, { 'x-invocation-id': ctx.invocation?.id }, undefined);
+  // stamped with the build, see lockOrThrow in bundler/index.js
+  const build = { ...getBuildInfo(ctx), start: new Date().toISOString() };
+  await cloudflareLogBucket.put(
+    '.lock',
+    JSON.stringify(build),
+    'application/json',
+    undefined,
+    {
+      'x-invocation-id': build.invocationId,
+      'x-function-version': build.functionVersion,
+      'x-lambda-version': build.lambdaVersion,
+    },
+    undefined,
+  );
 }
 
 /**

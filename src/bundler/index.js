@@ -16,7 +16,7 @@ import { HelixStorage } from '../support/storage.js';
 import Manifest from './Manifest.js';
 import BundleGroup from './BundleGroup.js';
 import {
-  errorWithResponse, getEnvVar, yesterday,
+  errorWithResponse, getBuildInfo, getEnvVar, yesterday,
 } from '../support/util.js';
 import { loop } from '../support/loop.js';
 import { getDomainTable, isNewDomain, setDomainKey } from '../support/domains.js';
@@ -66,7 +66,28 @@ async function lockOrThrow(ctx) {
   if (head) {
     throw errorWithResponse(409, 'bundling in progress', `bundling started at ${head.LastModified}`);
   }
-  await logBucket.put('.lock', '', 'text/plain', undefined, { 'x-invocation-id': ctx.invocation?.id }, undefined);
+
+  /**
+   * Stamp the build onto the lock. The lock is only removed on a clean exit, so after a crash it
+   * stays behind holding the version that died - which is otherwise awkward to establish, since
+   * a scheduled invocation resolves through whatever alias its target names and the logs do not
+   * say which. Also logged, so a successful run is identifiable without fetching the object.
+   */
+  const build = { ...getBuildInfo(ctx), start: new Date().toISOString() };
+  ctx.log.info(JSON.stringify({ metric: 'bundler-start', ...build }));
+
+  await logBucket.put(
+    '.lock',
+    JSON.stringify(build),
+    'application/json',
+    undefined,
+    {
+      'x-invocation-id': build.invocationId,
+      'x-function-version': build.functionVersion,
+      'x-lambda-version': build.lambdaVersion,
+    },
+    undefined,
+  );
 }
 
 /**
