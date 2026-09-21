@@ -38,9 +38,11 @@ export default class LRUCache {
 
   #purge() {
     let rm = 0;
+    // NOTE: oldest first. Sorting the other way round evicts the entries that were _just_ used
+    // and leaves the stale ones resident for the lifetime of the invocation.
     [...this.#map.entries()]
-      .sort((a, b) => b[1].t - a[1].t)
-      .slice(0, this.limit * this.threshold)
+      .sort((a, b) => a[1].t - b[1].t)
+      .slice(0, Math.ceil(this.limit * this.threshold))
       .forEach(([key, { v }]) => {
         if (v instanceof Promise) {
           return;
