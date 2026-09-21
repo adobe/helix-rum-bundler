@@ -102,12 +102,19 @@ export default class Manifest {
   }
 
   async store() {
-    if (this.dirty) {
+    if (!this.dirty) {
+      return;
+    }
+    // cleared before serializing, see BundleGroup#store
+    this.dirty = false;
+    try {
       const data = JSON.stringify({ sessions: this.sessions });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       // this.ctx.log.debug(`storing manifest to ${this.key}/.manifest.json`);
       await bundleBucket.put(`${this.key}/.manifest.json`, data, 'application/json', undefined, undefined, undefined, { quiet: true });
-      this.dirty = false;
+    } catch (e) {
+      this.dirty = true;
+      throw e;
     }
   }
 

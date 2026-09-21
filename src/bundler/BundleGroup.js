@@ -134,12 +134,24 @@ export default class BundleGroup {
   }
 
   async store() {
-    if (this.dirty) {
+    if (!this.dirty) {
+      return;
+    }
+    /**
+     * Cleared before serializing, not after storing: a push that lands while the store is in
+     * flight marks the group dirty again and is picked up by the next one. Clearing afterwards
+     * would drop that event, since it is in `bundles` but not in the data already sent.
+     */
+    this.dirty = false;
+    try {
       const data = JSON.stringify({ bundles: this.bundles });
       const { bundleBucket } = HelixStorage.fromContext(this.ctx);
       // this.ctx.log.debug(`storing bundles to ${this.key}.json`);
       await bundleBucket.put(`${this.key}.json`, data, 'application/json', undefined, undefined, undefined, { quiet: true });
-      this.dirty = false;
+    } catch (e) {
+      // still unsaved, so it has to stay dirty to be retried
+      this.dirty = true;
+      throw e;
     }
   }
 
