@@ -166,15 +166,18 @@ async function doProcessing(ctx) {
         return;
       }
 
-      // parse all events, drop invalid
+      // parse all events, drop invalid, into a buffer local to this file
       const lines = txt.split('\n');
       rawEvents += lines.length;
+      /** @type {RawRUMEvent[]} */
+      const parsed = [];
+      let parsedSize = 0;
       lines.forEach((line) => {
         try {
           const event = adaptCloudflareEvent(ctx, JSON.parse(line));
           if (event) {
-            events.push(event);
-            estimatedSize += line.length; // use rough 1byte/char
+            parsed.push(event);
+            parsedSize += line.length; // use rough 1byte/char
           } else {
             discardedEvents += 1;
           }
@@ -183,19 +186,28 @@ async function doProcessing(ctx) {
         }
       });
 
-      totalEvents += events.length;
+      /**
+       * Merge into the shared buffer and decide whether to flush, without awaiting in between.
+       * The buffer spans files - several source files are combined into one output - so the
+       * counters have to be updated from this file's own parse, not from the buffer's length.
+       */
+      let flush;
+      events.push(...parsed);
+      estimatedSize += parsedSize;
+      totalEvents += parsed.length;
       lastKey = key;
-      await cloudflareLogBucket.remove(key);
-
-      if (estimatedSize < fileSizeLimit) {
-        return;
+      if (estimatedSize >= fileSizeLimit) {
+        flush = { key, data: events.map((e) => JSON.stringify(e)).join('\n') };
+        events = [];
+        estimatedSize = 0;
       }
 
-      // combine events back into single line-delimited file & move to main bucket
-      const combined = events.map((e) => JSON.stringify(e)).join('\n');
-      estimatedSize = 0;
-      events = [];
-      await logBucket.put(getNewKey(key), combined);
+      await cloudflareLogBucket.remove(key);
+
+      if (flush) {
+        // combine events back into single line-delimited file & move to main bucket
+        await logBucket.put(getNewKey(flush.key), flush.data);
+      }
     },
     concurrency,
   );
