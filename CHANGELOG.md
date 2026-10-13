@@ -1,3 +1,11 @@
+## [2.7.6](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.5...v2.7.6) (2026-10-13)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/fetch to v4.3.2 ([#537](https://github.com/adobe/[secure]-rum-bundler/issues/537)) ([29a2d1d](https://github.com/adobe/[secure]-rum-bundler/commit/29a2d1dbfcf5e73c41feebb489e8b12fc3230495))
+* **deps:** update external fixes to v3.1142.0 ([#538](https://github.com/adobe/[secure]-rum-bundler/issues/538)) ([8b2d5a0](https://github.com/adobe/[secure]-rum-bundler/commit/8b2d5a01d5517cb2f5a53e5984aa29d65d63f2b6))
+
 ## [2.7.5](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.4...v2.7.5) (2026-10-05)
 
 
