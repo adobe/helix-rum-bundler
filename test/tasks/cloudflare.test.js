@@ -125,6 +125,63 @@ describe('cloudflare tests', () => {
     });
   });
 
+  describe('event accounting', () => {
+    /**
+     * The buffer spans source files, so several are combined into one output file. `totalEvents`
+     * was being incremented by the whole buffer's length on every file, which counts earlier
+     * files again each time a later one is processed.
+     */
+    it('counts each event once when files are combined', async () => {
+      const perFile = 4;
+      const files = ['a', 'b', 'c'];
+      const written = [];
+      const ctx = DEFAULT_CONTEXT({
+        // large target, so everything lands in the single trailing flush
+        env: { CF_LOG_SIZE_TARGET: '100000000', CONCURRENCY: '1' },
+        attributes: {
+          stats: {},
+          storage: {
+            cloudflareLogBucket: {
+              head: async () => null,
+              put: async () => {},
+              remove: async () => {},
+              list: async () => ({
+                objects: files.map((f) => ({ key: `raw/2024010${f}/20240101T000000000`, contentType: 'text/plain' })),
+                isTruncated: false,
+              }),
+              get: async () => Buffer.from(makeEventFile(
+                ...new Array(perFile).fill(0).map((_, i) => toCloudflareEntry({
+                  id: `e${i}`, url: 'https://example.com/', time: 1, checkpoint: 'top', weight: 100,
+                })),
+              )),
+            },
+            logBucket: {
+              put: async (_key, data) => {
+                written.push(data);
+              },
+            },
+          },
+        },
+      });
+
+      await processCloudflareEvents(ctx);
+
+      const lines = written.join('\n').split('\n').filter((l) => l.trim());
+      assert.strictEqual(lines.length, files.length * perFile, 'every event is written exactly once');
+
+      // loop() resets ctx.attributes.stats after each iteration, so read the reported line
+      const [perfLog] = ctx.log.calls.info
+        .map(([l]) => l)
+        .filter((l) => typeof l === 'string' && l.startsWith('{"metric":"bundler-performance"'));
+      const { stats } = JSON.parse(perfLog);
+      assert.strictEqual(
+        stats.totalEvents,
+        files.length * perFile,
+        'totalEvents must not re-count the buffer on each file',
+      );
+    });
+  });
+
   describe('adaptCloudflareEvent()', () => {
     it('ignores missing JSON message', () => {
       const adapted = adaptCloudflareEvent(DEFAULT_CONTEXT(), { Logs: [{ Message: ['not json'] }] });

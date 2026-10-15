@@ -12,3 +12,4 @@ test-results.xml
 test/dev/tools/.local
 test/dev/tools/profiler/index.html
 test/dev/profiler/*.json
+.local
