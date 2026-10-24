@@ -105,6 +105,8 @@ declare global {
     value?: number;
     source?: string;
     target?: string;
+    /** only present when it differs from the bundle's userAgent */
+    userAgent?: string;
   }
 
   export interface RUMBundle {

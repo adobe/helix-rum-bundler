@@ -74,6 +74,10 @@ export const getEventProperties = (event, bundle) => {
     host: undefined,
     url: undefined,
     user_agent: undefined,
+    // keep the event's own user agent only when it differs from the bundle's,
+    // e.g. a `bot:untrusted` or `bot:hidden` click inside a human pageview.
+    // the common case (same UA) stays pruned, so bundles do not grow.
+    userAgent: event.user_agent !== bundle.userAgent ? event.user_agent : undefined,
     referer: undefined,
     weight: undefined,
     source: event.source ?? undefined,
