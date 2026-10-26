@@ -26,7 +26,7 @@
     "target": "aws",
     "name": "helix3/rum-bundler@${version}",
     "testUrl": "/_status_check/healthcheck.json",
-    "awsRole!important": "arn:aws:iam::118435662149:role/helix-service-role-rum-bundler",
+    "awsRole!important": "${env.HLX_LAMBDA_ROLE}",
     "awsRegion": "us-east-1",
     "memory": 10240,
     "fastlyServiceId!important": "",
@@ -70,7 +70,7 @@
   },
   "devDependencies": {
     "@adobe/eslint-config-helix": "2.0.9",
-    "@adobe/helix-deploy": "12.4.39",
+    "@adobe/helix-deploy": "14.5.3",
     "@adobe/helix-universal": "5.4.4",
     "@adobe/helix-universal-devserver": "1.1.151",
     "@google-cloud/bigquery": "7.9.4",
