@@ -1,3 +1,11 @@
+# [2.8.0](https://github.com/adobe/helix-rum-bundler/compare/v2.7.9...v2.8.0) (2026-10-27)
+
+
+### Features
+
+* use shared workflow ([07a2555](https://github.com/adobe/helix-rum-bundler/commit/07a25556427b88404c2f090606bfd3dcfd57f6a7))
+* Use shared workflow template ([039e48c](https://github.com/adobe/helix-rum-bundler/commit/039e48c05b43b751fddcf294147f6b36d314aefe))
+
 ## [2.7.9](https://github.com/adobe/[secure]-rum-bundler/compare/v2.7.8...v2.7.9) (2026-10-27)
 
 
