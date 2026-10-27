@@ -1,11 +1,14 @@
 name: Build
-on: [push]
-
-env:
-  CI_BUILD_NUM: ${{ github.run_id }}
-  CI_BRANCH: ${{ github.ref_name }}
-  AWS_DEPLOY_ROLE: arn:aws:iam::118435662149:role/helix-gh-deploy-config-service
-  AWS_DEPLOY_SECRET_ID: /helix/github-action-secrets
+run-name: ${{ github.event_name == 'workflow_dispatch' && github.run_id || '' }}
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      mode:        { type: choice, options: [ci, deploy], default: ci }
+      ref:         { description: Tag or branch to deploy, required: false }
+      account_id:  { description: Target AWS account ID, required: false }
+      lambda_role: { description: Lambda execution role name, required: false }
+      run_id:      { description: Unique marker used as the run name, required: false, type: string }
 
 permissions:
   id-token: write
@@ -13,100 +16,14 @@ permissions:
   issues: read # needed by semantic-release
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-      - run: npm install
-      - run: npm test
-      - uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  test-deploy:
-    name: Test Deploy
-    runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/main'
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-      - run: npm install
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
-      - name: Fetch AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          parse-json-secrets: true
-          secret-ids: |
-            ${{ env.AWS_DEPLOY_SECRET_ID }}
-      # see https://github.com/aws-actions/aws-secretsmanager-get-secrets/issues/11
-      - name: unprefix variables
-        run: |
-          for variable in "${!_HELIX_GITHUB_ACTION_SECRETS_@}"; do
-            echo "${variable#_HELIX_GITHUB_ACTION_SECRETS_}=${!variable}" >> $GITHUB_ENV
-          done
-      - name: Branch Deployment
-        run: npm run deploy-ci
-        env:
-          HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
-      - name: Post-Deployment Integration Test
-        run: npm run test-postdeploy
-        env:
-          HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
-          TEST_DOMAINKEY_AUTH: ${{ secrets.TEST_DOMAINKEY_AUTH }}
-      - name: Semantic Release (Dry Run)
-        run: npm run semantic-release-dry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-      - run: npm install
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
-      - name: Fetch AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          parse-json-secrets: true
-          secret-ids: |
-            ${{ env.AWS_DEPLOY_SECRET_ID }}
-      # see https://github.com/aws-actions/aws-secretsmanager-get-secrets/issues/11
-      - name: unprefix variables
-        run: |
-          for variable in "${!_HELIX_GITHUB_ACTION_SECRETS_@}"; do
-            echo "${variable#_HELIX_GITHUB_ACTION_SECRETS_}=${!variable}" >> $GITHUB_ENV
-          done
-
-      - name: Semantic Release
-        run: npm run semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HLX_TEST_HEADERS: ${{ secrets.HLX_TEST_HEADERS }}
-          TEST_DOMAINKEY_AUTH: ${{ secrets.TEST_DOMAINKEY_AUTH }}
+  ci:
+    uses: adobe/helix-shared-workflows/.github/workflows/lambda.yaml@v1
+    with:
+      mode:         ${{ inputs.mode || 'ci' }}
+      ref:          ${{ inputs.ref }}
+      account-id:   ${{ inputs.account_id }}
+      lambda-role:  ${{ inputs.lambda_role || 'helix-service-role-rum-bundler' }}
+      node-version: '22.x'
+      lint: false
+      env-secrets: TEST_DOMAINKEY_AUTH
+    secrets: inherit
