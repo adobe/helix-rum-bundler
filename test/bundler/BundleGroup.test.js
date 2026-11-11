@@ -217,6 +217,47 @@ describe('BundleGroup Tests', () => {
     });
   });
 
+  describe('per-event user agent', () => {
+    const HUMAN = 'desktop:windows';
+    const click = (user_agent) => mockRawEvent({ checkpoint: 'click', user_agent });
+
+    it('omits the user agent when it matches the bundle', () => {
+      const bundle = getBundleProperties(mockRawEvent({ user_agent: HUMAN }));
+      const eventProps = getEventProperties(click(HUMAN), bundle);
+      assert.deepStrictEqual(eventProps, { checkpoint: 'click', timeDelta: 1 });
+    });
+
+    it('keeps the user agent when it differs from the bundle', () => {
+      const bundle = getBundleProperties(mockRawEvent({ user_agent: HUMAN }));
+      for (const ua of ['bot:untrusted', 'bot:hidden']) {
+        const eventProps = getEventProperties(click(ua), bundle);
+        assert.deepStrictEqual(eventProps, { checkpoint: 'click', timeDelta: 1, userAgent: ua });
+      }
+    });
+
+    it('does not add a user agent to an event that has none', () => {
+      const bundle = getBundleProperties(mockRawEvent({ user_agent: HUMAN }));
+      const evt = click(HUMAN);
+      evt.user_agent = undefined; // a default parameter would otherwise fill it in
+      const eventProps = getEventProperties(evt, bundle);
+      assert.deepStrictEqual(eventProps, { checkpoint: 'click', timeDelta: 1 });
+    });
+
+    it('records mixed clicks within one bundle, recoverably', () => {
+      const bundleGrp = new BundleGroup({ log: { debug: () => {} } }, 'key');
+      const top = mockRawEvent({ checkpoint: 'top', user_agent: HUMAN });
+      const raw = [top, click(HUMAN), click('bot:untrusted')];
+      raw.forEach((e) => bundleGrp.push('s', e));
+      const { userAgent, events } = bundleGrp.bundles.s;
+      assert.strictEqual(userAgent, HUMAN);
+      const perEvent = events.map((e) => e.userAgent);
+      assert.deepStrictEqual(perEvent, [undefined, undefined, 'bot:untrusted']);
+      // every event's original user agent is recoverable from the bundle
+      const recovered = events.map((e) => e.userAgent ?? userAgent);
+      assert.deepStrictEqual(recovered, raw.map((e) => e.user_agent));
+    });
+  });
+
   describe('push()', () => {
     it('skips events after limit reached', () => {
       const events = Array.from({ length: 1023 }, (_, i) => mockRawEvent({ id: i }));
