@@ -1,3 +1,11 @@
+# [2.9.0](https://github.com/adobe/helix-rum-bundler/compare/v2.8.0...v2.9.0) (2026-11-11)
+
+
+### Features
+
+* **bundler:** keep an event's user agent when it differs from the bundle's ([09b37d8](https://github.com/adobe/helix-rum-bundler/commit/09b37d8075bda1591c2539acdacde2cb95859363))
+* **bundler:** type the optional per-event userAgent ([7c9e326](https://github.com/adobe/helix-rum-bundler/commit/7c9e326e8fc8684620859eeba244c80a0ccf65aa))
+
 # [2.8.0](https://github.com/adobe/helix-rum-bundler/compare/v2.7.9...v2.8.0) (2026-10-27)
 
 
