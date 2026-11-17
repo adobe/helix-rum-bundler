@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/adobe/helix-rum-bundler/compare/v2.9.0...v2.9.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#549](https://github.com/adobe/helix-rum-bundler/issues/549)) ([5474c60](https://github.com/adobe/helix-rum-bundler/commit/5474c6066e1551c70cb755c04404800b6a1b1cdf))
+
 # [2.9.0](https://github.com/adobe/helix-rum-bundler/compare/v2.8.0...v2.9.0) (2026-11-11)
 
 
